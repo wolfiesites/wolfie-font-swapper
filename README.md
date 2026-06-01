@@ -9,17 +9,18 @@ Autor: **Wolfie Paweł Witek**
 ## ✨ Funkcje
 
 - **Wyszukiwalny dropdown (async)** — zacznij pisać nazwę fontu (np. `Roboto`, `Inter`, `Georgia`). Wyszukiwanie jest **debounce'owane (~0,8 s)** — po chwili od ostatniego znaku lista filtruje się dynamicznie „on the fly" (z chwilowym wskaźnikiem „Szukam…"). Lista ładuje się **partiami i doładowuje przy przewijaniu** w dół (lazy-load po 60 pozycji), więc nawet 300+ fontów nie spowalnia popovera.
-- **Google Fonts + fonty systemowe** — ponad 300 rodzin z Google Fonts (ładowane dynamicznie) oraz typowe fonty systemowe. Każda pozycja ma znacznik **Google** / **System**.
-- **Trzy niezależne dropdowny:**
+- **Google Fonts + fonty systemowe** — ponad 300 rodzin z Google Fonts (ładowane dynamicznie) oraz fonty systemowe. Po pierwszym kliknięciu w pole wyszukiwania dodatek (za jednorazową zgodą) **enumeruje realnie zainstalowane fonty** przez Local Font Access API — bez dodatkowych uprawnień w manifeście. Każda pozycja ma znacznik **Google** / **System**, a najpopularniejsze Google Fonts są przypięte na górze (★).
+- **Pięć niezależnych sekcji (dropdownów):**
   - **Cała strona** — ustawia `font-family` na całym dokumencie.
   - **Nagłówki** (`h1`–`h6`) — opcjonalny, nadpisuje nagłówki.
   - **Akapity** (`p`) — opcjonalny, nadpisuje akapity.
   - **Nawigacja** (`nav`, `[role="navigation"]`, `.navbar`, `.menu`, `header ul`…) — opcjonalny, nadpisuje elementy nawigacji.
   - **Przyciski** (`button`, `[role="button"]`, `.btn`, `input[type=submit]`…) — opcjonalny; oprócz fontu/grubości/odstępu/rozmiaru ma chipy **Wielkość liter** (`text-transform`: ABC / abc / Abc).
-- **Chipy pod każdym dropdownem** — szybkie, opcjonalne presety (klik = włącz, klik ponownie = wyłącz), osobno dla każdego targetu:
-  - **Grubość**: Light (300) / Regular (400) / Bold (700),
+- **Chipy pod każdą sekcją** — szybkie, opcjonalne presety (klik = włącz, klik ponownie = wyłącz), osobno dla każdego targetu:
+  - **Grubość**: Light (300) / Regular (400) / Bold (700) / Extra Bold (800),
   - **Odstęp liter**: Ciasno (−0.5px) / 0 / Luźno (1.5px),
-  - **Rozmiar**: S (14px) / M (18px) / L (24px).
+  - **Rozmiar**: S (14px) / M (18px) / L (24px),
+  - **Wielkość liter** (tylko Przyciski): ABC / abc / Abc (`text-transform`).
   
   Uwaga: rozmiar dla „Całej strony" jest wymuszany na wszystkich elementach (`!important`), więc spłaszcza hierarchię — przydatne do podglądu, niekoniecznie do produkcji.
 - **Automatyczne wstrzykiwanie stylu** — zmiana widoczna natychmiast po wyborze.
@@ -63,13 +64,16 @@ Autor: **Wolfie Paweł Witek**
 
 ```
 wolfie-font-swapper/
-├── manifest.json     # Manifest V3, uprawnienia, skrót klawiszowy
+├── manifest.json     # Manifest V3, uprawnienia, skrót klawiszowy, strona opcji
 ├── background.js     # Service worker (rejestracja skrótu)
 ├── popup.html        # UI popovera
 ├── popup.css         # Style popovera
-├── popup.js          # Logika: dropdowny, wstrzykiwanie, snippety, kopiowanie
-├── fonts.js          # Lista fontów (Google + systemowe)
-├── icons/            # Ikony 16/48/128 px
+├── popup.js          # Logika: dropdowny, wstrzykiwanie, presety, snippety
+├── fonts.js          # Lista fontów (Google + systemowe) + popularne
+├── i18n.js           # Tłumaczenia (9 języków) + helper t()
+├── options.html      # Strona opcji (przełącznik języka)
+├── options.js        # Logika opcji
+├── icons/            # Ikony 16/48/128 px + wolfie-logo.svg
 └── README.md
 ```
 

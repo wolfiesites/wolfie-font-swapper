@@ -8,3 +8,21 @@ package.json
 package-lock.json
 *.mjs
 preview*.png
+
+# Sekrety / poufne — NIGDY nie commituj
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+secrets.json
+credentials.json
+*.local
+
+# Edytory / IDE / system
+.vscode/
+.idea/
+*.swp
+*.swo
+ehthumbs.db
