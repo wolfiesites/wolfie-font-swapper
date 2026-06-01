@@ -1,105 +1,117 @@
 # 🐺 Wolfie Font Swapper
 
-Prosty dodatek do Chrome do **szybkiej podmiany i podglądu fontów** na dowolnej stronie WWW. Wybierasz font z wyszukiwalnego dropdownu, a styl jest **automatycznie wstrzykiwany** na stronę — bez przeładowania.
+A simple Chrome extension for **quickly swapping and previewing fonts** on any web page. Pick a font from a searchable dropdown and the style is **injected instantly** — no reload.
 
-Autor: **Wolfie Paweł Witek**
+Author: **Wolfie Paweł Witek**
 
-![Wolfie Font Swapper — demo](store/usage.gif)
-
----
-
-## ✨ Funkcje
-
-- **Wyszukiwalny dropdown (async)** — zacznij pisać nazwę fontu (np. `Roboto`, `Inter`, `Georgia`). Wyszukiwanie jest **debounce'owane (~0,8 s)** — po chwili od ostatniego znaku lista filtruje się dynamicznie „on the fly" (z chwilowym wskaźnikiem „Szukam…"). Lista ładuje się **partiami i doładowuje przy przewijaniu** w dół (lazy-load po 60 pozycji), więc nawet 300+ fontów nie spowalnia popovera.
-- **Google Fonts + fonty systemowe** — ponad 300 rodzin z Google Fonts (ładowane dynamicznie) oraz fonty systemowe. Po pierwszym kliknięciu w pole wyszukiwania dodatek (za jednorazową zgodą) **enumeruje realnie zainstalowane fonty** przez Local Font Access API — bez dodatkowych uprawnień w manifeście. Każda pozycja ma znacznik **Google** / **System**, a najpopularniejsze Google Fonts są przypięte na górze (★).
-- **Pięć niezależnych sekcji (dropdownów):**
-  - **Cała strona** — ustawia `font-family` na całym dokumencie.
-  - **Nagłówki** (`h1`–`h6`) — opcjonalny, nadpisuje nagłówki.
-  - **Akapity** (`p`) — opcjonalny, nadpisuje akapity.
-  - **Nawigacja** (`nav`, `[role="navigation"]`, `.navbar`, `.menu`, `header ul`…) — opcjonalny, nadpisuje elementy nawigacji.
-  - **Przyciski** (`button`, `[role="button"]`, `.btn`, `input[type=submit]`…) — opcjonalny; oprócz fontu/grubości/odstępu/rozmiaru ma chipy **Wielkość liter** (`text-transform`: ABC / abc / Abc).
-- **Chipy pod każdą sekcją** — szybkie, opcjonalne presety (klik = włącz, klik ponownie = wyłącz), osobno dla każdego targetu:
-  - **Grubość**: Light (300) / Regular (400) / Bold (700) / Extra Bold (800),
-  - **Odstęp liter**: Ciasno (−0.5px) / 0 / Luźno (1.5px),
-  - **Rozmiar**: S (14px) / M (18px) / L (24px),
-  - **Wielkość liter** (tylko Przyciski): ABC / abc / Abc (`text-transform`).
-  
-  Uwaga: rozmiar dla „Całej strony" jest wymuszany na wszystkich elementach (`!important`), więc spłaszcza hierarchię — przydatne do podglądu, niekoniecznie do produkcji.
-- **Automatyczne wstrzykiwanie stylu** — zmiana widoczna natychmiast po wyborze.
-- **Fonty Google ładowane fizycznie z pominięciem CSP** — rozszerzenie pobiera pliki `.woff2` własnym `fetch`, osadza je jako `data:`-URL i wstrzykuje przez `insertCSS`, więc podgląd działa nawet na stronach blokujących zewnętrzne fonty.
-- **Presety (do 5)** — zapisz bieżące ustawienia jako preset, wczytaj jednym kliknięciem, usuń ✕. Presety są **trwałe między sesjami** (`chrome.storage.local`) i **niezależne od resetu** stylów.
-- **Tłumaczenia (9 języków)** — PL, EN, FR, DE, ES, UK, RU, RO, IT. Domyślnie język przeglądarki; w **opcjach dodatku** (ikona koła zębatego w nagłówku) jest przełącznik języka. Wybór trzymany w `localStorage`, wspólny dla popupu i opcji.
-- **Reset jednym kliknięciem** — przycisk „↺ Resetuj" usuwa cały wstrzyknięty styl i wczytane fonty (presety zostają).
-- **Skrót klawiszowy `Ctrl+Shift+L`** (`⌘+Shift+L` na macOS) — otwiera popover.
-- **Snippet do skopiowania** — po wyborze fontu na dole pojawia się gotowy kod w zakładkach:
-  - **CSS** — z `@import` Google Fonts i regułami `font-family`.
-  - **SCSS** — ze zmiennymi (`$font-base`, `$font-heading`, `$font-paragraph`).
-  - **JS** — dynamiczne wstrzyknięcie `<link>` + `<style>` z poziomu JavaScriptu.
-  
-  Przycisk **⧉ Kopiuj** wrzuca aktualny snippet do schowka.
+![Wolfie Font Swapper — how to use](store/usage.gif)
 
 ---
 
-## 🧩 Instalacja (tryb deweloperski)
+## ✨ Features
 
-1. Otwórz `chrome://extensions`.
-2. Włącz **Tryb programisty** (przełącznik w prawym górnym rogu).
-3. Kliknij **Wczytaj rozpakowane** i wskaż folder `wolfie-font-swapper`.
-4. Gotowe — przypnij ikonę i naciśnij `Ctrl+Shift+L`, by otworzyć popover.
+- **Searchable dropdown (async)** — start typing a font name (e.g. `Roboto`, `Inter`, `Georgia`). Search is **debounced (~0.8 s)** and filters on the fly (with a brief "Searching…" hint). The list renders in batches and **lazy-loads on scroll**, so 300+ fonts never slow the popover down.
+- **Google Fonts + system fonts** — 300+ Google families (loaded on demand) plus your system fonts. On first focus of a search field the extension (with one‑time consent) **enumerates the fonts actually installed** on your machine via the Local Font Access API — no extra manifest permission. Each entry is tagged **Google** / **System**, and the most popular Google Fonts are pinned to the top (★).
+- **Five independent sections:**
+  - **Whole page** — sets `font-family` on the whole document.
+  - **Headings** (`h1`–`h6`) — optional override.
+  - **Paragraphs** (`p`) — optional override.
+  - **Navigation** (`nav`, `[role="navigation"]`, `.navbar`, `.menu`, `header ul`…) — optional override.
+  - **Buttons** (`button`, `[role="button"]`, `.btn`, `input[type=submit]`…) — optional; besides font/weight/spacing/size it has a **Letter case** chip group (`text-transform`: ABC / abc / Abc).
+- **Quick chips under every section** — optional one‑tap presets (click to toggle), per target:
+  - **Weight**: Light (300) / Regular (400) / Bold (700) / Extra Bold (800),
+  - **Letter spacing**: Tight (−0.5px) / 0 / Loose (1.5px),
+  - **Size**: S (14px) / M (18px) / L (24px),
+  - **Letter case** (Buttons only): ABC / abc / Abc.
+- **Font picker (Fontninja‑style)** — the crosshair icon (in each field and the header) starts an inspector: hover the page to highlight elements and see the font + its license (Open / Commercial / Unknown); click to pick. The picked name is copied to the clipboard, and if a field was focused it's pasted there. Custom web fonts found on the page are **captured (with their `@font-face` file embedded as `data:`)** and saved, so you can reuse them anywhere.
+- **Instant style injection** — change is visible immediately after selection.
+- **Google fonts loaded for real, bypassing page CSP** — the extension fetches the `.woff2` files itself, embeds them as `data:` URLs and injects them via `insertCSS`, so the preview works even on sites that block external fonts.
+- **Favorites ❤** — click the heart next to any field to favorite the current font. Favorites are **pinned to the very top** of the dropdown (above the popular Google fonts) and persisted in `chrome.storage.local`.
+- **Presets (up to 5)** — save the current setup as a preset, load it with one click, delete with ✕. Presets are **persistent across sessions** and **independent of the style reset**.
+- **One‑click reset** — the "↺ Reset" button removes all injected styles and loaded fonts (favorites and presets stay).
+- **Copy‑ready snippet** — after picking a font, ready code appears in tabs:
+  - **CSS** — with a Google Fonts `@import` and `font-family` rules,
+  - **SCSS** — with variables (`$font-base`, `$font-heading`, …),
+  - **JS** — dynamic `<link>` + `<style>` injection.
 
-> Skrót możesz zmienić na stronie `chrome://extensions/shortcuts`.
+  A **PAID** badge and a **Buy font** button appear for commercial fonts (when a purchase link is known).
+- **9 languages** — PL, EN, FR, DE, ES, UK, RU, RO, IT. Follows the browser language by default; switchable in the options page.
+- **Keyboard shortcut `Ctrl+Shift+L`** (`⌘+Shift+L` on macOS) opens the popover.
 
 ---
 
-## 🚀 Użycie
+## 🛠️ Options page
 
-1. Wejdź na dowolną stronę.
-2. Naciśnij `Ctrl+Shift+L` (lub kliknij ikonę dodatku).
-3. W polu **Cała strona** wpisz nazwę fontu i wybierz go z listy — strona zmieni się od razu.
-4. (Opcjonalnie) ustaw osobne fonty dla **Nagłówków** i **Akapitów**.
-5. Skopiuj gotowy snippet (CSS / SCSS / JS), jeśli chcesz przenieść font do swojego projektu.
-6. Kliknij **↺ Resetuj**, aby przywrócić oryginalne fonty.
+Open via the gear icon in the popover header. It includes:
+
+- **Interface language** switcher.
+- **Custom fonts** manager — fonts picked from pages: searchable list with lazy‑load, live preview (heading + paragraph), **exact license** (authoritatively read from Google's metadata: OFL / Apache 2.0 / Ubuntu Font License, with a link) and a **Free / $** cost indicator, links to **Google Fonts, Adobe Fonts, MyFonts, Fontspring, Font Squirrel, DaFont, WhatFontIs**, plus **Copy CSS** / download the CSS / download the font file. Includes a **Purge all** button.
+- **Favorite fonts** manager — the same UI as custom fonts, for your favorites, with its own **Purge all**.
+- **Presets** — your saved presets with an editable name and a font summary.
 
 ---
 
-## 📁 Struktura projektu
+## 🧩 Installation (developer mode)
+
+1. Open `chrome://extensions`.
+2. Enable **Developer mode** (top‑right toggle).
+3. Click **Load unpacked** and select the `wolfie-font-swapper` folder.
+4. Done — pin the icon and press `Ctrl+Shift+L` to open the popover.
+
+> You can change the shortcut at `chrome://extensions/shortcuts`.
+
+---
+
+## 🚀 Usage
+
+1. Open any web page.
+2. Press `Ctrl+Shift+L` (or click the extension icon).
+3. In **Whole page**, type a font name and pick it from the list — the page changes right away.
+4. (Optional) set separate fonts for **Headings**, **Paragraphs**, **Navigation**, **Buttons**.
+5. Use the chips to tweak weight / spacing / size, and ❤ to save favorites.
+6. Copy the ready snippet (CSS / SCSS / JS) to move the font into your own project.
+7. Click **↺ Reset** to restore the original fonts.
+
+---
+
+## 📁 Project structure
 
 ```
 wolfie-font-swapper/
-├── manifest.json     # Manifest V3, uprawnienia, skrót klawiszowy, strona opcji
-├── background.js     # Service worker (rejestracja skrótu)
-├── popup.html        # UI popovera
-├── popup.css         # Style popovera
-├── popup.js          # Logika: dropdowny, wstrzykiwanie, presety, snippety
-├── fonts.js          # Lista fontów (Google + systemowe) + popularne
-├── i18n.js           # Tłumaczenia (9 języków) + helper t()
-├── options.html      # Strona opcji (przełącznik języka)
-├── options.js        # Logika opcji
-├── icons/            # Ikony 16/48/128 px + wolfie-logo.svg
+├── manifest.json     # Manifest V3, permissions, shortcut, options page
+├── background.js     # Service worker (shortcut registration)
+├── popup.html/.css/.js   # Popover UI and logic
+├── options.html/.js  # Options page (language, custom/favorite fonts, presets)
+├── fonts.js          # Font list (Google + system) + popular set
+├── fonts-meta.js     # Licenses, commercial DB, search providers
+├── i18n.js           # Translations (9 languages) + t() helper
+├── fonts/            # Bundled UI fonts (Rubik, Audiowide)
+├── icons/            # Icons 16/48/128 + wolfie-logo.svg
 └── README.md
 ```
 
 ---
 
-## 🔒 Uprawnienia
+## 🔒 Permissions
 
-Minimalny, „store-friendly" zestaw:
+A minimal, store‑friendly set:
 
-- `activeTab` + `scripting` — wstrzyknięcie/usuwanie stylu **tylko na aktywnej karcie**, po otwarciu popovera (gest użytkownika). Brak `<all_urls>`.
-- `storage` — lokalne zapamiętanie wyboru, presetów i języka.
-- `host_permissions` ograniczone do `https://fonts.googleapis.com/*` i `https://fonts.gstatic.com/*` — pobieranie podglądanych fontów Google.
+- `activeTab` + `scripting` — inject/remove styles **on the active tab only**, after you open the popover (a user gesture). No `<all_urls>`.
+- `storage` — locally remember selection, presets, favorites and language.
+- `host_permissions` limited to `fonts.googleapis.com`, `fonts.gstatic.com` (download previewed fonts) and `fonts.google.com` (read license metadata).
 
-Dodatek **nie zbiera ani nie wysyła żadnych danych** osobowych — patrz [PRIVACY.md](PRIVACY.md).
+The extension **does not collect or send any personal data** — see [PRIVACY.md](PRIVACY.md).
 
 ---
 
-## 📄 Licencja
+## 📄 License
 
 [MIT](LICENSE) © 2026 Wolfie Paweł Witek
 
 ---
 
-## ⚠️ Uwagi
+## ⚠️ Notes
 
-- Na stronach chronionych (`chrome://`, `chrome web store`) wstrzykiwanie jest zablokowane przez Chrome — to normalne.
-- Niektóre strony używają fontów ikon (np. Material Icons). Selektor celowo pomija elementy z klasami zawierającymi `icon`, aby ich nie psuć.
+- On protected pages (`chrome://`, the Chrome Web Store) injection is blocked by Chrome — that's expected.
+- Some sites use icon fonts (e.g. Material Icons). The base selector deliberately skips elements whose class contains `icon` so it doesn't break them.
+- Cross‑origin font files without CORS can't be captured by the picker — in that case only the font name is saved.
