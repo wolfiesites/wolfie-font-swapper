@@ -88,6 +88,8 @@
       cf_select_hint: "Wybierz font z listy, aby zobaczyć podgląd.",
       cf_purge: "Wyczyść wszystkie",
       cf_purge_confirm: "Usunąć wszystkie zapisane customowe fonty?",
+      cf_search_ph: "Szukaj fontu…",
+      cf_find_on: "Szukaj / kup w",
     },
     en: {
       sec_base: "Whole page",
@@ -160,6 +162,8 @@
       cf_select_hint: "Select a font from the list to preview.",
       cf_purge: "Purge all",
       cf_purge_confirm: "Delete all saved custom fonts?",
+      cf_search_ph: "Search a font…",
+      cf_find_on: "Find / buy on",
     },
     fr: {
       sec_base: "Page entière",
@@ -232,6 +236,8 @@
       cf_select_hint: "Choisissez une police pour l'aperçu.",
       cf_purge: "Tout effacer",
       cf_purge_confirm: "Supprimer toutes les polices personnalisées enregistrées ?",
+      cf_search_ph: "Rechercher une police…",
+      cf_find_on: "Trouver / acheter sur",
     },
     de: {
       sec_base: "Ganze Seite",
@@ -304,6 +310,8 @@
       cf_select_hint: "Wähle eine Schrift für die Vorschau.",
       cf_purge: "Alle löschen",
       cf_purge_confirm: "Alle gespeicherten eigenen Schriften löschen?",
+      cf_search_ph: "Schriftart suchen…",
+      cf_find_on: "Finden / kaufen bei",
     },
     es: {
       sec_base: "Toda la página",
@@ -376,6 +384,8 @@
       cf_select_hint: "Selecciona una fuente para la vista previa.",
       cf_purge: "Borrar todo",
       cf_purge_confirm: "¿Eliminar todas las fuentes personalizadas guardadas?",
+      cf_search_ph: "Buscar fuente…",
+      cf_find_on: "Buscar / comprar en",
     },
     uk: {
       sec_base: "Уся сторінка",
@@ -448,6 +458,8 @@
       cf_select_hint: "Виберіть шрифт зі списку для перегляду.",
       cf_purge: "Очистити все",
       cf_purge_confirm: "Видалити всі збережені власні шрифти?",
+      cf_search_ph: "Пошук шрифту…",
+      cf_find_on: "Знайти / купити на",
     },
     ru: {
       sec_base: "Вся страница",
@@ -520,6 +532,8 @@
       cf_select_hint: "Выберите шрифт из списка для предпросмотра.",
       cf_purge: "Очистить все",
       cf_purge_confirm: "Удалить все сохранённые свои шрифты?",
+      cf_search_ph: "Поиск шрифта…",
+      cf_find_on: "Найти / купить на",
     },
     ro: {
       sec_base: "Toată pagina",
@@ -592,6 +606,8 @@
       cf_select_hint: "Selectează un font pentru previzualizare.",
       cf_purge: "Șterge tot",
       cf_purge_confirm: "Ștergi toate fonturile personalizate salvate?",
+      cf_search_ph: "Caută un font…",
+      cf_find_on: "Caută / cumpără pe",
     },
     it: {
       sec_base: "Tutta la pagina",
@@ -664,6 +680,8 @@
       cf_select_hint: "Seleziona un font per l'anteprima.",
       cf_purge: "Cancella tutto",
       cf_purge_confirm: "Eliminare tutti i font personalizzati salvati?",
+      cf_search_ph: "Cerca un font…",
+      cf_find_on: "Trova / acquista su",
     },
   };
 

@@ -32,9 +32,15 @@
     .saved { margin-top: 10px; min-height: 16px; font-size: 12px; color: #4cd964; }
 
     .cf-title { font-weight: 800; font-size: 16px; margin: 0 0 12px; }
-    .cf-grid { display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+    .cf-grid { display: grid; grid-template-columns: 260px 1fr; gap: 16px; align-items: start; }
     @media (max-width: 720px) { .cf-grid { grid-template-columns: 1fr; } }
-    .cf-list { display: flex; flex-direction: column; gap: 6px; max-height: 460px; overflow: auto; }
+    .cf-col { display: flex; flex-direction: column; gap: 8px; }
+    .cf-search {
+      width: 100%; padding: 9px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px;
+    }
+    .cf-search:focus { outline: none; border-color: var(--accent); }
+    .cf-list { display: flex; flex-direction: column; gap: 6px; max-height: 440px; overflow: auto; }
     .cf-item {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
       padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
@@ -59,6 +65,15 @@
     .cf-info b { color: var(--muted); font-weight: 600; }
     .cf-info a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .cf-info a:hover { text-decoration: underline; }
+    .cf-cost { font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 4px; }
+    .cf-cost.free { color: #4cd964; border: 1px solid #2e6b3e; }
+    .cf-cost.paid { color: #0b0d14; background: #ffb84a; }
+    .cf-cost.unknown { color: var(--muted); border: 1px solid var(--border); }
+    .cf-find { margin-top: 10px; font-size: 13px; color: var(--muted); }
+    .cf-find b { color: var(--muted); font-weight: 600; }
+    .cf-providers { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; margin-left: 4px; }
+    .cf-providers a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .cf-providers a:hover { text-decoration: underline; }
     .cf-actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
     .cf-btn {
       border: 1px solid var(--border); background: var(--surface2); color: var(--text);
@@ -76,7 +91,9 @@
 <body>
   <div class="wrap">
     <div class="head">
-      <img src="icons/wolfie-logo.svg" alt="Wolfie" />
+      <a href="https://wolfiesites.com" target="_blank" rel="noopener noreferrer" title="wolfiesites.com">
+        <img src="icons/wolfie-logo.svg" alt="Wolfie" />
+      </a>
       <h1>Wolfie Font Swapper</h1>
     </div>
 
@@ -95,15 +112,21 @@
         <button id="cf-purge" class="cf-btn" type="button" data-i18n="cf_purge">Wyczyść wszystkie</button>
       </div>
       <div class="cf-grid">
-        <div id="cf-list" class="cf-list"></div>
+        <div class="cf-col">
+          <input id="cf-search" class="cf-search" type="text" data-i18n-ph="cf_search_ph" placeholder="Szukaj fontu…" autocomplete="off" />
+          <div id="cf-list" class="cf-list"></div>
+        </div>
         <div class="cf-preview">
           <div id="cf-prev-empty" class="cf-hint" data-i18n="cf_select_hint">Wybierz font z listy, aby zobaczyć podgląd.</div>
           <div id="cf-prev-body" hidden>
             <h3 id="cf-prev-h" class="cf-prev-h">The quick brown fox jumps over the lazy dog</h3>
             <p id="cf-prev-p" class="cf-prev-p">0123456789 — Pack my box with five dozen liquor jugs. Sphinx of black quartz, judge my vow. 1.99$ €</p>
             <div class="cf-info">
-              <span><b data-i18n="cf_license">Licencja</b>: <span id="cf-lic"></span></span>
-              <span><b data-i18n="cf_source">Źródło / zakup</b>: <a id="cf-src" href="#" target="_blank" rel="noopener noreferrer"></a></span>
+              <span><b data-i18n="cf_license">Licencja</b>: <a id="cf-lic" href="#" target="_blank" rel="noopener noreferrer"></a> <span id="cf-cost" class="cf-cost"></span></span>
+            </div>
+            <div class="cf-find">
+              <b data-i18n="cf_find_on">Szukaj / kup w</b>:
+              <span id="cf-providers" class="cf-providers"></span>
             </div>
             <div class="cf-actions">
               <button id="cf-copy" class="cf-btn primary" type="button" data-i18n="cf_copy_css">Kopiuj CSS</button>

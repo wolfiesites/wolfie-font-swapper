@@ -47,24 +47,135 @@
     return (window.WOLFIE_FONTS && window.WOLFIE_FONTS.GOOGLE_FONTS) || [];
   }
 
-  // Zwraca {license: 'open'|'commercial'|'unknown', buyUrl, specimenUrl}.
-  function classify(name) {
-    if (!name) return { license: "unknown", buyUrl: null, specimenUrl: null };
-    const low = String(name).toLowerCase();
-    if (googleList().some((g) => g.toLowerCase() === low)) {
-      return {
-        license: "open",
-        buyUrl: null,
-        specimenUrl:
-          "https://fonts.google.com/specimen/" +
-          encodeURIComponent(name).replace(/%20/g, "+"),
-      };
-    }
-    if (COMMERCIAL_LC[low]) {
-      return { license: "commercial", buyUrl: COMMERCIAL[COMMERCIAL_LC[low]], specimenUrl: null };
-    }
-    return { license: "unknown", buyUrl: null, specimenUrl: null };
+  // Konkretne licencje Google Fonts (poza domyślną OFL).
+  const APACHE = new Set(
+    [
+      "Roboto",
+      "Roboto Condensed",
+      "Roboto Mono",
+      "Roboto Slab",
+      "Open Sans",
+      "Open Sans Condensed",
+    ].map((s) => s.toLowerCase())
+  );
+  const UFL = new Set(
+    ["Ubuntu", "Ubuntu Mono", "Ubuntu Condensed", "Ubuntu Sans", "Ubuntu Sans Mono"].map(
+      (s) => s.toLowerCase()
+    )
+  );
+
+  const LICENSE_INFO = {
+    OFL: {
+      name: "SIL Open Font License 1.1",
+      url: "https://openfontlicense.org/open-font-license-official-text/",
+      cost: "free",
+    },
+    APACHE: {
+      name: "Apache License 2.0",
+      url: "https://www.apache.org/licenses/LICENSE-2.0",
+      cost: "free",
+    },
+    UFL: {
+      name: "Ubuntu Font License 1.0",
+      url: "https://ubuntu.com/legal/font-licence",
+      cost: "free",
+    },
+    COMMERCIAL: { name: "Commercial / proprietary", url: null, cost: "paid" },
+    UNKNOWN: { name: "Unknown", url: null, cost: "unknown" },
+  };
+
+  const specimen = (n) =>
+    "https://fonts.google.com/specimen/" + encodeURIComponent(n).replace(/%20/g, "+");
+
+  function openResult(name, code) {
+    const li = LICENSE_INFO[code];
+    return {
+      license: "open",
+      licenseCode: code,
+      licenseName: li.name,
+      licenseUrl: li.url,
+      cost: "free",
+      buyUrl: null,
+      specimenUrl: specimen(name),
+    };
   }
 
-  window.WOLFIE_FONT_META = { COMMERCIAL, classify };
+  // Szybka, synchroniczna klasyfikacja (po naszej liście + bazie komercyjnej).
+  function classify(name) {
+    if (!name)
+      return { license: "unknown", licenseCode: "UNKNOWN", licenseName: "Unknown", cost: "unknown", buyUrl: null, specimenUrl: null };
+    const low = String(name).toLowerCase();
+    if (googleList().some((g) => g.toLowerCase() === low)) {
+      const code = APACHE.has(low) ? "APACHE" : UFL.has(low) ? "UFL" : "OFL";
+      return openResult(name, code);
+    }
+    if (COMMERCIAL_LC[low]) {
+      return {
+        license: "commercial",
+        licenseCode: "COMMERCIAL",
+        licenseName: LICENSE_INFO.COMMERCIAL.name,
+        licenseUrl: null,
+        cost: "paid",
+        buyUrl: COMMERCIAL[COMMERCIAL_LC[low]],
+        specimenUrl: null,
+      };
+    }
+    return { license: "unknown", licenseCode: "UNKNOWN", licenseName: "Unknown", licenseUrl: null, cost: "unknown", buyUrl: null, specimenUrl: null };
+  }
+
+  // Odczyt licencji wprost z metadanych Google (autorytatywnie, też dla fontów
+  // spoza naszej listy, np. Audiowide). Zwraca kod licencji lub null.
+  async function fetchGoogleLicense(name) {
+    try {
+      const res = await fetch(
+        "https://fonts.google.com/metadata/fonts/" + encodeURIComponent(name)
+      );
+      if (!res.ok) return null;
+      let txt = await res.text();
+      const i = txt.indexOf("{");
+      if (i > 0) txt = txt.slice(i);
+      const data = JSON.parse(txt);
+      const lic = String(data.license || "").toUpperCase();
+      if (!lic) return null;
+      if (lic.includes("APACHE")) return "APACHE";
+      if (lic.includes("UFL") || lic.includes("UBUNTU")) return "UFL";
+      return "OFL";
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Klasyfikacja autorytatywna: dopytuje Google o licencję, jeśli to nie jest
+  // znany font komercyjny. Dzięki temu każdy font Google ma poprawną licencję.
+  async function classifyAuthoritative(name) {
+    const sync = classify(name);
+    if (sync.license === "commercial") return sync;
+    const code = await fetchGoogleLicense(name);
+    if (code) return openResult(name, code);
+    return sync;
+  }
+
+  // Popularne serwisy do wyszukania / kupna fontu po nazwie.
+  const SEARCH_PROVIDERS = [
+    { name: "Google Fonts", url: (q) => "https://fonts.google.com/?query=" + encodeURIComponent(q) },
+    { name: "Adobe Fonts", url: (q) => "https://fonts.adobe.com/search?query=" + encodeURIComponent(q) },
+    { name: "MyFonts", url: (q) => "https://www.myfonts.com/search/" + encodeURIComponent(q) + "/" },
+    { name: "Fontspring", url: (q) => "https://www.fontspring.com/search?q=" + encodeURIComponent(q) },
+    { name: "Font Squirrel", url: (q) => "https://www.fontsquirrel.com/fonts/list/find_fonts?q%5Bterm%5D=" + encodeURIComponent(q) },
+    { name: "DaFont", url: (q) => "https://www.dafont.com/search.php?q=" + encodeURIComponent(q) },
+    { name: "WhatFontIs", url: (q) => "https://www.whatfontis.com/search?q=" + encodeURIComponent(q) },
+  ];
+
+  function searchLinks(name) {
+    return SEARCH_PROVIDERS.map((p) => ({ name: p.name, url: p.url(name) }));
+  }
+
+  window.WOLFIE_FONT_META = {
+    COMMERCIAL,
+    LICENSE_INFO,
+    SEARCH_PROVIDERS,
+    searchLinks,
+    classify,
+    classifyAuthoritative,
+  };
 })();
