@@ -491,7 +491,8 @@ async function ensureCustomFontsLoaded(tabId) {
   ];
   const rec = tabRecord(tabId);
   for (const fam of families) {
-    const css = customFonts[fam.toLowerCase()];
+    const entry = customFonts[fam.toLowerCase()];
+    const css = entry && (typeof entry === "string" ? entry : entry.css);
     if (!css) continue;
     const key = "custom:" + fam.toLowerCase();
     if (rec.families.has(key)) continue;
@@ -1185,7 +1186,7 @@ chrome.storage.local.get(
       const fam = picked.family;
       // Zapisz przechwycony @font-face (custom font) trwale.
       if (picked.fontface) {
-        customFonts[fam.toLowerCase()] = picked.fontface;
+        customFonts[fam.toLowerCase()] = { name: fam, css: picked.fontface };
         chrome.storage.local.set({ wfs_custom_fonts: customFonts });
       }
       const target = data.wfs_pending_target || lastFocusedTarget;

@@ -5,51 +5,117 @@
   <title data-i18n="options_title">Wolfie Font Swapper — opcje</title>
   <style>
     :root {
-      --bg: #1e1e24; --surface: #2a2a33; --text: #f2f2f5; --muted: #9a9aa8;
+      --bg: #1e1e24; --surface: #2a2a33; --surface2: #34343f; --text: #f2f2f5; --muted: #9a9aa8;
       --accent: #ff3dae; --accent2: #00e0ff; --border: #3c3c47;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
       font-family: "Segoe UI", system-ui, sans-serif; font-size: 14px;
-      display: flex; justify-content: center; padding: 40px 16px;
+      display: flex; justify-content: center; padding: 36px 16px;
     }
-    .card { width: 100%; max-width: 460px; }
-    .head {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
-    }
+    .wrap { width: 100%; max-width: 960px; }
+    .head { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
     .head img { width: 40px; height: 40px; display: block; }
     .head h1 { margin: 0; font-size: 18px; font-weight: 800; }
     .field {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; padding: 16px;
+      border-radius: 10px; padding: 16px; margin-bottom: 18px;
     }
     label { display: block; font-weight: 600; margin-bottom: 4px; }
     .desc { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
     select {
-      width: 100%; padding: 9px 10px; border-radius: 8px;
-      border: 1px solid var(--border); background: var(--bg); color: var(--text);
-      font-size: 14px;
+      width: 100%; max-width: 320px; padding: 9px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px;
     }
     select:focus { outline: none; border-color: var(--accent); }
     .saved { margin-top: 10px; min-height: 16px; font-size: 12px; color: #4cd964; }
+
+    .cf-title { font-weight: 800; font-size: 16px; margin: 0 0 12px; }
+    .cf-grid { display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+    @media (max-width: 720px) { .cf-grid { grid-template-columns: 1fr; } }
+    .cf-list { display: flex; flex-direction: column; gap: 6px; max-height: 460px; overflow: auto; }
+    .cf-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg); cursor: pointer;
+    }
+    .cf-item:hover { border-color: var(--accent); }
+    .cf-item.active { border-color: var(--accent); background: var(--surface2); }
+    .cf-item .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cf-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); flex-shrink: 0; }
+    .cf-tag.open { color: #4cd964; border-color: #2e6b3e; }
+    .cf-tag.commercial { color: #ffb84a; border-color: #6a5a1e; }
+    .cf-tag.unknown { color: var(--muted); }
+    .cf-del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; padding: 2px 4px; flex-shrink: 0; }
+    .cf-del:hover { color: #ff6b6b; }
+    .cf-empty { color: var(--muted); font-size: 13px; }
+
+    .cf-preview { border: 1px solid var(--border); border-radius: 10px; padding: 18px; background: var(--bg); min-height: 200px; }
+    .cf-hint { color: var(--muted); }
+    .cf-prev-h { margin: 0 0 10px; font-size: 30px; line-height: 1.2; }
+    .cf-prev-p { margin: 0; font-size: 16px; line-height: 1.6; color: #d6d6e0; }
+    .cf-info { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: 13px; }
+    .cf-info b { color: var(--muted); font-weight: 600; }
+    .cf-info a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .cf-info a:hover { text-decoration: underline; }
+    .cf-actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .cf-btn {
+      border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+      font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 8px; cursor: pointer; text-decoration: none;
+    }
+    .cf-btn:hover { border-color: var(--accent); }
+    .cf-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .cf-copied { color: #4cd964; font-size: 12px; align-self: center; }
+
     .foot { margin-top: 22px; text-align: center; font-size: 12px; color: var(--muted); }
     .foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .foot a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <div class="card">
+  <div class="wrap">
     <div class="head">
       <img src="icons/wolfie-logo.svg" alt="Wolfie" />
       <h1>Wolfie Font Swapper</h1>
     </div>
+
+    <!-- Język -->
     <div class="field">
       <label data-i18n="options_lang_label">Język interfejsu</label>
       <div class="desc" data-i18n="options_lang_desc">Domyślnie język przeglądarki. Wybierz, aby wymusić.</div>
       <select id="lang"></select>
       <div id="saved" class="saved"></div>
     </div>
+
+    <!-- Customowe fonty -->
+    <div class="field">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;">
+        <h2 class="cf-title" style="margin:0" data-i18n="cf_title">Customowe fonty</h2>
+        <button id="cf-purge" class="cf-btn" type="button" data-i18n="cf_purge">Wyczyść wszystkie</button>
+      </div>
+      <div class="cf-grid">
+        <div id="cf-list" class="cf-list"></div>
+        <div class="cf-preview">
+          <div id="cf-prev-empty" class="cf-hint" data-i18n="cf_select_hint">Wybierz font z listy, aby zobaczyć podgląd.</div>
+          <div id="cf-prev-body" hidden>
+            <h3 id="cf-prev-h" class="cf-prev-h">The quick brown fox jumps over the lazy dog</h3>
+            <p id="cf-prev-p" class="cf-prev-p">0123456789 — Pack my box with five dozen liquor jugs. Sphinx of black quartz, judge my vow. 1.99$ €</p>
+            <div class="cf-info">
+              <span><b data-i18n="cf_license">Licencja</b>: <span id="cf-lic"></span></span>
+              <span><b data-i18n="cf_source">Źródło / zakup</b>: <a id="cf-src" href="#" target="_blank" rel="noopener noreferrer"></a></span>
+            </div>
+            <div class="cf-actions">
+              <button id="cf-copy" class="cf-btn primary" type="button" data-i18n="cf_copy_css">Kopiuj CSS</button>
+              <a id="cf-dl-css" class="cf-btn" download>CSS</a>
+              <button id="cf-dl-font" class="cf-btn" type="button" data-i18n="cf_download_font">Pobierz plik fontu</button>
+              <span id="cf-copied" class="cf-copied" hidden></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="foot">
       Created by
       <a href="https://wolfiesites.com" target="_blank" rel="noopener noreferrer">Wolfie</a>
@@ -57,6 +123,8 @@
   </div>
 
   <script src="i18n.js"></script>
+  <script src="fonts.js"></script>
+  <script src="fonts-meta.js"></script>
   <script src="options.js"></script>
 </body>
 </html>
