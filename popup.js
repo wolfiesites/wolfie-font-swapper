@@ -73,12 +73,70 @@ async function loadLocalFonts() {
   }
 }
 
-const STORAGE_KEY = "wfs_state";
+const STORAGE_KEY = "wfs_state"; // legacy (migracja ze starej wersji)
+const SESSION_KEY = "wfs_session"; // { host: selection } — per domena, per sesja (domyślnie)
+const PERSIST_KEY = "wfs_persist"; // { host: selection } — trwałe (przycisk „Zapisz na stałe")
+const RULES_KEY = "wfs_rules"; // [ { pattern, preset } ] — reguły domen (globy)
+let currentHost = "";
+
+function hostOf(url) {
+  try {
+    return new URL(url).hostname || "";
+  } catch (e) {
+    return "";
+  }
+}
+function globToRegex(p) {
+  return new RegExp(
+    "^" + String(p).trim().replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$",
+    "i"
+  );
+}
+function matchRule(rules, host) {
+  if (!host) return null;
+  for (const r of rules || []) {
+    try {
+      if (r.pattern && globToRegex(r.pattern).test(host)) return r;
+    } catch (e) {}
+  }
+  return null;
+}
+async function saveSessionConfig(host, sel) {
+  if (!host) return;
+  try {
+    const d = await chrome.storage.session.get(SESSION_KEY);
+    const m = d[SESSION_KEY] || {};
+    m[host] = sel;
+    await chrome.storage.session.set({ [SESSION_KEY]: m });
+  } catch (e) {}
+}
+function persistDomainConfig(host, sel) {
+  if (!host) return;
+  chrome.storage.local.get(PERSIST_KEY, (d) => {
+    const m = d[PERSIST_KEY] || {};
+    m[host] = sel;
+    chrome.storage.local.set({ [PERSIST_KEY]: m });
+  });
+}
+async function removeDomainConfig(host) {
+  if (!host) return;
+  try {
+    const d = await chrome.storage.session.get(SESSION_KEY);
+    const m = d[SESSION_KEY] || {};
+    delete m[host];
+    await chrome.storage.session.set({ [SESSION_KEY]: m });
+  } catch (e) {}
+  chrome.storage.local.get(PERSIST_KEY, (d) => {
+    const m = d[PERSIST_KEY] || {};
+    delete m[host];
+    chrome.storage.local.set({ [PERSIST_KEY]: m });
+  });
+}
 const statusEl = document.getElementById("wfs-status");
 
 // Aktualne ustawienia dla każdego targetu: rodzina + chipy.
 function emptyProps() {
-  return { family: null, weight: null, spacing: null, size: null, case: null, color: null };
+  return { family: null, weight: null, spacing: null, size: null, case: null, color: null, lineheight: null };
 }
 const selection = {
   base: emptyProps(),
@@ -107,7 +165,10 @@ function toggleFavorite(name) {
 }
 
 function hasProps(p) {
-  return !!(p && (p.family || p.weight || p.spacing || p.size || p.case || p.color));
+  return !!(
+    p &&
+    (p.family || p.weight || p.spacing || p.size || p.case || p.color || p.lineheight)
+  );
 }
 
 // Predefiniowane chipy pod każdym dropdownem (po 3 opcje, opcjonalne — klik
@@ -142,6 +203,15 @@ const CHIP_GROUPS = [
     ],
   },
   {
+    key: "lineheight",
+    label: t("chip_lineheight"),
+    options: [
+      { label: "1.2", value: "1.2" },
+      { label: "1.5", value: "1.5" },
+      { label: "2.0", value: "2" },
+    ],
+  },
+  {
     key: "case",
     label: t("chip_case"),
     targets: ["buttons"], // text-transform tylko dla przycisków
@@ -171,13 +241,14 @@ function applyFontsInPage(state) {
   const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
   const q = (f) => (generic.test(f) ? f : '"' + f + '"');
   const has = (p) =>
-    p && (p.family || p.weight || p.spacing || p.size || p.case || p.color);
+    p && (p.family || p.weight || p.spacing || p.size || p.case || p.color || p.lineheight);
   const decl = (p) => {
     const d = [];
     if (p.family) d.push("font-family: " + q(p.family) + " !important");
     if (p.weight) d.push("font-weight: " + p.weight + " !important");
     if (p.spacing) d.push("letter-spacing: " + p.spacing + " !important");
     if (p.size) d.push("font-size: " + p.size + " !important");
+    if (p.lineheight) d.push("line-height: " + p.lineheight + " !important");
     if (p.case) d.push("text-transform: " + p.case + " !important");
     if (p.color) d.push("color: " + p.color + " !important");
     return d.join("; ");
@@ -717,12 +788,55 @@ async function getActiveTab() {
   return tab;
 }
 
+// Zielona kropka aktywności na ikonce — per karta (rysowana na canvasie popupu).
+function loadImg(src) {
+  return new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = src;
+  });
+}
+async function drawDot(size, on) {
+  const srcSize = size >= 48 ? 48 : size >= 32 ? 48 : 16;
+  const img = await loadImg(chrome.runtime.getURL("icons/icon" + srcSize + ".png"));
+  const c = document.createElement("canvas");
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, size, size);
+  ctx.drawImage(img, 0, 0, size, size);
+  if (on) {
+    const r = Math.max(2, Math.round(size * 0.16));
+    const m = Math.round(size * 0.06);
+    const cx = size - r - m;
+    const cy = size - r - m;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + Math.max(1, Math.round(size * 0.04)), 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(10,13,20,.92)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = "#21c95e";
+    ctx.fill();
+  }
+  return ctx.getImageData(0, 0, size, size);
+}
+async function setTabDot(tabId, on) {
+  if (tabId == null) return;
+  try {
+    const [d16, d32] = await Promise.all([drawDot(16, on), drawDot(32, on)]);
+    await chrome.action.setIcon({ tabId, imageData: { 16: d16, 32: d32 } });
+  } catch (e) {}
+}
+
 async function applyToPage() {
   const tab = await getActiveTab();
   if (!tab || !tab.id) {
     setStatus(t("status_no_tab"));
     return;
   }
+  currentHost = hostOf(tab.url || "");
 
   const url = tab.url || "";
   if (/^file:/i.test(url)) {
@@ -761,11 +875,12 @@ async function applyToPage() {
       func: applyFontsInPage,
       args: [{ ...selection }],
     });
-    chrome.storage.local.set({ [STORAGE_KEY]: selection });
+    saveSessionConfig(currentHost, JSON.parse(JSON.stringify(selection))); // per domena/sesja
     const names = Object.values(selection)
       .map((p) => p.family)
       .filter(Boolean);
     const anyActive = Object.values(selection).some(hasProps);
+    setTabDot(tab.id, anyActive); // zielona kropka per karta
     if (anyActive) {
       setStatus(t("status_applied") + (names.length ? ": " + names.join(", ") : ""));
     } else {
@@ -828,6 +943,7 @@ async function revertPreview() {
 async function resetPage() {
   const tab = await getActiveTab();
   if (!tab || !tab.id) return;
+  currentHost = hostOf(tab.url || "");
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -858,7 +974,8 @@ async function resetPage() {
   selection.paragraphs = emptyProps();
   selection.navigation = emptyProps();
   selection.buttons = emptyProps();
-  chrome.storage.local.remove(STORAGE_KEY);
+  removeDomainConfig(currentHost); // wyczyść konfig tej domeny (sesja + trwały)
+  setTabDot(tab.id, false); // zgaś kropkę dla tej karty
   document.querySelectorAll(".wfs-combo").forEach((combo) => {
     combo.classList.remove("has-value");
     const input = combo.querySelector(".wfs-search");
@@ -930,6 +1047,7 @@ function declList(p, familyExpr, indent) {
   if (p.weight) d.push(pad + "font-weight: " + p.weight + ";");
   if (p.spacing) d.push(pad + "letter-spacing: " + p.spacing + ";");
   if (p.size) d.push(pad + "font-size: " + p.size + ";");
+  if (p.lineheight) d.push(pad + "line-height: " + p.lineheight + ";");
   if (p.case) d.push(pad + "text-transform: " + p.case + ";");
   if (p.color) d.push(pad + "color: " + p.color + ";");
   return d;
@@ -1561,6 +1679,31 @@ if (editTextBtn) editTextBtn.addEventListener("click", startTextEditor);
 
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);
+
+// „Zapisz na stałe" — utrwal konfig tej domeny w local (przeżyje restart).
+const persistBtn = document.getElementById("wfs-persist");
+if (persistBtn) {
+  persistBtn.addEventListener("click", () => {
+    if (!currentHost) {
+      setStatus(t("status_protected"));
+      return;
+    }
+    if (!Object.values(selection).some(hasProps)) {
+      setStatus(t("status_need_setting"));
+      return;
+    }
+    const snap = JSON.parse(JSON.stringify(selection));
+    persistDomainConfig(currentHost, snap);
+    saveSessionConfig(currentHost, snap);
+    persistBtn.classList.add("saved");
+    persistBtn.textContent = t("persist_saved");
+    setStatus(t("status_persisted") + " " + currentHost);
+    setTimeout(() => {
+      persistBtn.classList.remove("saved");
+      persistBtn.textContent = t("persist_btn");
+    }, 1600);
+  });
+}
 const resetTop = document.getElementById("wfs-reset-top");
 if (resetTop) resetTop.addEventListener("click", resetPage);
 
@@ -1593,9 +1736,17 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
   }
 });
 
-chrome.storage.local.get(
-  [STORAGE_KEY, "wfs_custom_fonts", "wfs_favorites", "wfs_font_cache", "wfs_picked", "wfs_pending_target"],
-  (data) => {
+(async () => {
+  const tab0 = await getActiveTab();
+  currentHost = hostOf((tab0 && tab0.url) || "");
+  let sessionMap = {};
+  try {
+    sessionMap = (await chrome.storage.session.get(SESSION_KEY))[SESSION_KEY] || {};
+  } catch (e) {}
+
+  chrome.storage.local.get(
+    [STORAGE_KEY, PERSIST_KEY, RULES_KEY, PRESETS_KEY, "wfs_custom_fonts", "wfs_favorites", "wfs_font_cache", "wfs_picked", "wfs_pending_target"],
+    (data) => {
     // Trwały cache fontów Google.
     if (data.wfs_font_cache && data.wfs_font_cache.map) {
       fontCacheMap = data.wfs_font_cache.map;
@@ -1611,8 +1762,19 @@ chrome.storage.local.get(
       addCustomFontsToList();
     }
 
-    // 1) Przywróć zapisany wybór.
-    const saved = data[STORAGE_KEY];
+    // 1) Wybierz konfig dla tej domeny: sesja -> trwały -> reguła(preset) -> legacy.
+    const persistMap = data[PERSIST_KEY] || {};
+    const rules = data[RULES_KEY] || [];
+    const presetsArr = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
+    let saved = sessionMap[currentHost] || persistMap[currentHost] || null;
+    if (!saved) {
+      const r = matchRule(rules, currentHost);
+      if (r) {
+        const ps = presetsArr.find((p) => p.name === r.preset);
+        if (ps) saved = ps.selection;
+      }
+    }
+    if (!saved && data[STORAGE_KEY]) saved = data[STORAGE_KEY]; // migracja starego globalnego
     if (saved) {
       document.querySelectorAll(".wfs-combo").forEach((combo) => {
         combo.restore(saved[combo.dataset.target]);
@@ -1656,8 +1818,9 @@ chrome.storage.local.get(
     // 3) Zastosuj na aktywnej karcie (jeśli cokolwiek ustawione).
     if (saved || (picked && picked.family)) applyToPage();
     updateSnippet();
-  }
-);
+    }
+  );
+})();
 
 // ---- Presety (max 5, trwałe między sesjami; niezależne od resetu stylów) ----
 

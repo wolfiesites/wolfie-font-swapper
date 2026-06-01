@@ -434,13 +434,73 @@ if (favPurgeBtn) {
   });
 }
 
-chrome.storage.local.get([CUSTOM_KEY, FAV_KEY, PRESETS_KEY], (data) => {
+// ---- Reguły domen (glob -> preset) ----
+const RULES_KEY = "wfs_rules";
+let rules = [];
+const rulesList = document.getElementById("rules-list");
+function saveRules() {
+  try { chrome.storage.local.set({ [RULES_KEY]: rules }); } catch (e) {}
+}
+function renderRules() {
+  if (!rulesList) return;
+  rulesList.innerHTML = "";
+  if (!rules.length) {
+    const e = document.createElement("div");
+    e.className = "rules-empty";
+    e.textContent = I18N.t("rules_empty");
+    rulesList.appendChild(e);
+    return;
+  }
+  rules.forEach((rule, i) => {
+    const row = document.createElement("div");
+    row.className = "rule-item";
+    const pat = document.createElement("input");
+    pat.className = "rule-pattern";
+    pat.type = "text";
+    pat.placeholder = I18N.t("rules_pattern_ph");
+    pat.value = rule.pattern || "";
+    pat.addEventListener("change", () => { rules[i].pattern = pat.value.trim(); saveRules(); });
+    const sel = document.createElement("select");
+    sel.className = "rule-preset";
+    const ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = I18N.t("rules_choose_preset");
+    sel.appendChild(ph);
+    presets.forEach((p) => {
+      const o = document.createElement("option");
+      o.value = p.name;
+      o.textContent = p.name;
+      if (p.name === rule.preset) o.selected = true;
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", () => { rules[i].preset = sel.value; saveRules(); });
+    const del = document.createElement("button");
+    del.className = "rule-del";
+    del.type = "button";
+    del.textContent = "✕";
+    del.addEventListener("click", () => { rules.splice(i, 1); saveRules(); renderRules(); });
+    row.append(pat, sel, del);
+    rulesList.appendChild(row);
+  });
+}
+const rulesAddBtn = document.getElementById("rules-add");
+if (rulesAddBtn) {
+  rulesAddBtn.addEventListener("click", () => {
+    rules.push({ pattern: "", preset: "" });
+    saveRules();
+    renderRules();
+  });
+}
+
+chrome.storage.local.get([CUSTOM_KEY, FAV_KEY, PRESETS_KEY, RULES_KEY], (data) => {
   customFonts = data[CUSTOM_KEY] && typeof data[CUSTOM_KEY] === "object" ? data[CUSTOM_KEY] : {};
   favorites = Array.isArray(data[FAV_KEY]) ? data[FAV_KEY] : [];
   presets = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
+  rules = Array.isArray(data[RULES_KEY]) ? data[RULES_KEY] : [];
   customPanel.render();
   favPanel.render();
   renderPresets();
+  renderRules();
 });
 
 // Aktualizuj na żywo, gdy popup zmieni dane przy otwartej stronie opcji.
@@ -458,6 +518,11 @@ try {
     if (changes[PRESETS_KEY]) {
       presets = Array.isArray(changes[PRESETS_KEY].newValue) ? changes[PRESETS_KEY].newValue : [];
       renderPresets();
+      renderRules();
+    }
+    if (changes[RULES_KEY]) {
+      rules = Array.isArray(changes[RULES_KEY].newValue) ? changes[RULES_KEY].newValue : [];
+      renderRules();
     }
   });
 } catch (e) {}
