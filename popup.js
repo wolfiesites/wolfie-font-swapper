@@ -255,51 +255,129 @@ function buildCombo(combo) {
   const input = combo.querySelector(".wfs-search");
   const list = combo.querySelector(".wfs-options");
   const clearBtn = combo.querySelector(".wfs-clear");
+  const BATCH = 60; // ile fontów doładowujemy za jednym razem (lazy-load na scroll)
+  const DEBOUNCE_MS = 800; // odczekaj ~sekundę przy pisaniu, potem szukaj on-fly
   let activeIndex = -1;
-  let rendered = [];
+  let rendered = []; // aktualnie wyrenderowane (w DOM) pozycje — dla Enter/strzałek
+  let filtered = []; // pełny wynik filtrowania
+  let shownCount = 0; // ile z `filtered` jest już w DOM
+  let debounceTimer = null;
 
+  // Stopka informująca o doładowywaniu / liczbie pozostałych wyników.
+  let footer = null;
+
+  function makeItem(font, i) {
+    const li = document.createElement("li");
+    li.dataset.index = i;
+    const name = document.createElement("span");
+    name.className = "wfs-name";
+    name.textContent = font.name;
+    const tag = document.createElement("span");
+    tag.className = "wfs-tag";
+    tag.textContent = font.type === "google" ? "Google" : "System";
+    li.append(name, tag);
+    li.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      choose(font.name);
+    });
+    return li;
+  }
+
+  function updateFooter() {
+    if (footer) footer.remove();
+    footer = null;
+    const remaining = filtered.length - shownCount;
+    if (remaining > 0) {
+      footer = document.createElement("li");
+      footer.className = "wfs-group";
+      footer.textContent = "▼ przewiń, by wczytać więcej (" + remaining + ")";
+      list.appendChild(footer);
+    }
+  }
+
+  // Doładuj kolejną partię z `filtered` do listy.
+  function loadMore() {
+    if (footer) {
+      footer.remove();
+      footer = null;
+    }
+    const next = Math.min(shownCount + BATCH, filtered.length);
+    for (let i = shownCount; i < next; i++) {
+      list.appendChild(makeItem(filtered[i], i));
+    }
+    shownCount = next;
+    rendered = filtered.slice(0, shownCount);
+    updateFooter();
+  }
+
+  // Pokaż chwilowy wskaźnik podczas oczekiwania na debounce.
+  function showSearching() {
+    list.innerHTML = "";
+    const li = document.createElement("li");
+    li.className = "wfs-empty";
+    li.textContent = "Szukam…";
+    list.appendChild(li);
+    list.hidden = false;
+  }
+
+  // Pełne, świeże wyrenderowanie wyników dla danej frazy.
   function render(filter) {
     const term = (filter || "").trim().toLowerCase();
-    const matches = term
+    filtered = term
       ? ALL_FONTS.filter((f) => f.name.toLowerCase().includes(term))
       : ALL_FONTS;
 
-    rendered = matches.slice(0, 200);
     activeIndex = -1;
+    shownCount = 0;
+    rendered = [];
     list.innerHTML = "";
+    footer = null;
 
-    if (rendered.length === 0) {
+    if (filtered.length === 0) {
       const li = document.createElement("li");
       li.className = "wfs-empty";
       li.textContent = "Brak wyników";
       list.appendChild(li);
     } else {
-      rendered.forEach((font, i) => {
-        const li = document.createElement("li");
-        li.dataset.index = i;
-        const name = document.createElement("span");
-        name.className = "wfs-name";
-        name.textContent = font.name;
-        const tag = document.createElement("span");
-        tag.className = "wfs-tag";
-        tag.textContent = font.type === "google" ? "Google" : "System";
-        li.append(name, tag);
-        li.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          choose(font.name);
-        });
-        list.appendChild(li);
-      });
+      loadMore();
     }
     list.hidden = false;
+    list.scrollTop = 0;
   }
 
+  // Wymuś natychmiastowe wyszukanie (np. przy Enter) pomijając debounce.
+  function flushSearch() {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+      render(input.value);
+    }
+  }
+
+  // Doładowywanie przy przewijaniu listy w dół.
+  list.addEventListener("scroll", () => {
+    if (shownCount >= filtered.length) return;
+    if (list.scrollTop + list.clientHeight >= list.scrollHeight - 48) {
+      loadMore();
+    }
+  });
+
   function highlight(delta) {
-    const items = [...list.querySelectorAll("li[data-index]")];
+    let items = [...list.querySelectorAll("li[data-index]")];
     if (!items.length) return;
-    activeIndex = (activeIndex + delta + items.length) % items.length;
+    activeIndex += delta;
+    if (activeIndex >= items.length) {
+      if (shownCount < filtered.length) {
+        loadMore();
+        items = [...list.querySelectorAll("li[data-index]")];
+      } else {
+        activeIndex = 0;
+      }
+    } else if (activeIndex < 0) {
+      activeIndex = items.length - 1;
+    }
     items.forEach((el, i) => el.classList.toggle("active", i === activeIndex));
-    items[activeIndex].scrollIntoView({ block: "nearest" });
+    if (items[activeIndex]) items[activeIndex].scrollIntoView({ block: "nearest" });
   }
 
   function choose(name) {
@@ -322,24 +400,37 @@ function buildCombo(combo) {
   input.addEventListener("focus", () => render(input.value));
   input.addEventListener("input", () => {
     combo.classList.add("has-value"); // pokaż ✕ do czyszczenia
-    render(input.value);
+    showSearching(); // natychmiastowy wskaźnik
+    if (debounceTimer) clearTimeout(debounceTimer);
+    const val = input.value;
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      render(val); // dynamiczne wyszukiwanie po ~sekundzie
+    }, DEBOUNCE_MS);
   });
   input.addEventListener("keydown", (e) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
+      flushSearch();
       if (list.hidden) render(input.value);
       highlight(1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      flushSearch();
       highlight(-1);
     } else if (e.key === "Enter") {
       e.preventDefault();
+      flushSearch(); // nie czekaj na debounce — szukaj od razu
       if (activeIndex >= 0 && rendered[activeIndex]) {
         choose(rendered[activeIndex].name);
-      } else if (rendered.length === 1) {
-        choose(rendered[0].name);
+      } else if (filtered.length === 1) {
+        choose(filtered[0].name);
       }
     } else if (e.key === "Escape") {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
       list.hidden = true;
     }
   });

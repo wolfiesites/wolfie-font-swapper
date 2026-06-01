@@ -8,7 +8,7 @@ Autor: **Wolfie Paweł Witek**
 
 ## ✨ Funkcje
 
-- **Wyszukiwalny dropdown** — zacznij pisać nazwę fontu (np. `Roboto`, `Inter`, `Georgia`) i od razu go znajdziesz.
+- **Wyszukiwalny dropdown (async)** — zacznij pisać nazwę fontu (np. `Roboto`, `Inter`, `Georgia`). Wyszukiwanie jest **debounce'owane (~0,8 s)** — po chwili od ostatniego znaku lista filtruje się dynamicznie „on the fly" (z chwilowym wskaźnikiem „Szukam…"). Lista ładuje się **partiami i doładowuje przy przewijaniu** w dół (lazy-load po 60 pozycji), więc nawet 300+ fontów nie spowalnia popovera.
 - **Google Fonts + fonty systemowe** — ponad 300 rodzin z Google Fonts (ładowane dynamicznie) oraz typowe fonty systemowe. Każda pozycja ma znacznik **Google** / **System**.
 - **Trzy niezależne dropdowny:**
   - **Cała strona** — ustawia `font-family` na całym dokumencie.
