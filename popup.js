@@ -69,6 +69,9 @@ const selection = {
   buttons: emptyProps(),
 };
 
+// Ostatnio sfokusowane pole fontu — by po pobraniu fontu pickerem wkleić tam nazwę.
+let lastFocusedTarget = null;
+
 function hasProps(p) {
   return !!(p && (p.family || p.weight || p.spacing || p.size || p.case));
 }
@@ -231,6 +234,107 @@ function resetFontsInPage() {
   document
     .querySelectorAll('[id^="wolfie-font-swapper-link-"]')
     .forEach((el) => el.remove());
+}
+
+// Inspektor fontów na stronie (styl „Fontninja") — wstrzykiwany przez executeScript.
+// Self-contained: korzysta tylko z DOM, chrome.storage i navigator.clipboard.
+function pageFontInspector(opts) {
+  if (window.__wfsInspector) return;
+  window.__wfsInspector = true;
+  const googleSet = new Set(opts.googleNames);
+  const commSet = new Set(opts.commercialNames);
+  const L = opts.labels;
+  const Z = 2147483647;
+
+  const box = document.createElement("div");
+  Object.assign(box.style, {
+    position: "fixed", zIndex: Z, pointerEvents: "none", display: "none",
+    border: "2px solid #ff3dae", background: "rgba(0,224,255,.12)", borderRadius: "2px",
+  });
+  const tip = document.createElement("div");
+  Object.assign(tip.style, {
+    position: "fixed", zIndex: Z, pointerEvents: "none", display: "none",
+    background: "#16161b", color: "#fff", font: "12px/1.4 'Segoe UI',system-ui,sans-serif",
+    padding: "6px 9px", borderRadius: "8px", boxShadow: "0 6px 22px rgba(0,0,0,.45)", maxWidth: "300px",
+  });
+  const banner = document.createElement("div");
+  Object.assign(banner.style, {
+    position: "fixed", top: "12px", left: "50%", transform: "translateX(-50%)", zIndex: Z,
+    background: "linear-gradient(90deg,#00e0ff,#ff3dae)", color: "#0b0d14",
+    font: "600 12px 'Segoe UI',system-ui,sans-serif", padding: "7px 14px",
+    borderRadius: "999px", boxShadow: "0 6px 22px rgba(0,0,0,.45)",
+  });
+  banner.textContent = L.hint;
+  document.body.append(box, tip, banner);
+
+  let current = null;
+  const firstFamily = (el) =>
+    ((getComputedStyle(el).fontFamily || "").split(",")[0] || "")
+      .trim()
+      .replace(/^["']|["']$/g, "");
+  function classify(name) {
+    const low = (name || "").toLowerCase();
+    if (googleSet.has(low)) return { label: L.open, color: "#4cd964" };
+    if (commSet.has(low)) return { label: L.commercial, color: "#ffb84a" };
+    return { label: L.unknown, color: "#9a9aa8" };
+  }
+  function onMove(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || el === box || el === tip || el === banner) return;
+    current = el;
+    const r = el.getBoundingClientRect();
+    Object.assign(box.style, {
+      display: "block", left: r.left + "px", top: r.top + "px",
+      width: r.width + "px", height: r.height + "px",
+    });
+    const fam = firstFamily(el);
+    const c = classify(fam);
+    tip.innerHTML = "";
+    const n = document.createElement("div");
+    n.textContent = fam || "—";
+    n.style.fontWeight = "700";
+    n.style.marginBottom = "2px";
+    const lic = document.createElement("span");
+    lic.textContent = c.label;
+    lic.style.color = c.color;
+    lic.style.fontSize = "11px";
+    tip.append(n, lic);
+    tip.style.display = "block";
+    let tx = e.clientX + 14, ty = e.clientY + 16;
+    if (tx + 300 > innerWidth) tx = e.clientX - 300;
+    if (ty + 56 > innerHeight) ty = e.clientY - 56;
+    tip.style.left = tx + "px";
+    tip.style.top = ty + "px";
+  }
+  function cleanup() {
+    window.__wfsInspector = false;
+    document.removeEventListener("mousemove", onMove, true);
+    document.removeEventListener("click", onClick, true);
+    document.removeEventListener("keydown", onKey, true);
+    [box, tip, banner].forEach((n) => n.remove());
+  }
+  function onClick(e) {
+    if (!current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const fam = firstFamily(current);
+    try {
+      navigator.clipboard.writeText(fam);
+    } catch (_) {}
+    try {
+      chrome.storage.local.set({ wfs_picked: { family: fam } });
+    } catch (_) {}
+    cleanup();
+  }
+  function onKey(e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cleanup();
+    }
+  }
+  document.addEventListener("mousemove", onMove, true);
+  document.addEventListener("click", onClick, true);
+  document.addEventListener("keydown", onKey, true);
 }
 
 // ---- Ładowanie fontów Google z pominięciem CSP strony ----
@@ -540,6 +644,29 @@ function updateSnippet() {
   section.hidden = false;
   const builders = { css: buildCSS, scss: buildSCSS, js: buildJS };
   document.getElementById("wfs-code").textContent = builders[currentTab]();
+
+  // Przycisk „Kup font" dla wybranego fontu komercyjnego z linkiem.
+  const buy = document.getElementById("wfs-buy");
+  if (buy) {
+    let buyUrl = null;
+    const meta = window.WOLFIE_FONT_META;
+    if (meta) {
+      for (const p of Object.values(selection)) {
+        if (!p.family) continue;
+        const c = meta.classify(p.family);
+        if (c.license === "commercial" && c.buyUrl) {
+          buyUrl = c.buyUrl;
+          break;
+        }
+      }
+    }
+    if (buyUrl) {
+      buy.href = buyUrl;
+      buy.hidden = false;
+    } else {
+      buy.hidden = true;
+    }
+  }
 }
 
 // ---- Budowa wyszukiwalnych dropdownów ----
@@ -738,6 +865,7 @@ function buildCombo(combo) {
   }
 
   input.addEventListener("focus", async () => {
+    lastFocusedTarget = target; // zapamiętaj, by picker wkleił tu nazwę
     render(input.value);
     // Spróbuj dociągnąć realne fonty systemowe (jednorazowo, za zgodą).
     if (!localFontsLoaded) {
@@ -836,6 +964,83 @@ if (settingsBtn) {
     }
   });
 }
+
+// Picker — pobierz font ze strony (tryb inspekcji w aktywnej karcie).
+const pickerBtn = document.getElementById("wfs-picker");
+if (pickerBtn) {
+  pickerBtn.addEventListener("click", async () => {
+    const tab = await getActiveTab();
+    if (!tab || !tab.id) {
+      setStatus(t("status_no_tab"));
+      return;
+    }
+    const url = tab.url || "";
+    if (
+      !url ||
+      /^(chrome|edge|brave|opera|about|chrome-extension|moz-extension|devtools|view-source):/i.test(
+        url
+      ) ||
+      /^https?:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/i.test(url)
+    ) {
+      setStatus(t("status_protected"));
+      return;
+    }
+    const meta = window.WOLFIE_FONT_META;
+    const googleNames = GOOGLE_FONTS.map((s) => s.toLowerCase());
+    const commercialNames = Object.keys(meta ? meta.COMMERCIAL : {}).map((s) =>
+      s.toLowerCase()
+    );
+    chrome.storage.local.set({ wfs_pending_target: lastFocusedTarget || null });
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: pageFontInspector,
+        args: [
+          {
+            googleNames,
+            commercialNames,
+            labels: {
+              hint: t("pick_hint"),
+              open: t("lic_open"),
+              commercial: t("lic_commercial"),
+              unknown: t("lic_unknown"),
+            },
+          },
+        ],
+      });
+      window.close(); // zamknij popup, by wskazać element na stronie
+    } catch (e) {
+      setStatus(t("status_protected"));
+    }
+  });
+}
+
+// Po ponownym otwarciu popupu: wczytaj pobrany font (wklej do pola, pokaż licencję).
+chrome.storage.local.get(["wfs_picked", "wfs_pending_target"], (data) => {
+  const picked = data.wfs_picked;
+  if (!picked || !picked.family) return;
+  chrome.storage.local.remove(["wfs_picked", "wfs_pending_target"]);
+  const fam = picked.family;
+  const target = data.wfs_pending_target;
+  if (target && selection[target]) {
+    const combo = document.querySelector('.wfs-combo[data-target="' + target + '"]');
+    if (combo && combo.restore) {
+      combo.restore({ ...selection[target], family: fam });
+      applyToPage();
+    }
+  }
+  const meta = window.WOLFIE_FONT_META
+    ? window.WOLFIE_FONT_META.classify(fam)
+    : { license: "unknown" };
+  const licLabel =
+    meta.license === "open"
+      ? t("lic_open")
+      : meta.license === "commercial"
+      ? t("lic_commercial")
+      : t("lic_unknown");
+  setStatus(t("pick_applied") + " " + fam + " (" + licLabel + ")");
+  updateSnippet();
+});
 
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);

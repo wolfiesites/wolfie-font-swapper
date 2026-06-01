@@ -91,22 +91,6 @@ Dodatek **nie zbiera ani nie wysyła żadnych danych** osobowych — patrz [PRIV
 
 ---
 
-## 🚀 Publikacja w Chrome Web Store
-
-Repo jest gotowe do spakowania i wgrania:
-
-1. Spakuj **zawartość folderu** do ZIP (bez `node_modules`, `package.json`, plików `*.mjs`, `preview*.png` — i tak są w `.gitignore`):
-   - powinny znaleźć się: `manifest.json`, `popup.*`, `options.*`, `fonts.js`, `i18n.js`, `background.js`, `icons/`, `LICENSE`, `PRIVACY.md`.
-2. Wejdź do [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/) (jednorazowa opłata rejestracyjna dewelopera).
-3. **New item** → wgraj ZIP.
-4. Uzupełnij listing: ikona 128×128 (jest), zrzuty ekranu (1280×800 lub 640×400), krótki + pełny opis, kategoria, język.
-5. Podlinkuj politykę prywatności (`PRIVACY.md` lub strona) i uzasadnij uprawnienia (font hosts + activeTab — opis powyżej).
-6. Wyślij do recenzji.
-
-> Wskazówka: wąskie uprawnienia (bez `<all_urls>`) przyspieszają recenzję.
-
----
-
 ## 📄 Licencja
 
 [MIT](LICENSE) © 2026 Wolfie Paweł Witek

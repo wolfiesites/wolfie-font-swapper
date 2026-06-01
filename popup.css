@@ -28,8 +28,7 @@ body {
   background: linear-gradient(90deg, var(--wfs-accent-2), var(--wfs-accent));
 }
 .wfs-logo { width: 32px; height: 32px; display: block; }
-.wfs-settings {
-  margin-left: auto;
+.wfs-iconbtn {
   border: none;
   background: transparent;
   padding: 4px;
@@ -39,7 +38,13 @@ body {
   border-radius: 8px;
   opacity: .8;
 }
-.wfs-settings:hover { opacity: 1; background: rgba(0, 0, 0, .12); }
+.wfs-iconbtn:hover { opacity: 1; background: rgba(0, 0, 0, .12); }
+.wfs-picker { margin-left: auto; }      /* zepchnij grupę ikon w prawo */
+.wfs-iconbtn.active {
+  opacity: 1;
+  background: rgba(0, 0, 0, .2);
+  box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.35);
+}
 .wfs-header h1 {
   margin: 0;
   font-size: 15px;
@@ -296,6 +301,7 @@ main { padding: 12px 14px 14px; }
   background: var(--wfs-accent);
   color: #fff;
 }
+.wfs-snippet-actions { display: flex; align-items: center; gap: 6px; }
 .wfs-copy {
   border: 1px solid var(--wfs-border);
   background: var(--wfs-surface-hi);
@@ -307,6 +313,18 @@ main { padding: 12px 14px 14px; }
   cursor: pointer;
 }
 .wfs-copy:hover { border-color: var(--wfs-accent); }
+.wfs-buy {
+  border: 1px solid #ffb84a;
+  background: rgba(255, 184, 74, 0.12);
+  color: #ffb84a;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wfs-buy:hover { background: rgba(255, 184, 74, 0.22); }
 .wfs-copy.copied { background: #2e7d4f; border-color: #2e7d4f; color: #fff; }
 .wfs-code {
   margin: 0;
@@ -322,9 +340,9 @@ main { padding: 12px 14px 14px; }
 }
 
 .wfs-footer {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   padding: 8px 12px 10px;
   font-size: 10px;
@@ -336,9 +354,10 @@ main { padding: 12px 14px 14px; }
   font-weight: 600;
 }
 .wfs-footer a:hover { text-decoration: underline; }
-.wfs-coffee { white-space: nowrap; }
-.wfs-credit { color: var(--wfs-muted); white-space: nowrap; }
+.wfs-coffee { justify-self: start; white-space: nowrap; }
+.wfs-credit { justify-self: center; text-align: center; color: var(--wfs-muted); white-space: nowrap; }
 .wfs-version {
+  justify-self: end;
   color: var(--wfs-muted);
   font-size: 10px;
   text-transform: lowercase;
