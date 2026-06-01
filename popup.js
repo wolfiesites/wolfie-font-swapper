@@ -114,7 +114,7 @@ async function applyToPage() {
     chrome.storage.local.set({ [STORAGE_KEY]: selection });
     const active = Object.entries(selection)
       .filter(([, v]) => v)
-      .map(([k, v]) => v);
+      .map(([, v]) => v);
     setStatus(active.length ? "Zastosowano: " + active.join(", ") : "");
     updateSnippet();
   } catch (e) {
