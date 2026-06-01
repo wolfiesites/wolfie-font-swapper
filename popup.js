@@ -64,23 +64,9 @@ function isGoogle(fontName) {
 // ---- Wstrzykiwane do strony (działa w kontekście karty) ----
 
 function applyFontsInPage(state) {
+  // Same pliki fontów Google wstrzykuje rozszerzenie przez insertCSS
+  // (omija CSP strony). Tutaj ustawiamy już tylko reguły font-family.
   const STYLE_ID = "wolfie-font-swapper-style";
-  const LINK_PREFIX = "wolfie-font-swapper-link-";
-
-  // Wczytaj potrzebne fonty Google.
-  (state.googleToLoad || []).forEach((fam) => {
-    const id = LINK_PREFIX + fam.replace(/\s+/g, "-");
-    if (!document.getElementById(id)) {
-      const link = document.createElement("link");
-      link.id = id;
-      link.rel = "stylesheet";
-      link.href =
-        "https://fonts.googleapis.com/css2?family=" +
-        encodeURIComponent(fam).replace(/%20/g, "+") +
-        ":ital,wght@0,400;0,500;0,700;1,400&display=swap";
-      (document.head || document.documentElement).appendChild(link);
-    }
-  });
 
   const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
   const q = (f) => (generic.test(f) ? f : '"' + f + '"');
@@ -130,6 +116,75 @@ function resetFontsInPage() {
     .forEach((el) => el.remove());
 }
 
+// ---- Ładowanie fontów Google z pominięciem CSP strony ----
+//
+// Strony często blokują przez CSP zewnętrzne fonty (fonts.googleapis.com /
+// gstatic.com), więc samo dopisanie <link> nie ładuje pliku. Dlatego pobieramy
+// CSS i pliki fontów po stronie rozszerzenia (ma uprawnienia sieciowe),
+// zamieniamy adresy plików na data:-URL i wstrzykujemy przez insertCSS —
+// taki arkusz pochodzi z rozszerzenia i nie podlega CSP strony.
+
+// tabId -> { families: Set<string>, cssList: string[] }
+const injectedByTab = new Map();
+function tabRecord(tabId) {
+  let rec = injectedByTab.get(tabId);
+  if (!rec) {
+    rec = { families: new Set(), cssList: [] };
+    injectedByTab.set(tabId, rec);
+  }
+  return rec;
+}
+
+function arrayBufferToBase64(buf) {
+  let binary = "";
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(binary);
+}
+
+// Pobierz CSS @font-face z Google i osadź pliki woff2 jako data:-URL.
+async function fetchGoogleFontFaceCSS(family) {
+  const res = await fetch(googleImportUrl(family));
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  let css = await res.text();
+  const urls = [
+    ...new Set(
+      [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.woff2)\)/g)].map(
+        (m) => m[1]
+      )
+    ),
+  ];
+  for (const fontUrl of urls) {
+    try {
+      const fr = await fetch(fontUrl);
+      if (!fr.ok) continue;
+      const b64 = arrayBufferToBase64(await fr.arrayBuffer());
+      css = css.split(fontUrl).join("data:font/woff2;base64," + b64);
+    } catch (e) {
+      /* pomijamy ten plik, reszta i tak zadziała */
+    }
+  }
+  return css;
+}
+
+// Upewnij się, że wszystkie wybrane fonty Google są fizycznie załadowane w karcie.
+async function ensureGoogleFontsLoaded(tabId) {
+  const families = [
+    ...new Set(Object.values(selection).filter((f) => f && isGoogle(f))),
+  ];
+  const rec = tabRecord(tabId);
+  for (const fam of families) {
+    if (rec.families.has(fam)) continue;
+    const css = await fetchGoogleFontFaceCSS(fam);
+    await chrome.scripting.insertCSS({ target: { tabId }, css });
+    rec.families.add(fam);
+    rec.cssList.push(css);
+  }
+}
+
 // ---- Komunikacja z aktywną kartą ----
 
 async function getActiveTab() {
@@ -166,21 +221,25 @@ async function applyToPage() {
     return;
   }
 
-  const googleToLoad = Object.values(selection).filter((f) => f && isGoogle(f));
-
-  const state = { ...selection, googleToLoad };
-
   try {
+    // 1) Fizycznie załaduj pliki fontów Google (insertCSS, omija CSP).
+    try {
+      await ensureGoogleFontsLoaded(tab.id);
+    } catch (e) {
+      setStatus("⚠ Nie udało się pobrać fontu Google: " + (e && e.message ? e.message : e));
+    }
+    // 2) Ustaw reguły font-family na stronie.
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: applyFontsInPage,
-      args: [state],
+      args: [{ ...selection }],
     });
     chrome.storage.local.set({ [STORAGE_KEY]: selection });
     const active = Object.entries(selection)
       .filter(([, v]) => v)
       .map(([, v]) => v);
-    setStatus(active.length ? "✓ Zastosowano: " + active.join(", ") : "");
+    if (active.length) setStatus("✓ Zastosowano: " + active.join(", "));
+    else setStatus("");
     updateSnippet();
   } catch (e) {
     setStatus("✕ Błąd: " + (e && e.message ? e.message : String(e)));
@@ -195,6 +254,18 @@ async function resetPage() {
       target: { tabId: tab.id },
       func: resetFontsInPage,
     });
+    // Usuń też wstrzyknięte @font-face (insertCSS) dla tej karty.
+    const rec = injectedByTab.get(tab.id);
+    if (rec) {
+      for (const css of rec.cssList) {
+        try {
+          await chrome.scripting.removeCSS({ target: { tabId: tab.id }, css });
+        } catch (e) {
+          /* mogło już zniknąć */
+        }
+      }
+      injectedByTab.delete(tab.id);
+    }
   } catch (e) {
     /* strona chroniona — ignorujemy */
   }
