@@ -74,6 +74,7 @@ const CHIP_GROUPS = [
       { label: "Light", value: "300" },
       { label: "Regular", value: "400" },
       { label: "Bold", value: "700" },
+      { label: "Extra Bold", value: "800" },
     ],
   },
   {
@@ -358,7 +359,7 @@ function googleImportUrl(fam) {
   return (
     "https://fonts.googleapis.com/css2?family=" +
     encodeURIComponent(fam).replace(/%20/g, "+") +
-    ":ital,wght@0,400;0,500;0,700;1,400&display=swap"
+    ":ital,wght@0,300;0,400;0,500;0,700;0,800;1,400;1,700&display=swap"
   );
 }
 
