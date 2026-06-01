@@ -63,8 +63,8 @@ body {
 .wfs-header h1 {
   margin: 0;
   font-family: "Audiowide", "Rubik", system-ui, sans-serif;
-  font-size: 11.5px;
-  font-weight: 400;
+  font-size: 15px;
+  font-weight: 600;
   letter-spacing: 0;
   color: #000;
   white-space: nowrap;
