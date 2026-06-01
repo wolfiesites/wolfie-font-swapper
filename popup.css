@@ -249,6 +249,19 @@ main { padding: 12px 14px 14px; }
   tab-size: 2;
 }
 
+.wfs-footer {
+  padding: 8px 14px 12px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--wfs-muted);
+}
+.wfs-footer a {
+  color: var(--wfs-accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.wfs-footer a:hover { text-decoration: underline; }
+
 .wfs-status {
   margin: 10px 0 0;
   min-height: 16px;
