@@ -53,6 +53,9 @@ Bez śledzenia, kont i zbierania danych.
 3. **03-before.png** — strona przed zmianą (porównanie).
 4. **04-popup.png** — interfejs popupu (sekcje, chipy, presety) na gradiencie marki.
 
+## Promo tile
+- **promo-440x280.png** — mały kafelek promocyjny (Small promo tile, 440×280) wymagany przy promowaniu w sklepie.
+
 ## Privacy
 Polityka prywatności: PRIVACY.md (repo) lub https://wolfiesites.com
 
