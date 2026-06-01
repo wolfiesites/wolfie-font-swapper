@@ -2,6 +2,8 @@
 
 A simple Chrome extension for **quickly swapping and previewing fonts** on any web page. Pick a font from a searchable dropdown and the style is **injected instantly** — no reload.
 
+> 🧑‍💻 **Built mainly as a developer tool** — a fast way to try, compare and *find* fonts directly on real pages before committing to them in code.
+
 Author: **Wolfie Paweł Witek**
 
 ![Wolfie Font Swapper — how to use](store/usage.gif)
