@@ -78,7 +78,7 @@ const statusEl = document.getElementById("wfs-status");
 
 // Aktualne ustawienia dla każdego targetu: rodzina + chipy.
 function emptyProps() {
-  return { family: null, weight: null, spacing: null, size: null, case: null };
+  return { family: null, weight: null, spacing: null, size: null, case: null, color: null };
 }
 const selection = {
   base: emptyProps(),
@@ -107,7 +107,7 @@ function toggleFavorite(name) {
 }
 
 function hasProps(p) {
-  return !!(p && (p.family || p.weight || p.spacing || p.size || p.case));
+  return !!(p && (p.family || p.weight || p.spacing || p.size || p.case || p.color));
 }
 
 // Predefiniowane chipy pod każdym dropdownem (po 3 opcje, opcjonalne — klik
@@ -171,7 +171,7 @@ function applyFontsInPage(state) {
   const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
   const q = (f) => (generic.test(f) ? f : '"' + f + '"');
   const has = (p) =>
-    p && (p.family || p.weight || p.spacing || p.size || p.case);
+    p && (p.family || p.weight || p.spacing || p.size || p.case || p.color);
   const decl = (p) => {
     const d = [];
     if (p.family) d.push("font-family: " + q(p.family) + " !important");
@@ -179,6 +179,7 @@ function applyFontsInPage(state) {
     if (p.spacing) d.push("letter-spacing: " + p.spacing + " !important");
     if (p.size) d.push("font-size: " + p.size + " !important");
     if (p.case) d.push("text-transform: " + p.case + " !important");
+    if (p.color) d.push("color: " + p.color + " !important");
     return d.join("; ");
   };
 
@@ -268,6 +269,20 @@ function resetFontsInPage() {
   document
     .querySelectorAll('[id^="wolfie-font-swapper-link-"]')
     .forEach((el) => el.remove());
+}
+
+// Przywróć oryginalną treść elementów edytowanych edytorem tekstu.
+function resetTextInPage() {
+  const list = window.__wfsEditedEls || [];
+  for (const el of list) {
+    try {
+      if (el.__wfsOrig !== undefined) {
+        el.innerHTML = el.__wfsOrig;
+        delete el.__wfsOrig;
+      }
+    } catch (e) {}
+  }
+  window.__wfsEditedEls = [];
 }
 
 // Inspektor fontów na stronie (styl „Fontninja") — wstrzykiwany przez executeScript.
@@ -442,6 +457,113 @@ function pageFontInspector(opts) {
   document.addEventListener("mousemove", onMove, true);
   document.addEventListener("click", onClick, true);
   document.addEventListener("keydown", onKey, true);
+}
+
+// Edytor tekstu na stronie — wstrzykiwany przez executeScript. Klik elementu
+// czyni go edytowalnym (contentEditable), więc można zmienić jego treść w DOM.
+function pageTextEditor(opts) {
+  if (window.__wfsTextEdit) return;
+  window.__wfsTextEdit = true;
+  const L = opts.labels;
+  const Z = 2147483647;
+  const box = document.createElement("div");
+  Object.assign(box.style, {
+    position: "fixed", zIndex: Z, pointerEvents: "none", display: "none",
+    border: "2px solid #00e0ff", background: "rgba(0,224,255,.10)", borderRadius: "2px",
+  });
+  const banner = document.createElement("div");
+  Object.assign(banner.style, {
+    position: "fixed", top: "12px", left: "50%", transform: "translateX(-50%)", zIndex: Z,
+    background: "linear-gradient(90deg,#00e0ff,#ff3dae)", color: "#0b0d14",
+    font: "600 12px 'Segoe UI',system-ui,sans-serif", padding: "7px 8px 7px 14px",
+    borderRadius: "999px", boxShadow: "0 6px 22px rgba(0,0,0,.45)",
+    display: "flex", alignItems: "center", gap: "10px",
+  });
+  const hintSpan = document.createElement("span");
+  hintSpan.textContent = L.hint;
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "✕";
+  Object.assign(closeBtn.style, {
+    border: "none", background: "rgba(0,0,0,.18)", color: "#0b0d14", cursor: "pointer",
+    width: "20px", height: "20px", borderRadius: "50%", font: "700 11px sans-serif", lineHeight: "1",
+  });
+  closeBtn.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); cleanup(); });
+  banner.append(hintSpan, closeBtn);
+  document.body.append(box, banner);
+
+  let editing = null;
+  function onMove(e) {
+    if (editing) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || el === box || banner.contains(el)) return;
+    const r = el.getBoundingClientRect();
+    Object.assign(box.style, {
+      display: "block", left: r.left + "px", top: r.top + "px",
+      width: r.width + "px", height: r.height + "px",
+    });
+  }
+  function finishEdit() {
+    if (!editing) return;
+    const prev = editing.getAttribute("data-wfs-ce");
+    if (prev === "true") editing.setAttribute("contenteditable", "true");
+    else editing.removeAttribute("contenteditable");
+    editing.removeAttribute("data-wfs-ce");
+    editing.style.outline = "";
+    editing = null;
+  }
+  function startEdit(el) {
+    if (editing && editing !== el) finishEdit();
+    editing = el;
+    // zapamiętaj oryginalną treść (raz), by Reset mógł ją przywrócić
+    if (el.__wfsOrig === undefined) {
+      el.__wfsOrig = el.innerHTML;
+      (window.__wfsEditedEls = window.__wfsEditedEls || []).push(el);
+    }
+    el.setAttribute("data-wfs-ce", el.getAttribute("contenteditable") || "");
+    el.setAttribute("contenteditable", "true");
+    el.style.outline = "2px dashed #00e0ff";
+    box.style.display = "none";
+    el.focus();
+  }
+  function onClick(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || banner.contains(el)) return;
+    const link = e.target && e.target.closest ? e.target.closest("a") : null;
+    if (editing && (el === editing || editing.contains(el))) {
+      if (link) e.preventDefault(); // nie nawiguj linkiem, ale pozwól ustawić kursor
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    startEdit(el);
+  }
+  // Blokuj nawigację po linkach w trakcie trybu edycji (także middle-click).
+  function blockNav(e) {
+    const a = e.target && e.target.closest ? e.target.closest("a") : null;
+    if (a) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+  function cleanup() {
+    finishEdit();
+    window.__wfsTextEdit = false;
+    document.removeEventListener("mousemove", onMove, true);
+    document.removeEventListener("click", onClick, true);
+    document.removeEventListener("keydown", onKey, true);
+    document.removeEventListener("auxclick", blockNav, true);
+    [box, banner].forEach((n) => n.remove());
+  }
+  function onKey(e) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cleanup();
+    }
+  }
+  document.addEventListener("mousemove", onMove, true);
+  document.addEventListener("click", onClick, true);
+  document.addEventListener("keydown", onKey, true);
+  document.addEventListener("auxclick", blockNav, true);
 }
 
 // ---- Ładowanie fontów Google z pominięciem CSP strony ----
@@ -711,6 +833,11 @@ async function resetPage() {
       target: { tabId: tab.id },
       func: resetFontsInPage,
     });
+    // Przywróć oryginalny tekst (cofnij edycje edytora tekstu).
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: resetTextInPage,
+    });
     // Usuń też wstrzyknięte @font-face (insertCSS) dla tej karty.
     const rec = injectedByTab.get(tab.id);
     if (rec) {
@@ -741,6 +868,12 @@ async function resetPage() {
   document
     .querySelectorAll(".wfs-chip.active")
     .forEach((chip) => chip.classList.remove("active"));
+  document
+    .querySelectorAll(".wfs-color-wrap.set")
+    .forEach((w) => w.classList.remove("set"));
+  document.querySelectorAll(".wfs-combo").forEach((c) => {
+    if (c.updateHeart) c.updateHeart();
+  });
   setStatus(t("status_reset"));
   updateSnippet();
 }
@@ -798,6 +931,7 @@ function declList(p, familyExpr, indent) {
   if (p.spacing) d.push(pad + "letter-spacing: " + p.spacing + ";");
   if (p.size) d.push(pad + "font-size: " + p.size + ";");
   if (p.case) d.push(pad + "text-transform: " + p.case + ";");
+  if (p.color) d.push(pad + "color: " + p.color + ";");
   return d;
 }
 
@@ -1150,6 +1284,39 @@ function buildCombo(combo) {
       row.append(lbl, wrap);
       chipsBox.appendChild(row);
     });
+
+    // Color picker dla tej sekcji (po Rozmiarze).
+    const crow = document.createElement("div");
+    crow.className = "wfs-chip-row";
+    const clbl = document.createElement("span");
+    clbl.className = "wfs-chip-label";
+    clbl.textContent = t("chip_color");
+    const cwrap = document.createElement("div");
+    cwrap.className = "wfs-color-wrap";
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.className = "wfs-color";
+    colorInput.value = "#000000";
+    const colorClear = document.createElement("button");
+    colorClear.type = "button";
+    colorClear.className = "wfs-color-clear";
+    colorClear.textContent = "✕";
+    colorClear.title = t("clear_title");
+    colorInput.addEventListener("input", () => {
+      selection[target].color = colorInput.value;
+      cwrap.classList.add("set");
+      applyToPage();
+    });
+    colorClear.addEventListener("click", () => {
+      selection[target].color = null;
+      cwrap.classList.remove("set");
+      applyToPage();
+    });
+    cwrap.append(colorInput, colorClear);
+    crow.append(clbl, cwrap);
+    chipsBox.appendChild(crow);
+    combo.colorInput = colorInput;
+    combo.colorWrap = cwrap;
   }
 
   input.addEventListener("focus", async () => {
@@ -1278,6 +1445,14 @@ function buildCombo(combo) {
         chip.classList.toggle("active", p[chip.dataset.key] === chip.dataset.value);
       });
     }
+    if (combo.colorInput) {
+      if (p.color) {
+        combo.colorInput.value = p.color;
+        combo.colorWrap.classList.add("set");
+      } else {
+        combo.colorWrap.classList.remove("set");
+      }
+    }
     if (combo.updateHeart) combo.updateHeart();
   };
 }
@@ -1358,6 +1533,31 @@ async function startPicker(target) {
 const pickerBtn = document.getElementById("wfs-picker");
 if (pickerBtn)
   pickerBtn.addEventListener("click", () => startPicker(lastFocusedTarget));
+
+// Edytor tekstu na stronie (ikona ✎ nad „Cała strona").
+async function startTextEditor() {
+  const tab = await getActiveTab();
+  if (!tab || !tab.id) {
+    setStatus(t("status_no_tab"));
+    return;
+  }
+  if (isRestrictedUrl(tab.url || "")) {
+    setStatus(t("status_protected"));
+    return;
+  }
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageTextEditor,
+      args: [{ labels: { hint: t("edit_text_hint") } }],
+    });
+    window.close();
+  } catch (e) {
+    setStatus(t("status_protected"));
+  }
+}
+const editTextBtn = document.getElementById("wfs-edit-text");
+if (editTextBtn) editTextBtn.addEventListener("click", startTextEditor);
 
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);

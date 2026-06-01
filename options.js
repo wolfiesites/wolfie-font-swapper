@@ -388,6 +388,39 @@ function renderPresets() {
   });
 }
 
+// Purge presetów.
+const psPurgeBtn = document.getElementById("ps-purge");
+if (psPurgeBtn) {
+  psPurgeBtn.addEventListener("click", () => {
+    if (!presets.length) return;
+    if (!confirm(I18N.t("ps_purge_confirm"))) return;
+    presets = [];
+    try { chrome.storage.local.set({ [PRESETS_KEY]: [] }); } catch (e) {}
+    renderPresets();
+  });
+}
+
+// Przycisk zamknięcia (powrót na poprzednią kartę).
+const optCloseBtn = document.getElementById("opt-close");
+if (optCloseBtn) {
+  optCloseBtn.addEventListener("click", () => {
+    try {
+      chrome.tabs.getCurrent((tab) => {
+        if (tab && tab.id != null) chrome.tabs.remove(tab.id);
+        else window.close();
+      });
+    } catch (e) {
+      window.close();
+    }
+  });
+}
+
+// Wersja dodatku w stopce.
+try {
+  const vEl = document.getElementById("opt-version");
+  if (vEl) vEl.textContent = "v" + chrome.runtime.getManifest().version;
+} catch (e) {}
+
 // Purge ulubionych — czyści TYLKO wfs_favorites.
 const favPurgeBtn = document.getElementById("fav-purge");
 if (favPurgeBtn) {
