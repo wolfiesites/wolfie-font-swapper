@@ -1333,13 +1333,22 @@ function persistPresets() {
   chrome.storage.local.set({ [PRESETS_KEY]: presets });
 }
 
+// Domyślna nazwa presetu = dwa pierwsze ustawione fonty (np. "Audiowide+Rubik").
+function presetBaseName() {
+  const fams = ["base", "headings", "paragraphs", "navigation", "buttons"]
+    .map((k) => selection[k] && selection[k].family)
+    .filter(Boolean);
+  return fams.slice(0, 2).join("+") || "Preset";
+}
 function nextPresetName() {
+  const base = presetBaseName();
   const used = new Set(presets.map((p) => p.name));
-  for (let n = 1; n <= MAX_PRESETS; n++) {
-    const nm = "Preset " + n;
+  if (!used.has(base)) return base;
+  for (let n = 2; n <= 99; n++) {
+    const nm = base + " " + n; // taka kombinacja już jest -> dopisz liczbę
     if (!used.has(nm)) return nm;
   }
-  return "Preset";
+  return base + " " + (presets.length + 1);
 }
 
 function renderPresets() {
