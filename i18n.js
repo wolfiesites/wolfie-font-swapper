@@ -116,6 +116,7 @@
       rules_choose_preset: "— wybierz preset —",
       rule_label: "Reguła",
       rule_remove: "Usuń regułę",
+      rule_edit_settings: "Zmień preset w ustawieniach",
       rules_need_preset: "Aby dodać regułę, najpierw zapisz preset (sekcja Presety).",
     },
     en: {
@@ -217,6 +218,7 @@
       rules_choose_preset: "— choose preset —",
       rule_label: "Rule",
       rule_remove: "Remove rule",
+      rule_edit_settings: "Change preset in settings",
       rules_need_preset: "To add a rule, save a preset first (Presets section).",
     },
     fr: {
@@ -318,6 +320,7 @@
       rules_choose_preset: "— choisir un préréglage —",
       rule_label: "Règle",
       rule_remove: "Supprimer la règle",
+      rule_edit_settings: "Changer le préréglage dans les paramètres",
       rules_need_preset: "Pour ajouter une règle, enregistrez d'abord un préréglage (section Préréglages).",
     },
     de: {
@@ -419,6 +422,7 @@
       rules_choose_preset: "— Voreinstellung wählen —",
       rule_label: "Regel",
       rule_remove: "Regel entfernen",
+      rule_edit_settings: "Voreinstellung in den Einstellungen ändern",
       rules_need_preset: "Um eine Regel hinzuzufügen, speichere zuerst eine Voreinstellung (Abschnitt Voreinstellungen).",
     },
     es: {
@@ -520,6 +524,7 @@
       rules_choose_preset: "— elegir ajuste —",
       rule_label: "Regla",
       rule_remove: "Eliminar regla",
+      rule_edit_settings: "Cambiar preajuste en ajustes",
       rules_need_preset: "Para añadir una regla, primero guarda un ajuste (sección Ajustes).",
     },
     uk: {
@@ -621,6 +626,7 @@
       rules_choose_preset: "— виберіть пресет —",
       rule_label: "Правило",
       rule_remove: "Видалити правило",
+      rule_edit_settings: "Змінити пресет у налаштуваннях",
       rules_need_preset: "Щоб додати правило, спершу збережіть пресет (розділ Пресети).",
     },
     ru: {
@@ -722,6 +728,7 @@
       rules_choose_preset: "— выберите пресет —",
       rule_label: "Правило",
       rule_remove: "Удалить правило",
+      rule_edit_settings: "Изменить пресет в настройках",
       rules_need_preset: "Чтобы добавить правило, сначала сохраните пресет (раздел Пресеты).",
     },
     ro: {
@@ -823,6 +830,7 @@
       rules_choose_preset: "— alege presetarea —",
       rule_label: "Regulă",
       rule_remove: "Elimină regula",
+      rule_edit_settings: "Schimbă presetarea în setări",
       rules_need_preset: "Pentru a adăuga o regulă, salvează mai întâi o presetare (secțiunea Presetări).",
     },
     it: {
@@ -924,6 +932,7 @@
       rules_choose_preset: "— scegli preimpostazione —",
       rule_label: "Regola",
       rule_remove: "Rimuovi regola",
+      rule_edit_settings: "Cambia preset nelle impostazioni",
       rules_need_preset: "Per aggiungere una regola, salva prima una preimpostazione (sezione Preimpostazioni).",
     },
   };

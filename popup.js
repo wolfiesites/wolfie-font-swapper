@@ -85,17 +85,12 @@ let activeRulePattern = null; // wzorzec reguły, która dała bieżący konfig
 // Pasek reguły: pokaż gdy konfig pochodzi z reguły; pozwól zmienić preset / usunąć regułę.
 function setupRuleBar(rule) {
   const bar = document.getElementById("wfs-rulebar");
-  const sel = document.getElementById("wfs-rule-preset");
-  if (!bar || !sel || !rule) return;
+  const name = document.getElementById("wfs-rule-preset");
+  // Pasek pokazujemy tylko gdy reguła ma realnie istniejący preset.
+  if (!bar || !name || !rule || !rule.preset) return;
+  if (!presetsData.some((p) => p.name === rule.preset)) return;
   activeRulePattern = rule.pattern;
-  sel.innerHTML = "";
-  presetsData.forEach((p) => {
-    const o = document.createElement("option");
-    o.value = p.name;
-    o.textContent = p.name;
-    if (p.name === rule.preset) o.selected = true;
-    sel.appendChild(o);
-  });
+  name.textContent = rule.preset; // wskaźnik read-only; zmiana presetu w ustawieniach
   bar.hidden = false;
 }
 
@@ -219,12 +214,22 @@ const CHIP_GROUPS = [
   {
     key: "size",
     label: t("chip_size"),
+    // Tekst (akapity / baza / nawigacja / przyciski) — popularne rozmiary body.
     options: [
       { label: "S", value: "14px" },
       { label: "M", value: "16px" },
       { label: "L", value: "18px" },
       { label: "XL", value: "20px" },
     ],
+    // Nagłówki — popularna skala nagłówkowa (h2…hero).
+    optionsByTarget: {
+      headings: [
+        { label: "S", value: "24px" },
+        { label: "M", value: "32px" },
+        { label: "L", value: "40px" },
+        { label: "XXL", value: "48px" },
+      ],
+    },
   },
   {
     key: "lineheight",
@@ -1401,7 +1406,10 @@ function buildCombo(combo) {
       lbl.textContent = group.label;
       const wrap = document.createElement("div");
       wrap.className = "wfs-chip-group";
-      group.options.forEach((opt) => {
+      const groupOptions =
+        (group.optionsByTarget && group.optionsByTarget[target]) ||
+        group.options;
+      groupOptions.forEach((opt) => {
         const chip = document.createElement("button");
         chip.type = "button";
         chip.className = "wfs-chip";
@@ -1707,19 +1715,14 @@ document.getElementById("wfs-reset").addEventListener("click", resetPage);
 
 // (Ustawienia per domena zapisują się automatycznie na sesję; trwałość → presety.)
 
-// Pasek reguły: dynamiczna zmiana presetu + usunięcie reguły.
-const rulePresetSel = document.getElementById("wfs-rule-preset");
-if (rulePresetSel) {
-  rulePresetSel.addEventListener("change", () => {
-    const ps = presetsData.find((p) => p.name === rulePresetSel.value);
-    if (!ps) return;
-    document.querySelectorAll(".wfs-combo").forEach((c) => c.restore(ps.selection[c.dataset.target]));
-    applyToPage();
-    const r = rulesData.find((x) => x.pattern === activeRulePattern);
-    if (r) {
-      r.preset = rulePresetSel.value;
-      chrome.storage.local.set({ [RULES_KEY]: rulesData });
-    }
+// Pasek reguły: wskaźnik aktywnej reguły (zmiana presetu w ustawieniach) + usunięcie.
+const rulePresetName = document.getElementById("wfs-rule-preset");
+if (rulePresetName) {
+  rulePresetName.addEventListener("click", () => {
+    // Zmianę presetu reguły robi się w ustawieniach (sekcja Reguły).
+    try {
+      chrome.runtime.openOptionsPage();
+    } catch (e) {}
   });
 }
 const ruleRemoveBtn = document.getElementById("wfs-rule-remove");
