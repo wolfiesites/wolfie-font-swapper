@@ -94,6 +94,7 @@
       fav_need: "Najpierw wybierz font",
       fav_title: "Ulubione fonty",
       fav_empty: "Brak ulubionych — kliknij ❤ przy polu w popupie.",
+      fav_purge_confirm: "Usunąć wszystkie ulubione fonty?",
     },
     en: {
       sec_base: "Whole page",
@@ -172,6 +173,7 @@
       fav_need: "Pick a font first",
       fav_title: "Favorite fonts",
       fav_empty: "No favorites — click ❤ next to a field in the popup.",
+      fav_purge_confirm: "Delete all favorite fonts?",
     },
     fr: {
       sec_base: "Page entière",
@@ -250,6 +252,7 @@
       fav_need: "Choisissez d'abord une police",
       fav_title: "Polices favorites",
       fav_empty: "Aucun favori — cliquez sur ❤ à côté d'un champ.",
+      fav_purge_confirm: "Supprimer toutes les polices favorites ?",
     },
     de: {
       sec_base: "Ganze Seite",
@@ -328,6 +331,7 @@
       fav_need: "Zuerst eine Schrift wählen",
       fav_title: "Lieblingsschriften",
       fav_empty: "Keine Favoriten — klicke auf ❤ neben einem Feld.",
+      fav_purge_confirm: "Alle Lieblingsschriften löschen?",
     },
     es: {
       sec_base: "Toda la página",
@@ -406,6 +410,7 @@
       fav_need: "Elige una fuente primero",
       fav_title: "Fuentes favoritas",
       fav_empty: "Sin favoritos — pulsa ❤ junto a un campo.",
+      fav_purge_confirm: "¿Eliminar todas las fuentes favoritas?",
     },
     uk: {
       sec_base: "Уся сторінка",
@@ -484,6 +489,7 @@
       fav_need: "Спершу виберіть шрифт",
       fav_title: "Улюблені шрифти",
       fav_empty: "Немає улюблених — натисніть ❤ біля поля.",
+      fav_purge_confirm: "Видалити всі улюблені шрифти?",
     },
     ru: {
       sec_base: "Вся страница",
@@ -562,6 +568,7 @@
       fav_need: "Сначала выберите шрифт",
       fav_title: "Избранные шрифты",
       fav_empty: "Нет избранных — нажмите ❤ рядом с полем.",
+      fav_purge_confirm: "Удалить все избранные шрифты?",
     },
     ro: {
       sec_base: "Toată pagina",
@@ -640,6 +647,7 @@
       fav_need: "Alege mai întâi un font",
       fav_title: "Fonturi favorite",
       fav_empty: "Niciun favorit — apasă ❤ lângă un câmp.",
+      fav_purge_confirm: "Ștergi toate fonturile favorite?",
     },
     it: {
       sec_base: "Tutta la pagina",
@@ -718,6 +726,7 @@
       fav_need: "Scegli prima un font",
       fav_title: "Font preferiti",
       fav_empty: "Nessun preferito — clicca ❤ accanto a un campo.",
+      fav_purge_confirm: "Eliminare tutti i font preferiti?",
     },
   };
 

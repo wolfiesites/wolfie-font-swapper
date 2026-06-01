@@ -151,7 +151,10 @@
 
     <!-- Ulubione fonty -->
     <div class="field">
-      <h2 class="cf-title" data-i18n="fav_title">Ulubione fonty</h2>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;">
+        <h2 class="cf-title" style="margin:0" data-i18n="fav_title">Ulubione fonty</h2>
+        <button id="fav-purge" class="cf-btn" type="button" data-i18n="cf_purge">Wyczyść wszystkie</button>
+      </div>
       <div class="cf-grid">
         <div class="cf-col">
           <input id="fav-search" class="cf-search" type="text" data-i18n-ph="cf_search_ph" placeholder="Szukaj fontu…" autocomplete="off" />

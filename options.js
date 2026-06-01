@@ -317,6 +317,19 @@ if (purgeBtn) {
   });
 }
 
+// Purge ulubionych — czyści TYLKO wfs_favorites.
+const favPurgeBtn = document.getElementById("fav-purge");
+if (favPurgeBtn) {
+  favPurgeBtn.addEventListener("click", () => {
+    if (!favorites.length) return;
+    if (!confirm(I18N.t("fav_purge_confirm"))) return;
+    favorites = [];
+    try { chrome.storage.local.set({ [FAV_KEY]: [] }); } catch (e) {}
+    favPanel.clearSelection();
+    favPanel.render();
+  });
+}
+
 chrome.storage.local.get([CUSTOM_KEY, FAV_KEY], (data) => {
   customFonts = data[CUSTOM_KEY] && typeof data[CUSTOM_KEY] === "object" ? data[CUSTOM_KEY] : {};
   favorites = Array.isArray(data[FAV_KEY]) ? data[FAV_KEY] : [];
