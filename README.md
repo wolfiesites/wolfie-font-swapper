@@ -24,7 +24,9 @@ Autor: **Wolfie Paweł Witek**
   Uwaga: rozmiar dla „Całej strony" jest wymuszany na wszystkich elementach (`!important`), więc spłaszcza hierarchię — przydatne do podglądu, niekoniecznie do produkcji.
 - **Automatyczne wstrzykiwanie stylu** — zmiana widoczna natychmiast po wyborze.
 - **Fonty Google ładowane fizycznie z pominięciem CSP** — rozszerzenie pobiera pliki `.woff2` własnym `fetch`, osadza je jako `data:`-URL i wstrzykuje przez `insertCSS`, więc podgląd działa nawet na stronach blokujących zewnętrzne fonty.
-- **Reset jednym kliknięciem** — przycisk „↺ Resetuj" usuwa cały wstrzyknięty styl i wczytane fonty.
+- **Presety (do 5)** — zapisz bieżące ustawienia jako preset, wczytaj jednym kliknięciem, usuń ✕. Presety są **trwałe między sesjami** (`chrome.storage.local`) i **niezależne od resetu** stylów.
+- **Tłumaczenia (9 języków)** — PL, EN, FR, DE, ES, UK, RU, RO, IT. Domyślnie język przeglądarki; w **opcjach dodatku** (ikona koła zębatego w nagłówku) jest przełącznik języka. Wybór trzymany w `localStorage`, wspólny dla popupu i opcji.
+- **Reset jednym kliknięciem** — przycisk „↺ Resetuj" usuwa cały wstrzyknięty styl i wczytane fonty (presety zostają).
 - **Skrót klawiszowy `Ctrl+Shift+L`** (`⌘+Shift+L` na macOS) — otwiera popover.
 - **Snippet do skopiowania** — po wyborze fontu na dole pojawia się gotowy kod w zakładkach:
   - **CSS** — z `@import` Google Fonts i regułami `font-family`.

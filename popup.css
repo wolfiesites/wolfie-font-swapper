@@ -28,6 +28,18 @@ body {
   background: linear-gradient(90deg, var(--wfs-accent-2), var(--wfs-accent));
 }
 .wfs-logo { width: 32px; height: 32px; display: block; }
+.wfs-settings {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  opacity: .8;
+}
+.wfs-settings:hover { opacity: 1; background: rgba(0, 0, 0, .12); }
 .wfs-header h1 {
   margin: 0;
   font-size: 15px;
@@ -180,6 +192,65 @@ main { padding: 12px 14px 14px; }
   font-weight: 600;
 }
 
+/* Presety */
+.wfs-presets {
+  margin-top: 14px;
+  border-top: 1px solid var(--wfs-border);
+  padding-top: 10px;
+}
+.wfs-presets-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.wfs-presets-label { font-weight: 600; font-size: 12px; }
+.wfs-preset-save {
+  border: 1px solid var(--wfs-accent);
+  background: transparent;
+  color: var(--wfs-accent);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.wfs-preset-save:hover:not(:disabled) { background: var(--wfs-accent); color: #fff; }
+.wfs-preset-save:disabled { opacity: .5; cursor: not-allowed; }
+.wfs-preset-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wfs-preset-empty { font-size: 11px; color: var(--wfs-muted); }
+.wfs-preset {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--wfs-border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--wfs-surface);
+}
+.wfs-preset-name {
+  border: none;
+  background: transparent;
+  color: var(--wfs-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 4px 4px 10px;
+  cursor: pointer;
+}
+.wfs-preset:hover { border-color: var(--wfs-accent); }
+.wfs-preset-del {
+  border: none;
+  background: transparent;
+  color: var(--wfs-muted);
+  font-size: 11px;
+  padding: 4px 8px 4px 4px;
+  cursor: pointer;
+}
+.wfs-preset-del:hover { color: #ff6b6b; }
+
 .wfs-actions { margin-top: 14px; }
 .wfs-btn-reset {
   width: 100%;
@@ -251,9 +322,12 @@ main { padding: 12px 14px 14px; }
 }
 
 .wfs-footer {
-  padding: 8px 14px 12px;
-  text-align: center;
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 10px;
+  font-size: 10px;
   color: var(--wfs-muted);
 }
 .wfs-footer a {
@@ -262,6 +336,14 @@ main { padding: 12px 14px 14px; }
   font-weight: 600;
 }
 .wfs-footer a:hover { text-decoration: underline; }
+.wfs-coffee { white-space: nowrap; }
+.wfs-credit { color: var(--wfs-muted); white-space: nowrap; }
+.wfs-version {
+  color: var(--wfs-muted);
+  font-size: 10px;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
 
 .wfs-status {
   margin: 10px 0 0;

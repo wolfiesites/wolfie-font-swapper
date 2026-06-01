@@ -1,5 +1,8 @@
 "use strict";
 
+// Skrót do tłumaczeń (i18n.js ładowany przed popup.js).
+const t = (key) => (window.WOLFIE_I18N ? window.WOLFIE_I18N.t(key) : key);
+
 const { SYSTEM_FONTS, GOOGLE_FONTS, POPULAR_GOOGLE_FONTS } = window.WOLFIE_FONTS;
 
 const POPULAR_SET = new Set(POPULAR_GOOGLE_FONTS);
@@ -71,7 +74,7 @@ function hasProps(p) {
 const CHIP_GROUPS = [
   {
     key: "weight",
-    label: "Grubość",
+    label: t("chip_weight"),
     options: [
       { label: "Light", value: "300" },
       { label: "Regular", value: "400" },
@@ -81,16 +84,16 @@ const CHIP_GROUPS = [
   },
   {
     key: "spacing",
-    label: "Odstęp",
+    label: t("chip_spacing"),
     options: [
-      { label: "Ciasno", value: "-0.5px" },
+      { label: t("spacing_tight"), value: "-0.5px" },
       { label: "0", value: "normal" },
-      { label: "Luźno", value: "1.5px" },
+      { label: t("spacing_loose"), value: "1.5px" },
     ],
   },
   {
     key: "size",
-    label: "Rozmiar",
+    label: t("chip_size"),
     options: [
       { label: "S", value: "14px" },
       { label: "M", value: "18px" },
@@ -99,7 +102,7 @@ const CHIP_GROUPS = [
   },
   {
     key: "case",
-    label: "Wielkość liter",
+    label: t("chip_case"),
     targets: ["buttons"], // text-transform tylko dla przycisków
     options: [
       { label: "ABC", value: "uppercase" },
@@ -309,15 +312,13 @@ async function getActiveTab() {
 async function applyToPage() {
   const tab = await getActiveTab();
   if (!tab || !tab.id) {
-    setStatus("⚠ Brak aktywnej karty.");
+    setStatus(t("status_no_tab"));
     return;
   }
 
   const url = tab.url || "";
   if (/^file:/i.test(url)) {
-    setStatus(
-      "⚠ Strony file:// wymagają włączenia „Zezwalaj na dostęp do adresów URL plików” w szczegółach dodatku."
-    );
+    setStatus(t("status_file"));
     return;
   }
   if (
@@ -329,9 +330,7 @@ async function applyToPage() {
       url
     )
   ) {
-    setStatus(
-      "⚠ Ta karta jest chroniona przez przeglądarkę — otwórz zwykłą stronę (np. wikipedia.org) i spróbuj ponownie."
-    );
+    setStatus(t("status_protected"));
     return;
   }
 
@@ -340,7 +339,7 @@ async function applyToPage() {
     try {
       await ensureGoogleFontsLoaded(tab.id);
     } catch (e) {
-      setStatus("⚠ Nie udało się pobrać fontu Google: " + (e && e.message ? e.message : e));
+      setStatus(t("status_google_fail") + " " + (e && e.message ? e.message : e));
     }
     // 2) Ustaw reguły font-family na stronie.
     await chrome.scripting.executeScript({
@@ -354,13 +353,13 @@ async function applyToPage() {
       .filter(Boolean);
     const anyActive = Object.values(selection).some(hasProps);
     if (anyActive) {
-      setStatus("✓ Zastosowano" + (names.length ? ": " + names.join(", ") : ""));
+      setStatus(t("status_applied") + (names.length ? ": " + names.join(", ") : ""));
     } else {
       setStatus("");
     }
     updateSnippet();
   } catch (e) {
-    setStatus("✕ Błąd: " + (e && e.message ? e.message : String(e)));
+    setStatus(t("status_error") + " " + (e && e.message ? e.message : String(e)));
   }
 }
 
@@ -402,7 +401,7 @@ async function resetPage() {
   document
     .querySelectorAll(".wfs-chip.active")
     .forEach((chip) => chip.classList.remove("active"));
-  setStatus("Zresetowano — usunięto wstrzyknięty styl.");
+  setStatus(t("status_reset"));
   updateSnippet();
 }
 
@@ -586,7 +585,7 @@ function buildCombo(combo) {
     if (remaining > 0) {
       footer = document.createElement("li");
       footer.className = "wfs-group";
-      footer.textContent = "▼ przewiń, by wczytać więcej (" + remaining + ")";
+      footer.textContent = t("load_more") + " (" + remaining + ")";
       list.appendChild(footer);
     }
   }
@@ -611,7 +610,7 @@ function buildCombo(combo) {
     list.innerHTML = "";
     const li = document.createElement("li");
     li.className = "wfs-empty";
-    li.textContent = "Szukam…";
+    li.textContent = t("search_loading");
     list.appendChild(li);
     list.hidden = false;
   }
@@ -632,7 +631,7 @@ function buildCombo(combo) {
     if (filtered.length === 0) {
       const li = document.createElement("li");
       li.className = "wfs-empty";
-      li.textContent = "Brak wyników";
+      li.textContent = t("search_empty");
       list.appendChild(li);
     } else {
       loadMore();
@@ -786,15 +785,19 @@ function buildCombo(combo) {
     if (!combo.contains(e.target)) list.hidden = true;
   });
 
-  // Przywrócenie zapamiętanego wyboru (rodzina + chipy).
+  // Ustawienie stanu targetu (rodzina + chipy) i odświeżenie UI.
+  // Obsługuje też czyszczenie (gdy saved puste) — używane przy wczytaniu presetu.
   combo.restore = (saved) => {
-    if (!saved) return;
-    selection[target] = { ...emptyProps(), ...saved };
-    const p = selection[target];
+    const p = { ...emptyProps(), ...(saved || {}) };
+    selection[target] = p;
     if (p.family) {
       input.value = p.family;
       input.classList.add("wfs-selected");
       combo.classList.add("has-value");
+    } else {
+      input.value = "";
+      input.classList.remove("wfs-selected");
+      combo.classList.remove("has-value");
     }
     if (chipsBox) {
       chipsBox.querySelectorAll(".wfs-chip").forEach((chip) => {
@@ -805,6 +808,30 @@ function buildCombo(combo) {
 }
 
 // ---- Init ----
+
+// Przetłumacz statyczne elementy (data-i18n / -ph / -title) wg języka.
+if (window.WOLFIE_I18N) window.WOLFIE_I18N.applyI18n(document);
+
+// Wersja w stopce (z manifestu, małymi literami).
+try {
+  const v = chrome.runtime.getManifest().version;
+  const vEl = document.getElementById("wfs-version");
+  if (vEl) vEl.textContent = "v" + v;
+} catch (e) {
+  /* poza kontekstem rozszerzenia */
+}
+
+// Koło zębate → strona ustawień dodatku.
+const settingsBtn = document.getElementById("wfs-settings");
+if (settingsBtn) {
+  settingsBtn.addEventListener("click", () => {
+    try {
+      chrome.runtime.openOptionsPage();
+    } catch (e) {
+      /* ignore */
+    }
+  });
+}
 
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);
@@ -828,13 +855,13 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(code);
     btn.classList.add("copied");
-    btn.textContent = "✓ Skopiowano";
+    btn.textContent = t("copied_btn");
     setTimeout(() => {
       btn.classList.remove("copied");
-      btn.textContent = "⧉ Kopiuj";
+      btn.textContent = t("copy_btn");
     }, 1500);
   } catch (e) {
-    setStatus("Nie udało się skopiować.");
+    setStatus(t("status_copy_fail"));
   }
 });
 
@@ -847,4 +874,99 @@ chrome.storage.local.get(STORAGE_KEY, (data) => {
   // Ponownie zastosuj na aktywnej karcie (np. po przeładowaniu strony).
   applyToPage();
   updateSnippet();
+});
+
+// ---- Presety (max 5, trwałe między sesjami; niezależne od resetu stylów) ----
+
+const PRESETS_KEY = "wfs_presets";
+const MAX_PRESETS = 5;
+let presets = [];
+
+function persistPresets() {
+  chrome.storage.local.set({ [PRESETS_KEY]: presets });
+}
+
+function nextPresetName() {
+  const used = new Set(presets.map((p) => p.name));
+  for (let n = 1; n <= MAX_PRESETS; n++) {
+    const nm = "Preset " + n;
+    if (!used.has(nm)) return nm;
+  }
+  return "Preset";
+}
+
+function renderPresets() {
+  const list = document.getElementById("wfs-preset-list");
+  const saveBtn = document.getElementById("wfs-save-preset");
+  list.innerHTML = "";
+  if (!presets.length) {
+    const empty = document.createElement("span");
+    empty.className = "wfs-preset-empty";
+    empty.textContent = t("preset_empty");
+    list.appendChild(empty);
+  }
+  presets.forEach((preset, i) => {
+    const chip = document.createElement("div");
+    chip.className = "wfs-preset";
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "wfs-preset-name";
+    name.textContent = preset.name;
+    name.title = t("preset_load_title");
+    name.addEventListener("click", () => applyPreset(preset));
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "wfs-preset-del";
+    del.textContent = "✕";
+    del.title = t("preset_delete_title");
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      deletePreset(i);
+    });
+    chip.append(name, del);
+    list.appendChild(chip);
+  });
+  const full = presets.length >= MAX_PRESETS;
+  saveBtn.disabled = full;
+  saveBtn.textContent = full ? t("preset_max") : t("preset_save");
+}
+
+function savePreset() {
+  if (presets.length >= MAX_PRESETS) {
+    setStatus(t("status_preset_max"));
+    return;
+  }
+  if (!Object.values(selection).some(hasProps)) {
+    setStatus(t("status_need_setting"));
+    return;
+  }
+  presets.push({
+    name: nextPresetName(),
+    selection: JSON.parse(JSON.stringify(selection)),
+  });
+  persistPresets();
+  renderPresets();
+  setStatus(t("status_preset_saved"));
+}
+
+function deletePreset(i) {
+  presets.splice(i, 1);
+  persistPresets();
+  renderPresets();
+  setStatus(t("status_preset_deleted"));
+}
+
+function applyPreset(preset) {
+  document.querySelectorAll(".wfs-combo").forEach((combo) => {
+    combo.restore(preset.selection[combo.dataset.target]);
+  });
+  applyToPage();
+  setStatus(t("status_preset_loaded") + " " + preset.name);
+}
+
+document.getElementById("wfs-save-preset").addEventListener("click", savePreset);
+
+chrome.storage.local.get(PRESETS_KEY, (data) => {
+  presets = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
+  renderPresets();
 });
