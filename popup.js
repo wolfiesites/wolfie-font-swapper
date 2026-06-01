@@ -1,7 +1,11 @@
 "use strict";
 
 // Skrót do tłumaczeń (i18n.js ładowany przed popup.js).
-const t = (key) => (window.WOLFIE_I18N ? window.WOLFIE_I18N.t(key) : key);
+// Deklaracja funkcji (hoisting) — `t` jest dostępne w całym pliku niezależnie
+// od kolejności, więc nigdy nie poleci ReferenceError: t is not defined.
+function t(key) {
+  return window.WOLFIE_I18N ? window.WOLFIE_I18N.t(key) : key;
+}
 
 const { SYSTEM_FONTS, GOOGLE_FONTS, POPULAR_GOOGLE_FONTS } = window.WOLFIE_FONTS;
 
