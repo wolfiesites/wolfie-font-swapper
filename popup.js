@@ -27,6 +27,25 @@ const restEntries = [
 
 const ALL_FONTS = [...popularEntries, ...restEntries];
 
+// Dodaj zapisane customowe fonty (pobrane pickerem) do listy wyszukiwania,
+// oznaczając źródło: "google" (z gstatic) lub "web" (skądś indziej).
+function addCustomFontsToList() {
+  if (typeof customFonts !== "object") return;
+  const have = new Set(ALL_FONTS.map((f) => f.name.toLowerCase()));
+  const entries = [];
+  for (const key of Object.keys(customFonts)) {
+    const v = customFonts[key];
+    const nm = v && typeof v === "object" && v.name ? v.name : key;
+    if (!nm || have.has(nm.toLowerCase())) continue;
+    have.add(nm.toLowerCase());
+    entries.push({ name: nm, type: "custom", source: (v && v.source) || "web" });
+  }
+  if (entries.length) {
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    ALL_FONTS.unshift(...entries); // na początek listy (łatwo znaleźć)
+  }
+}
+
 // Enumeracja realnie zainstalowanych fontów przez Local Font Access API.
 // Wymaga gestu użytkownika (np. kliknięcia w pole) i jednorazowej zgody.
 let localFontsLoaded = false;
@@ -383,15 +402,19 @@ function pageFontInspector(opts) {
     const fam = firstFamily(current);
     banner.textContent = "⏳ " + fam;
     let fontface = null;
+    let source = "system";
     try {
       const faces = collectFaces(fam);
-      if (faces.length) fontface = await embedFaces(faces);
+      if (faces.length) {
+        source = faces.some((c) => /fonts\.gstatic\.com/i.test(c)) ? "google" : "web";
+        fontface = await embedFaces(faces);
+      }
     } catch (_) {}
     try {
       await navigator.clipboard.writeText(fam);
     } catch (_) {}
     try {
-      chrome.storage.local.set({ wfs_picked: { family: fam, fontface: fontface } });
+      chrome.storage.local.set({ wfs_picked: { family: fam, fontface: fontface, source: source } });
     } catch (_) {}
     cleanup();
   }
@@ -800,7 +823,10 @@ function buildCombo(combo) {
     name.textContent = font.name;
     const tag = document.createElement("span");
     tag.className = "wfs-tag";
-    if (font.popular) {
+    if (font.type === "custom") {
+      tag.classList.add("wfs-tag-custom");
+      tag.textContent = font.source === "google" ? "★ Google" : "Custom";
+    } else if (font.popular) {
       tag.classList.add("wfs-tag-pop");
       tag.textContent = "★ Google";
     } else {
@@ -1169,6 +1195,7 @@ chrome.storage.local.get(
     // Wczytaj zapisane customowe fonty (z poprzednich sesji).
     if (data.wfs_custom_fonts && typeof data.wfs_custom_fonts === "object") {
       Object.assign(customFonts, data.wfs_custom_fonts);
+      addCustomFontsToList();
     }
 
     // 1) Przywróć zapisany wybór.
@@ -1186,8 +1213,13 @@ chrome.storage.local.get(
       const fam = picked.family;
       // Zapisz przechwycony @font-face (custom font) trwale.
       if (picked.fontface) {
-        customFonts[fam.toLowerCase()] = { name: fam, css: picked.fontface };
+        customFonts[fam.toLowerCase()] = {
+          name: fam,
+          css: picked.fontface,
+          source: picked.source || "web",
+        };
         chrome.storage.local.set({ wfs_custom_fonts: customFonts });
+        addCustomFontsToList();
       }
       const target = data.wfs_pending_target || lastFocusedTarget;
       if (target && selection[target]) {

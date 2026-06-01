@@ -160,6 +160,11 @@ main { padding: 12px 14px 14px; }
   border-color: #6a5a1e;
   background: rgba(255, 213, 74, 0.08);
 }
+.wfs-options li .wfs-tag-custom {
+  color: #00e0ff;
+  border-color: #1e5a6a;
+  background: rgba(0, 224, 255, 0.08);
+}
 .wfs-options li .wfs-name { font-size: 14px; }
 .wfs-options .wfs-empty {
   color: var(--wfs-muted);
