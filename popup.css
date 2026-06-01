@@ -4,8 +4,8 @@
   --wfs-surface-hi: #34343f;
   --wfs-text: #f2f2f5;
   --wfs-muted: #9a9aa8;
-  --wfs-accent: #8b6cef;
-  --wfs-accent-2: #6c8cef;
+  --wfs-accent: #ff3dae;
+  --wfs-accent-2: #00e0ff;
   --wfs-border: #3c3c47;
 }
 
@@ -25,7 +25,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 12px 14px;
-  background: linear-gradient(90deg, var(--wfs-accent), var(--wfs-accent-2));
+  background: linear-gradient(90deg, var(--wfs-accent-2), var(--wfs-accent));
 }
 .wfs-logo { font-size: 18px; }
 .wfs-header h1 {
