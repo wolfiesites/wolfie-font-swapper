@@ -313,16 +313,85 @@ function pageFontInspector(opts) {
     document.removeEventListener("keydown", onKey, true);
     [box, tip, banner].forEach((n) => n.remove());
   }
-  function onClick(e) {
+  // Przechwyć z arkuszy strony reguły @font-face pasujące do rodziny.
+  function collectFaces(family) {
+    const low = family.toLowerCase();
+    const out = [];
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try {
+        rules = sheet.cssRules;
+      } catch (_) {
+        continue; // arkusz cross-origin bez dostępu
+      }
+      if (!rules) continue;
+      for (const r of rules) {
+        if ((r.cssText || "").slice(0, 10).toLowerCase() === "@font-face") {
+          const ff = ((r.style && r.style.getPropertyValue("font-family")) || "")
+            .replace(/["']/g, "")
+            .trim()
+            .toLowerCase();
+          if (ff === low) out.push(r.cssText);
+        }
+      }
+    }
+    return out;
+  }
+  function b64(buf) {
+    let s = "";
+    const a = new Uint8Array(buf);
+    const c = 0x8000;
+    for (let i = 0; i < a.length; i += c) s += String.fromCharCode.apply(null, a.subarray(i, i + c));
+    return btoa(s);
+  }
+  // Pobierz pliki fontu i osadź jako data: — by działał poza tą stroną.
+  async function embedFaces(faces) {
+    const done = [];
+    for (let css of faces) {
+      const urls = [
+        ...new Set(
+          [...css.matchAll(/url\((['"]?)([^'")]+)\1\)/g)]
+            .map((m) => m[2])
+            .filter((u) => u && !u.startsWith("data:"))
+        ),
+      ];
+      for (const u of urls) {
+        try {
+          const abs = new URL(u, location.href).href;
+          const res = await fetch(abs);
+          if (!res.ok) continue;
+          const mime = /\.woff2/i.test(abs)
+            ? "font/woff2"
+            : /\.woff/i.test(abs)
+            ? "font/woff"
+            : /\.ttf/i.test(abs)
+            ? "font/ttf"
+            : /\.otf/i.test(abs)
+            ? "font/otf"
+            : "font/woff2";
+          css = css.split(u).join("data:" + mime + ";base64," + b64(await res.arrayBuffer()));
+        } catch (_) {}
+      }
+      done.push(css);
+    }
+    return done.join("\n");
+  }
+  async function onClick(e) {
     if (!current) return;
     e.preventDefault();
     e.stopPropagation();
     const fam = firstFamily(current);
+    banner.textContent = "⏳ " + fam;
+    let fontface = null;
     try {
-      navigator.clipboard.writeText(fam);
+      const faces = collectFaces(fam);
+      if (faces.length) fontface = await embedFaces(faces);
     } catch (_) {}
     try {
-      chrome.storage.local.set({ wfs_picked: { family: fam } });
+      await navigator.clipboard.writeText(fam);
+    } catch (_) {}
+    try {
+      chrome.storage.local.set({ wfs_picked: { family: fam, fontface: fontface } });
     } catch (_) {}
     cleanup();
   }
@@ -344,6 +413,10 @@ function pageFontInspector(opts) {
 // CSS i pliki fontów po stronie rozszerzenia (ma uprawnienia sieciowe),
 // zamieniamy adresy plików na data:-URL i wstrzykujemy przez insertCSS —
 // taki arkusz pochodzi z rozszerzenia i nie podlega CSP strony.
+
+// Customowe fonty pobrane pickerem ze stron: rodzina(lower) -> CSS @font-face (data:).
+// Trwałe w chrome.storage.local (wfs_custom_fonts), wstrzykiwane przy zastosowaniu.
+const customFonts = {};
 
 // tabId -> { families: Set<string>, cssList: string[] }
 const injectedByTab = new Map();
@@ -410,6 +483,28 @@ async function ensureGoogleFontsLoaded(tabId) {
   }
 }
 
+// Wstrzyknij customowe fonty (pobrane pickerem) dla wybranych rodzin — by płatne
+// czy nie, realnie renderowały się na stronie.
+async function ensureCustomFontsLoaded(tabId) {
+  const families = [
+    ...new Set(Object.values(selection).map((p) => p.family).filter(Boolean)),
+  ];
+  const rec = tabRecord(tabId);
+  for (const fam of families) {
+    const css = customFonts[fam.toLowerCase()];
+    if (!css) continue;
+    const key = "custom:" + fam.toLowerCase();
+    if (rec.families.has(key)) continue;
+    try {
+      await chrome.scripting.insertCSS({ target: { tabId }, css });
+      rec.families.add(key);
+      rec.cssList.push(css);
+    } catch (e) {
+      /* zbyt duży arkusz lub błąd — pomijamy */
+    }
+  }
+}
+
 // ---- Komunikacja z aktywną kartą ----
 
 async function getActiveTab() {
@@ -448,6 +543,12 @@ async function applyToPage() {
       await ensureGoogleFontsLoaded(tab.id);
     } catch (e) {
       setStatus(t("status_google_fail") + " " + (e && e.message ? e.message : e));
+    }
+    // 1b) Wstrzyknij customowe fonty pobrane pickerem (data:-URL).
+    try {
+      await ensureCustomFontsLoaded(tab.id);
+    } catch (e) {
+      /* ignorujemy — font po prostu nie wstanie */
     }
     // 2) Ustaw reguły font-family na stronie.
     await chrome.scripting.executeScript({
@@ -645,21 +746,24 @@ function updateSnippet() {
   const builders = { css: buildCSS, scss: buildSCSS, js: buildJS };
   document.getElementById("wfs-code").textContent = builders[currentTab]();
 
-  // Przycisk „Kup font" dla wybranego fontu komercyjnego z linkiem.
+  // Badge PAID + przycisk „Kup font" dla fontów komercyjnych.
   const buy = document.getElementById("wfs-buy");
-  if (buy) {
-    let buyUrl = null;
-    const meta = window.WOLFIE_FONT_META;
-    if (meta) {
-      for (const p of Object.values(selection)) {
-        if (!p.family) continue;
-        const c = meta.classify(p.family);
-        if (c.license === "commercial" && c.buyUrl) {
-          buyUrl = c.buyUrl;
-          break;
-        }
+  const paid = document.getElementById("wfs-paid");
+  let buyUrl = null;
+  let isCommercial = false;
+  const meta = window.WOLFIE_FONT_META;
+  if (meta) {
+    for (const p of Object.values(selection)) {
+      if (!p.family) continue;
+      const c = meta.classify(p.family);
+      if (c.license === "commercial") {
+        isCommercial = true;
+        if (c.buyUrl && !buyUrl) buyUrl = c.buyUrl;
       }
     }
+  }
+  if (paid) paid.hidden = !isCommercial;
+  if (buy) {
     if (buyUrl) {
       buy.href = buyUrl;
       buy.hidden = false;
@@ -912,6 +1016,16 @@ function buildCombo(combo) {
 
   clearBtn.addEventListener("click", clearSelection);
 
+  // Mały picker przy tym polu — pobiera font ze strony prosto do tego targetu.
+  const pickBtn = document.createElement("button");
+  pickBtn.type = "button";
+  pickBtn.className = "wfs-pick";
+  pickBtn.title = t("picker_title");
+  pickBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"></circle><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line></svg>';
+  pickBtn.addEventListener("click", () => startPicker(target));
+  combo.appendChild(pickBtn);
+
   // Zamknij listę po kliknięciu poza nią.
   document.addEventListener("click", (e) => {
     if (!combo.contains(e.target)) list.hidden = true;
@@ -965,82 +1079,56 @@ if (settingsBtn) {
   });
 }
 
-// Picker — pobierz font ze strony (tryb inspekcji w aktywnej karcie).
-const pickerBtn = document.getElementById("wfs-picker");
-if (pickerBtn) {
-  pickerBtn.addEventListener("click", async () => {
-    const tab = await getActiveTab();
-    if (!tab || !tab.id) {
-      setStatus(t("status_no_tab"));
-      return;
-    }
-    const url = tab.url || "";
-    if (
-      !url ||
-      /^(chrome|edge|brave|opera|about|chrome-extension|moz-extension|devtools|view-source):/i.test(
-        url
-      ) ||
-      /^https?:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/i.test(url)
-    ) {
-      setStatus(t("status_protected"));
-      return;
-    }
-    const meta = window.WOLFIE_FONT_META;
-    const googleNames = GOOGLE_FONTS.map((s) => s.toLowerCase());
-    const commercialNames = Object.keys(meta ? meta.COMMERCIAL : {}).map((s) =>
-      s.toLowerCase()
-    );
-    chrome.storage.local.set({ wfs_pending_target: lastFocusedTarget || null });
-    try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        func: pageFontInspector,
-        args: [
-          {
-            googleNames,
-            commercialNames,
-            labels: {
-              hint: t("pick_hint"),
-              open: t("lic_open"),
-              commercial: t("lic_commercial"),
-              unknown: t("lic_unknown"),
-            },
+// Picker — pobierz font ze strony (tryb inspekcji). target = pole docelowe (lub null).
+async function startPicker(target) {
+  const tab = await getActiveTab();
+  if (!tab || !tab.id) {
+    setStatus(t("status_no_tab"));
+    return;
+  }
+  const url = tab.url || "";
+  if (
+    !url ||
+    /^(chrome|edge|brave|opera|about|chrome-extension|moz-extension|devtools|view-source):/i.test(
+      url
+    ) ||
+    /^https?:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/i.test(url)
+  ) {
+    setStatus(t("status_protected"));
+    return;
+  }
+  const meta = window.WOLFIE_FONT_META;
+  const googleNames = GOOGLE_FONTS.map((s) => s.toLowerCase());
+  const commercialNames = Object.keys(meta ? meta.COMMERCIAL : {}).map((s) =>
+    s.toLowerCase()
+  );
+  chrome.storage.local.set({ wfs_pending_target: target || null });
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageFontInspector,
+      args: [
+        {
+          googleNames,
+          commercialNames,
+          labels: {
+            hint: t("pick_hint"),
+            open: t("lic_open"),
+            commercial: t("lic_commercial"),
+            unknown: t("lic_unknown"),
           },
-        ],
-      });
-      window.close(); // zamknij popup, by wskazać element na stronie
-    } catch (e) {
-      setStatus(t("status_protected"));
-    }
-  });
+        },
+      ],
+    });
+    window.close(); // zamknij popup, by wskazać element na stronie
+  } catch (e) {
+    setStatus(t("status_protected"));
+  }
 }
 
-// Po ponownym otwarciu popupu: wczytaj pobrany font (wklej do pola, pokaż licencję).
-chrome.storage.local.get(["wfs_picked", "wfs_pending_target"], (data) => {
-  const picked = data.wfs_picked;
-  if (!picked || !picked.family) return;
-  chrome.storage.local.remove(["wfs_picked", "wfs_pending_target"]);
-  const fam = picked.family;
-  const target = data.wfs_pending_target;
-  if (target && selection[target]) {
-    const combo = document.querySelector('.wfs-combo[data-target="' + target + '"]');
-    if (combo && combo.restore) {
-      combo.restore({ ...selection[target], family: fam });
-      applyToPage();
-    }
-  }
-  const meta = window.WOLFIE_FONT_META
-    ? window.WOLFIE_FONT_META.classify(fam)
-    : { license: "unknown" };
-  const licLabel =
-    meta.license === "open"
-      ? t("lic_open")
-      : meta.license === "commercial"
-      ? t("lic_commercial")
-      : t("lic_unknown");
-  setStatus(t("pick_applied") + " " + fam + " (" + licLabel + ")");
-  updateSnippet();
-});
+const pickerBtn = document.getElementById("wfs-picker");
+if (pickerBtn)
+  pickerBtn.addEventListener("click", () => startPicker(lastFocusedTarget));
 
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);
@@ -1074,16 +1162,56 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
   }
 });
 
-chrome.storage.local.get(STORAGE_KEY, (data) => {
-  const saved = data[STORAGE_KEY];
-  if (!saved) return;
-  document.querySelectorAll(".wfs-combo").forEach((combo) => {
-    combo.restore(saved[combo.dataset.target]);
-  });
-  // Ponownie zastosuj na aktywnej karcie (np. po przeładowaniu strony).
-  applyToPage();
-  updateSnippet();
-});
+chrome.storage.local.get(
+  [STORAGE_KEY, "wfs_custom_fonts", "wfs_picked", "wfs_pending_target"],
+  (data) => {
+    // Wczytaj zapisane customowe fonty (z poprzednich sesji).
+    if (data.wfs_custom_fonts && typeof data.wfs_custom_fonts === "object") {
+      Object.assign(customFonts, data.wfs_custom_fonts);
+    }
+
+    // 1) Przywróć zapisany wybór.
+    const saved = data[STORAGE_KEY];
+    if (saved) {
+      document.querySelectorAll(".wfs-combo").forEach((combo) => {
+        combo.restore(saved[combo.dataset.target]);
+      });
+    }
+
+    // 2) Konsumuj font pobrany pickerem (PO restore, by go nie nadpisać).
+    const picked = data.wfs_picked;
+    if (picked && picked.family) {
+      chrome.storage.local.remove(["wfs_picked", "wfs_pending_target"]);
+      const fam = picked.family;
+      // Zapisz przechwycony @font-face (custom font) trwale.
+      if (picked.fontface) {
+        customFonts[fam.toLowerCase()] = picked.fontface;
+        chrome.storage.local.set({ wfs_custom_fonts: customFonts });
+      }
+      const target = data.wfs_pending_target || lastFocusedTarget;
+      if (target && selection[target]) {
+        const combo = document.querySelector('.wfs-combo[data-target="' + target + '"]');
+        if (combo && combo.restore) {
+          combo.restore({ ...selection[target], family: fam });
+        }
+      }
+      const meta = window.WOLFIE_FONT_META
+        ? window.WOLFIE_FONT_META.classify(fam)
+        : { license: "unknown" };
+      const licLabel =
+        meta.license === "open"
+          ? t("lic_open")
+          : meta.license === "commercial"
+          ? t("lic_commercial")
+          : t("lic_unknown");
+      setStatus(t("pick_applied") + " " + fam + " (" + licLabel + ")");
+    }
+
+    // 3) Zastosuj na aktywnej karcie (jeśli cokolwiek ustawione).
+    if (saved || (picked && picked.family)) applyToPage();
+    updateSnippet();
+  }
+);
 
 // ---- Presety (max 5, trwałe między sesjami; niezależne od resetu stylów) ----
 
