@@ -1082,6 +1082,12 @@ function buildCombo(combo) {
     }
     items.forEach((el, i) => el.classList.toggle("active", i === activeIndex));
     if (items[activeIndex]) items[activeIndex].scrollIntoView({ block: "nearest" });
+    // Live preview podświetlonego strzałkami fontu (async, z debounce + cache).
+    const f = rendered[activeIndex];
+    if (f) {
+      if (hoverTimer) clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => livePreview(target, f.name), 180);
+    }
   }
 
   function choose(name) {
