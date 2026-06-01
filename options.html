@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <title data-i18n="options_title">Wolfie Font Swapper — opcje</title>
   <style>
+    @font-face {
+      font-family: "Rubik";
+      src: url("fonts/Rubik.woff2") format("woff2");
+      font-weight: 300 900; font-style: normal; font-display: swap;
+    }
     :root {
       --bg: #1e1e24; --surface: #2a2a33; --surface2: #34343f; --text: #f2f2f5; --muted: #9a9aa8;
       --accent: #ff3dae; --accent2: #00e0ff; --border: #3c3c47;
@@ -11,7 +16,7 @@
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
-      font-family: "Segoe UI", system-ui, sans-serif; font-size: 14px;
+      font-family: "Rubik", "Segoe UI", system-ui, sans-serif; font-size: 14px;
       display: flex; justify-content: center; padding: 36px 16px;
     }
     .wrap { width: 100%; max-width: 960px; }
@@ -133,6 +138,37 @@
               <a id="cf-dl-css" class="cf-btn" download>CSS</a>
               <button id="cf-dl-font" class="cf-btn" type="button" data-i18n="cf_download_font">Pobierz plik fontu</button>
               <span id="cf-copied" class="cf-copied" hidden></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ulubione fonty -->
+    <div class="field">
+      <h2 class="cf-title" data-i18n="fav_title">Ulubione fonty</h2>
+      <div class="cf-grid">
+        <div class="cf-col">
+          <input id="fav-search" class="cf-search" type="text" data-i18n-ph="cf_search_ph" placeholder="Szukaj fontu…" autocomplete="off" />
+          <div id="fav-list" class="cf-list"></div>
+        </div>
+        <div class="cf-preview">
+          <div id="fav-prev-empty" class="cf-hint" data-i18n="fav_empty">Brak ulubionych.</div>
+          <div id="fav-prev-body" hidden>
+            <h3 id="fav-prev-h" class="cf-prev-h">The quick brown fox jumps over the lazy dog</h3>
+            <p id="fav-prev-p" class="cf-prev-p">0123456789 — Pack my box with five dozen liquor jugs. Sphinx of black quartz, judge my vow. 1.99$ €</p>
+            <div class="cf-info">
+              <span><b data-i18n="cf_license">Licencja</b>: <a id="fav-lic" href="#" target="_blank" rel="noopener noreferrer"></a> <span id="fav-cost" class="cf-cost"></span></span>
+            </div>
+            <div class="cf-find">
+              <b data-i18n="cf_find_on">Szukaj / kup w</b>:
+              <span id="fav-providers" class="cf-providers"></span>
+            </div>
+            <div class="cf-actions">
+              <button id="fav-copy" class="cf-btn primary" type="button" data-i18n="cf_copy_css">Kopiuj CSS</button>
+              <a id="fav-dl-css" class="cf-btn" download>CSS</a>
+              <button id="fav-dl-font" class="cf-btn" type="button" data-i18n="cf_download_font">Pobierz plik fontu</button>
+              <span id="fav-copied" class="cf-copied" hidden></span>
             </div>
           </div>
         </div>

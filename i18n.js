@@ -90,6 +90,10 @@
       cf_purge_confirm: "Usunąć wszystkie zapisane customowe fonty?",
       cf_search_ph: "Szukaj fontu…",
       cf_find_on: "Szukaj / kup w",
+      fav_add: "Dodaj / usuń z ulubionych",
+      fav_need: "Najpierw wybierz font",
+      fav_title: "Ulubione fonty",
+      fav_empty: "Brak ulubionych — kliknij ❤ przy polu w popupie.",
     },
     en: {
       sec_base: "Whole page",
@@ -164,6 +168,10 @@
       cf_purge_confirm: "Delete all saved custom fonts?",
       cf_search_ph: "Search a font…",
       cf_find_on: "Find / buy on",
+      fav_add: "Add / remove favorite",
+      fav_need: "Pick a font first",
+      fav_title: "Favorite fonts",
+      fav_empty: "No favorites — click ❤ next to a field in the popup.",
     },
     fr: {
       sec_base: "Page entière",
@@ -238,6 +246,10 @@
       cf_purge_confirm: "Supprimer toutes les polices personnalisées enregistrées ?",
       cf_search_ph: "Rechercher une police…",
       cf_find_on: "Trouver / acheter sur",
+      fav_add: "Ajouter / retirer des favoris",
+      fav_need: "Choisissez d'abord une police",
+      fav_title: "Polices favorites",
+      fav_empty: "Aucun favori — cliquez sur ❤ à côté d'un champ.",
     },
     de: {
       sec_base: "Ganze Seite",
@@ -312,6 +324,10 @@
       cf_purge_confirm: "Alle gespeicherten eigenen Schriften löschen?",
       cf_search_ph: "Schriftart suchen…",
       cf_find_on: "Finden / kaufen bei",
+      fav_add: "Favorit hinzufügen / entfernen",
+      fav_need: "Zuerst eine Schrift wählen",
+      fav_title: "Lieblingsschriften",
+      fav_empty: "Keine Favoriten — klicke auf ❤ neben einem Feld.",
     },
     es: {
       sec_base: "Toda la página",
@@ -386,6 +402,10 @@
       cf_purge_confirm: "¿Eliminar todas las fuentes personalizadas guardadas?",
       cf_search_ph: "Buscar fuente…",
       cf_find_on: "Buscar / comprar en",
+      fav_add: "Añadir / quitar de favoritos",
+      fav_need: "Elige una fuente primero",
+      fav_title: "Fuentes favoritas",
+      fav_empty: "Sin favoritos — pulsa ❤ junto a un campo.",
     },
     uk: {
       sec_base: "Уся сторінка",
@@ -460,6 +480,10 @@
       cf_purge_confirm: "Видалити всі збережені власні шрифти?",
       cf_search_ph: "Пошук шрифту…",
       cf_find_on: "Знайти / купити на",
+      fav_add: "Додати / прибрати з улюблених",
+      fav_need: "Спершу виберіть шрифт",
+      fav_title: "Улюблені шрифти",
+      fav_empty: "Немає улюблених — натисніть ❤ біля поля.",
     },
     ru: {
       sec_base: "Вся страница",
@@ -534,6 +558,10 @@
       cf_purge_confirm: "Удалить все сохранённые свои шрифты?",
       cf_search_ph: "Поиск шрифта…",
       cf_find_on: "Найти / купить на",
+      fav_add: "Добавить / убрать из избранного",
+      fav_need: "Сначала выберите шрифт",
+      fav_title: "Избранные шрифты",
+      fav_empty: "Нет избранных — нажмите ❤ рядом с полем.",
     },
     ro: {
       sec_base: "Toată pagina",
@@ -608,6 +636,10 @@
       cf_purge_confirm: "Ștergi toate fonturile personalizate salvate?",
       cf_search_ph: "Caută un font…",
       cf_find_on: "Caută / cumpără pe",
+      fav_add: "Adaugă / elimină din favorite",
+      fav_need: "Alege mai întâi un font",
+      fav_title: "Fonturi favorite",
+      fav_empty: "Niciun favorit — apasă ❤ lângă un câmp.",
     },
     it: {
       sec_base: "Tutta la pagina",
@@ -682,6 +714,10 @@
       cf_purge_confirm: "Eliminare tutti i font personalizzati salvati?",
       cf_search_ph: "Cerca un font…",
       cf_find_on: "Trova / acquista su",
+      fav_add: "Aggiungi / rimuovi dai preferiti",
+      fav_need: "Scegli prima un font",
+      fav_title: "Font preferiti",
+      fav_empty: "Nessun preferito — clicca ❤ accanto a un campo.",
     },
   };
 

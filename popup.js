@@ -91,6 +91,21 @@ const selection = {
 // Ostatnio sfokusowane pole fontu — by po pobraniu fontu pickerem wkleić tam nazwę.
 let lastFocusedTarget = null;
 
+// Ulubione fonty (nazwy) — przypinane na górze listy, trwałe w local storage.
+let favorites = [];
+function isFavorite(name) {
+  return !!name && favorites.some((n) => n.toLowerCase() === name.toLowerCase());
+}
+function toggleFavorite(name) {
+  if (!name) return;
+  const i = favorites.findIndex((n) => n.toLowerCase() === name.toLowerCase());
+  if (i >= 0) favorites.splice(i, 1);
+  else favorites.unshift(name); // najnowszy ulubiony na samej górze
+  try {
+    chrome.storage.local.set({ wfs_favorites: favorites });
+  } catch (e) {}
+}
+
 function hasProps(p) {
   return !!(p && (p.family || p.weight || p.spacing || p.size || p.case));
 }
@@ -832,7 +847,17 @@ function buildCombo(combo) {
     } else {
       tag.textContent = font.type === "google" ? "Google" : "System";
     }
-    li.append(name, tag);
+    const left = document.createElement("span");
+    left.style.cssText = "display:flex;align-items:center;gap:6px;min-width:0";
+    if (isFavorite(font.name)) {
+      li.classList.add("wfs-fav");
+      const h = document.createElement("span");
+      h.className = "wfs-fav-mark";
+      h.textContent = "❤";
+      left.appendChild(h);
+    }
+    left.appendChild(name);
+    li.append(left, tag);
     li.addEventListener("mousedown", (e) => {
       e.preventDefault();
       choose(font.name);
@@ -880,9 +905,24 @@ function buildCombo(combo) {
   // Pełne, świeże wyrenderowanie wyników dla danej frazy.
   function render(filter) {
     const term = (filter || "").trim().toLowerCase();
+    // Ulubione przypięte na samej górze (nad popularnymi Google).
+    let source = ALL_FONTS;
+    if (favorites.length) {
+      const favSet = new Set(favorites.map((n) => n.toLowerCase()));
+      const favItems = [];
+      const seen = new Set();
+      favorites.forEach((n) => {
+        const f = ALL_FONTS.find((x) => x.name.toLowerCase() === n.toLowerCase());
+        if (f && !seen.has(f.name.toLowerCase())) {
+          favItems.push(f);
+          seen.add(f.name.toLowerCase());
+        }
+      });
+      source = [...favItems, ...ALL_FONTS.filter((f) => !favSet.has(f.name.toLowerCase()))];
+    }
     filtered = term
-      ? ALL_FONTS.filter((f) => f.name.toLowerCase().includes(term))
-      : ALL_FONTS;
+      ? source.filter((f) => f.name.toLowerCase().includes(term))
+      : source;
 
     activeIndex = -1;
     shownCount = 0;
@@ -943,6 +983,7 @@ function buildCombo(combo) {
     input.classList.add("wfs-selected");
     combo.classList.add("has-value");
     list.hidden = true;
+    if (combo.updateHeart) combo.updateHeart();
     applyToPage();
   }
 
@@ -951,6 +992,7 @@ function buildCombo(combo) {
     input.value = "";
     input.classList.remove("wfs-selected");
     combo.classList.remove("has-value");
+    if (combo.updateHeart) combo.updateHeart();
     applyToPage();
   }
 
@@ -1053,6 +1095,38 @@ function buildCombo(combo) {
   pickBtn.addEventListener("click", () => startPicker(target));
   combo.appendChild(pickBtn);
 
+  // Serduszko — dodaj/usuń bieżący font tego pola do ulubionych.
+  const favBtn = document.createElement("button");
+  favBtn.type = "button";
+  favBtn.className = "wfs-fav-btn";
+  favBtn.title = t("fav_add");
+  function favSvg(filled) {
+    return (
+      '<svg viewBox="0 0 24 24" width="15" height="15" fill="' +
+      (filled ? "#ff3dae" : "none") +
+      '" stroke="' +
+      (filled ? "#ff3dae" : "currentColor") +
+      '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>'
+    );
+  }
+  function updateHeart() {
+    const fav = isFavorite(selection[target].family);
+    favBtn.classList.toggle("active", fav);
+    favBtn.innerHTML = favSvg(fav);
+  }
+  favBtn.addEventListener("click", () => {
+    const fam = selection[target].family;
+    if (!fam) {
+      setStatus(t("fav_need"));
+      return;
+    }
+    toggleFavorite(fam);
+    updateHeart();
+  });
+  updateHeart();
+  combo.appendChild(favBtn);
+  combo.updateHeart = updateHeart;
+
   // Zamknij listę po kliknięciu poza nią.
   document.addEventListener("click", (e) => {
     if (!combo.contains(e.target)) list.hidden = true;
@@ -1077,6 +1151,7 @@ function buildCombo(combo) {
         chip.classList.toggle("active", p[chip.dataset.key] === chip.dataset.value);
       });
     }
+    if (combo.updateHeart) combo.updateHeart();
   };
 }
 
@@ -1190,8 +1265,10 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
 });
 
 chrome.storage.local.get(
-  [STORAGE_KEY, "wfs_custom_fonts", "wfs_picked", "wfs_pending_target"],
+  [STORAGE_KEY, "wfs_custom_fonts", "wfs_favorites", "wfs_picked", "wfs_pending_target"],
   (data) => {
+    // Ulubione (przypinane na górze listy).
+    if (Array.isArray(data.wfs_favorites)) favorites = data.wfs_favorites;
     // Wczytaj zapisane customowe fonty (z poprzednich sesji).
     if (data.wfs_custom_fonts && typeof data.wfs_custom_fonts === "object") {
       Object.assign(customFonts, data.wfs_custom_fonts);

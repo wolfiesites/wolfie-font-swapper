@@ -49,259 +49,259 @@ select.addEventListener("change", () => {
   setTimeout(() => (savedEl.textContent = ""), 1500);
 });
 
-// ---- Customowe fonty ----
+// ---- Menedżer fontów: panel (custom + ulubione) ----
 
 const CUSTOM_KEY = "wfs_custom_fonts";
+const FAV_KEY = "wfs_favorites";
+const BATCH = 40;
+
 let customFonts = {}; // lowerName -> { name, css }
-let selectedKey = null;
+let favorites = []; // [name]
 
-const searchEl = document.getElementById("cf-search");
-const listEl = document.getElementById("cf-list");
-const prevEmpty = document.getElementById("cf-prev-empty");
-const prevBody = document.getElementById("cf-prev-body");
-const prevH = document.getElementById("cf-prev-h");
-const prevP = document.getElementById("cf-prev-p");
-const licEl = document.getElementById("cf-lic");
-const costEl = document.getElementById("cf-cost");
-const providersEl = document.getElementById("cf-providers");
-const copyBtn = document.getElementById("cf-copy");
-const dlCssEl = document.getElementById("cf-dl-css");
-const dlFontBtn = document.getElementById("cf-dl-font");
-const copiedEl = document.getElementById("cf-copied");
-
-const BATCH = 40; // ile pozycji doładowujemy przy scrollu
-let filteredKeys = [];
-let shown = 0;
-
-// <style> do podglądu @font-face
-const faceStyle = document.createElement("style");
-faceStyle.id = "cf-face";
-document.head.appendChild(faceStyle);
-
-function entryOf(key) {
-  const v = customFonts[key];
+function customCss(name) {
+  const v = customFonts[name.toLowerCase()];
   if (!v) return null;
-  return typeof v === "string" ? { name: key, css: v } : v;
+  return typeof v === "string" ? v : v.css;
 }
-
-function sortedKeys() {
-  return Object.keys(customFonts).sort((a, b) =>
-    (entryOf(a).name || a).localeCompare(entryOf(b).name || b)
-  );
-}
-
-function makeItem(key) {
-  const entry = entryOf(key);
-  const c = META ? META.classify(entry.name) : { license: "unknown" };
-  const item = document.createElement("div");
-  item.className = "cf-item" + (key === selectedKey ? " active" : "");
-  item.dataset.key = key;
-  const nm = document.createElement("span");
-  nm.className = "nm";
-  nm.textContent = entry.name;
-  const right = document.createElement("span");
-  right.style.cssText = "display:flex;gap:6px;align-items:center";
-  const tag = document.createElement("span");
-  tag.className = "cf-tag " + c.license;
-  tag.textContent =
-    c.license === "open"
-      ? I18N.t("lic_open")
-      : c.license === "commercial"
-      ? I18N.t("lic_commercial")
-      : I18N.t("lic_unknown");
-  const del = document.createElement("button");
-  del.className = "cf-del";
-  del.type = "button";
-  del.textContent = "✕";
-  del.title = I18N.t("cf_delete");
-  del.addEventListener("click", (e) => {
-    e.stopPropagation();
-    deleteFont(key);
-  });
-  right.append(tag, del);
-  item.append(nm, right);
-  item.addEventListener("click", () => selectFont(key));
-  return item;
-}
-
-// Lazy-load: doładuj kolejną partię pozycji.
-function loadMore() {
-  const next = Math.min(shown + BATCH, filteredKeys.length);
-  for (let i = shown; i < next; i++) listEl.appendChild(makeItem(filteredKeys[i]));
-  shown = next;
-}
-
-function renderList() {
-  const term = (searchEl.value || "").trim().toLowerCase();
-  const all = sortedKeys();
-  filteredKeys = term
-    ? all.filter((k) => (entryOf(k).name || k).toLowerCase().includes(term))
-    : all;
-  listEl.innerHTML = "";
-  shown = 0;
-  if (!Object.keys(customFonts).length) {
-    const e = document.createElement("div");
-    e.className = "cf-empty";
-    e.textContent = I18N.t("cf_empty");
-    listEl.appendChild(e);
-    prevEmpty.hidden = false;
-    prevBody.hidden = true;
-    return;
-  }
-  if (!filteredKeys.length) {
-    const e = document.createElement("div");
-    e.className = "cf-empty";
-    e.textContent = I18N.t("search_empty");
-    listEl.appendChild(e);
-    return;
-  }
-  loadMore();
-}
-
-listEl.addEventListener("scroll", () => {
-  if (shown >= filteredKeys.length) return;
-  if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 40) loadMore();
-});
-searchEl.addEventListener("input", () => renderList());
-
-function setCost(cost) {
-  costEl.className = "cf-cost " + cost;
-  costEl.textContent = cost === "free" ? "Free" : cost === "paid" ? "$" : "?";
-}
-
-function renderProviders(name, buyUrl) {
-  providersEl.innerHTML = "";
-  if (buyUrl) {
-    const a = document.createElement("a");
-    a.href = buyUrl;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = I18N.t("buy_font");
-    providersEl.appendChild(a);
-  }
-  const links = META && META.searchLinks ? META.searchLinks(name) : [];
-  links.forEach((p) => {
-    const a = document.createElement("a");
-    a.href = p.url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.textContent = p.name;
-    providersEl.appendChild(a);
-  });
-}
-
-function showInfo(name, meta) {
-  if (meta.licenseUrl) {
-    licEl.href = meta.licenseUrl;
-    licEl.style.pointerEvents = "";
-    licEl.style.textDecoration = "";
-  } else {
-    licEl.removeAttribute("href");
-    licEl.style.pointerEvents = "none";
-  }
-  licEl.textContent =
-    meta.licenseName ||
-    (meta.license === "open" ? "Open" : meta.license === "commercial" ? "Commercial" : "Unknown");
-  setCost(meta.cost || (meta.license === "open" ? "free" : meta.license === "commercial" ? "paid" : "unknown"));
-  renderProviders(name, meta.buyUrl);
-}
-
-function selectFont(key) {
-  selectedKey = key;
-  const entry = entryOf(key);
-  if (!entry) return;
-  faceStyle.textContent = entry.css || "";
-  const fam = '"' + entry.name + '", sans-serif';
-  prevH.style.fontFamily = fam;
-  prevP.style.fontFamily = fam;
-  prevEmpty.hidden = true;
-  prevBody.hidden = false;
-  // od razu pokaż szybką klasyfikację…
-  showInfo(entry.name, META ? META.classify(entry.name) : { license: "unknown" });
-  // …i dociągnij autorytatywną licencję z Google (dla każdego fontu Google).
-  if (META && META.classifyAuthoritative) {
-    META.classifyAuthoritative(entry.name).then((m) => {
-      if (selectedKey === key) showInfo(entry.name, m);
-    });
-  }
-  const css = exportCss(entry);
-  dlCssEl.href = "data:text/css;charset=utf-8," + encodeURIComponent(css);
-  dlCssEl.setAttribute("download", safeName(entry.name) + ".css");
-  renderListActive();
-}
-
-function renderListActive() {
-  listEl.querySelectorAll(".cf-item").forEach((el) =>
-    el.classList.toggle("active", el.dataset.key === selectedKey)
-  );
-}
-
-function exportCss(entry) {
-  const q = '"' + entry.name + '", sans-serif';
+function googleImport(name) {
   return (
-    "/* " + entry.name + " — Wolfie Font Swapper export */\n" +
-    entry.css +
+    "https://fonts.googleapis.com/css2?family=" +
+    encodeURIComponent(name).replace(/%20/g, "+") +
+    ":wght@400;500;700&display=swap"
+  );
+}
+function exportCss(name, css) {
+  const q = '"' + name + '", sans-serif';
+  return (
+    "/* " + name + " — Wolfie Font Swapper export */\n" +
+    (css || "") +
     "\n\nh1, h2, h3, h4, h5, h6 { font-family: " + q + "; }\n" +
     "p, body { font-family: " + q + "; }\n"
   );
 }
-
 function safeName(name) {
   return name.replace(/[^a-z0-9_-]+/gi, "-");
 }
 
-function deleteFont(key) {
-  delete customFonts[key];
-  if (selectedKey === key) {
+// Fabryka panelu: lista (search + lazy) + podgląd + licencja + eksport.
+function makePanel(cfg) {
+  const el = (s) => document.getElementById(cfg.prefix + s);
+  const searchEl = el("-search");
+  const listEl = el("-list");
+  const prevEmpty = el("-prev-empty");
+  const prevBody = el("-prev-body");
+  const prevH = el("-prev-h");
+  const prevP = el("-prev-p");
+  const licEl = el("-lic");
+  const costEl = el("-cost");
+  const providersEl = el("-providers");
+  const copyBtn = el("-copy");
+  const dlCssEl = el("-dl-css");
+  const dlFontBtn = el("-dl-font");
+  const copiedEl = el("-copied");
+
+  const faceStyle = document.createElement("style");
+  document.head.appendChild(faceStyle);
+
+  let items = [];
+  let filtered = [];
+  let shown = 0;
+  let selectedKey = null;
+  let selected = null;
+
+  function setCost(cost) {
+    costEl.className = "cf-cost " + cost;
+    costEl.textContent = cost === "free" ? "Free" : cost === "paid" ? "$" : "?";
+  }
+  function renderProviders(name, buyUrl) {
+    providersEl.innerHTML = "";
+    if (buyUrl) {
+      const a = document.createElement("a");
+      a.href = buyUrl; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = I18N.t("buy_font");
+      providersEl.appendChild(a);
+    }
+    (META && META.searchLinks ? META.searchLinks(name) : []).forEach((p) => {
+      const a = document.createElement("a");
+      a.href = p.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = p.name;
+      providersEl.appendChild(a);
+    });
+  }
+  function showInfo(name, meta) {
+    if (meta.licenseUrl) {
+      licEl.href = meta.licenseUrl;
+      licEl.style.pointerEvents = "";
+    } else {
+      licEl.removeAttribute("href");
+      licEl.style.pointerEvents = "none";
+    }
+    licEl.textContent =
+      meta.licenseName ||
+      (meta.license === "open" ? "Open" : meta.license === "commercial" ? "Commercial" : "Unknown");
+    setCost(meta.cost || (meta.license === "open" ? "free" : meta.license === "commercial" ? "paid" : "unknown"));
+    renderProviders(name, meta.buyUrl);
+  }
+  function makeItemEl(it) {
+    const c = META ? META.classify(it.name) : { license: "unknown" };
+    const node = document.createElement("div");
+    node.className = "cf-item" + (it.key === selectedKey ? " active" : "");
+    node.dataset.key = it.key;
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = it.name;
+    const right = document.createElement("span");
+    right.style.cssText = "display:flex;gap:6px;align-items:center";
+    const tag = document.createElement("span");
+    tag.className = "cf-tag " + c.license;
+    tag.textContent =
+      c.license === "open" ? I18N.t("lic_open") : c.license === "commercial" ? I18N.t("lic_commercial") : I18N.t("lic_unknown");
+    const del = document.createElement("button");
+    del.className = "cf-del"; del.type = "button"; del.textContent = "✕"; del.title = I18N.t("cf_delete");
+    del.addEventListener("click", (e) => { e.stopPropagation(); cfg.remove(it.key); });
+    right.append(tag, del);
+    node.append(nm, right);
+    node.addEventListener("click", () => selectItem(it.key));
+    return node;
+  }
+  function loadMore() {
+    const next = Math.min(shown + BATCH, filtered.length);
+    for (let i = shown; i < next; i++) listEl.appendChild(makeItemEl(filtered[i]));
+    shown = next;
+  }
+  function render() {
+    items = cfg.getItems();
+    const term = (searchEl.value || "").trim().toLowerCase();
+    filtered = term ? items.filter((it) => it.name.toLowerCase().includes(term)) : items;
+    listEl.innerHTML = "";
+    shown = 0;
+    if (!items.length) {
+      const e = document.createElement("div");
+      e.className = "cf-empty";
+      e.textContent = I18N.t(cfg.emptyKey);
+      listEl.appendChild(e);
+      prevEmpty.hidden = false;
+      prevBody.hidden = true;
+      return;
+    }
+    if (!filtered.length) {
+      const e = document.createElement("div");
+      e.className = "cf-empty";
+      e.textContent = I18N.t("search_empty");
+      listEl.appendChild(e);
+      return;
+    }
+    loadMore();
+  }
+  function selectItem(key) {
+    selectedKey = key;
+    selected = filtered.find((it) => it.key === key) || items.find((it) => it.key === key);
+    if (!selected) return;
+    faceStyle.textContent = selected.css || "";
+    const fam = '"' + selected.name + '", sans-serif';
+    prevH.style.fontFamily = fam;
+    prevP.style.fontFamily = fam;
+    prevEmpty.hidden = true;
+    prevBody.hidden = false;
+    showInfo(selected.name, META ? META.classify(selected.name) : { license: "unknown" });
+    if (META && META.classifyAuthoritative) {
+      META.classifyAuthoritative(selected.name).then((m) => {
+        if (selectedKey === key) showInfo(selected.name, m);
+      });
+    }
+    dlCssEl.href = "data:text/css;charset=utf-8," + encodeURIComponent(exportCss(selected.name, selected.css));
+    dlCssEl.setAttribute("download", safeName(selected.name) + ".css");
+    listEl.querySelectorAll(".cf-item").forEach((n) => n.classList.toggle("active", n.dataset.key === selectedKey));
+  }
+  listEl.addEventListener("scroll", () => {
+    if (shown >= filtered.length) return;
+    if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 40) loadMore();
+  });
+  searchEl.addEventListener("input", render);
+  copyBtn.addEventListener("click", async () => {
+    if (!selected) return;
+    try {
+      await navigator.clipboard.writeText(exportCss(selected.name, selected.css));
+      copiedEl.textContent = I18N.t("options_saved");
+      copiedEl.hidden = false;
+      setTimeout(() => (copiedEl.hidden = true), 1500);
+    } catch (e) {}
+  });
+  dlFontBtn.addEventListener("click", () => {
+    if (!selected) return;
+    const m = /data:(font\/[a-z0-9]+|application\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)/i.exec(selected.css || "");
+    if (!m) {
+      copiedEl.textContent = "—";
+      copiedEl.hidden = false;
+      setTimeout(() => (copiedEl.hidden = true), 1500);
+      return;
+    }
+    const mime = m[1];
+    const ext = mime.indexOf("woff2") >= 0 ? "woff2" : mime.indexOf("woff") >= 0 ? "woff" : mime.indexOf("ttf") >= 0 ? "ttf" : mime.indexOf("otf") >= 0 ? "otf" : "font";
+    const bin = atob(m[2]);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = safeName(selected.name) + "." + ext;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  });
+  function clearSelection() {
     selectedKey = null;
+    selected = null;
     prevBody.hidden = true;
     prevEmpty.hidden = false;
+    faceStyle.textContent = "";
   }
-  try {
-    chrome.storage.local.set({ [CUSTOM_KEY]: customFonts });
-  } catch (e) {}
-  renderList();
+  return { render, clearSelection };
 }
 
-// Kopiuj CSS do schowka
-copyBtn.addEventListener("click", async () => {
-  const entry = entryOf(selectedKey);
-  if (!entry) return;
-  try {
-    await navigator.clipboard.writeText(exportCss(entry));
-    copiedEl.textContent = I18N.t("options_saved");
-    copiedEl.hidden = false;
-    setTimeout(() => (copiedEl.hidden = true), 1500);
-  } catch (e) {}
+function sortedCustomKeys() {
+  return Object.keys(customFonts).sort((a, b) => {
+    const na = (typeof customFonts[a] === "string" ? a : customFonts[a].name) || a;
+    const nb = (typeof customFonts[b] === "string" ? b : customFonts[b].name) || b;
+    return na.localeCompare(nb);
+  });
+}
+
+const customPanel = makePanel({
+  prefix: "cf",
+  emptyKey: "cf_empty",
+  getItems: () =>
+    sortedCustomKeys().map((k) => {
+      const v = customFonts[k];
+      const e = typeof v === "string" ? { name: k, css: v } : v;
+      return { key: k, name: e.name || k, css: e.css };
+    }),
+  remove: (key) => {
+    delete customFonts[key];
+    try { chrome.storage.local.set({ [CUSTOM_KEY]: customFonts }); } catch (e) {}
+    customPanel.render();
+  },
 });
 
-// Pobierz plik fontu (z osadzonego data: w @font-face)
-dlFontBtn.addEventListener("click", () => {
-  const entry = entryOf(selectedKey);
-  if (!entry) return;
-  const m = /data:(font\/[a-z0-9]+|application\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)/i.exec(
-    entry.css || ""
-  );
-  if (!m) {
-    copiedEl.textContent = "—";
-    copiedEl.hidden = false;
-    setTimeout(() => (copiedEl.hidden = true), 1500);
-    return;
-  }
-  const mime = m[1];
-  const ext = mime.indexOf("woff2") >= 0 ? "woff2" : mime.indexOf("woff") >= 0 ? "woff" : mime.indexOf("ttf") >= 0 ? "ttf" : mime.indexOf("otf") >= 0 ? "otf" : "font";
-  const bin = atob(m[2]);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const blob = new Blob([bytes], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = safeName(entry.name) + "." + ext;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+const favPanel = makePanel({
+  prefix: "fav",
+  emptyKey: "fav_empty",
+  getItems: () =>
+    favorites.map((name) => {
+      const css =
+        customCss(name) ||
+        (META && META.classify(name).license === "open"
+          ? "@import url('" + googleImport(name) + "');"
+          : "");
+      return { key: name.toLowerCase(), name, css };
+    }),
+  remove: (key) => {
+    const i = favorites.findIndex((n) => n.toLowerCase() === key);
+    if (i >= 0) favorites.splice(i, 1);
+    try { chrome.storage.local.set({ [FAV_KEY]: favorites }); } catch (e) {}
+    favPanel.render();
+  },
 });
 
 // Purge — usuń wszystkie zapisane customowe fonty.
@@ -311,37 +311,30 @@ if (purgeBtn) {
     if (!Object.keys(customFonts).length) return;
     if (!confirm(I18N.t("cf_purge_confirm"))) return;
     customFonts = {};
-    selectedKey = null;
-    faceStyle.textContent = "";
-    try {
-      chrome.storage.local.set({ [CUSTOM_KEY]: {} });
-    } catch (e) {}
-    prevBody.hidden = true;
-    prevEmpty.hidden = false;
-    renderList();
+    try { chrome.storage.local.set({ [CUSTOM_KEY]: {} }); } catch (e) {}
+    customPanel.clearSelection();
+    customPanel.render();
   });
 }
 
-function loadCustomFonts() {
-  try {
-    chrome.storage.local.get(CUSTOM_KEY, (data) => {
-      customFonts = data[CUSTOM_KEY] && typeof data[CUSTOM_KEY] === "object" ? data[CUSTOM_KEY] : {};
-      renderList();
-    });
-  } catch (e) {
-    renderList();
-  }
-}
+chrome.storage.local.get([CUSTOM_KEY, FAV_KEY], (data) => {
+  customFonts = data[CUSTOM_KEY] && typeof data[CUSTOM_KEY] === "object" ? data[CUSTOM_KEY] : {};
+  favorites = Array.isArray(data[FAV_KEY]) ? data[FAV_KEY] : [];
+  customPanel.render();
+  favPanel.render();
+});
 
-// Reaguj na nowo pobrane fonty (gdy popup zapisze podczas otwartej strony opcji).
+// Aktualizuj na żywo, gdy popup zmieni dane przy otwartej stronie opcji.
 try {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes[CUSTOM_KEY]) {
+    if (area !== "local") return;
+    if (changes[CUSTOM_KEY]) {
       customFonts = changes[CUSTOM_KEY].newValue || {};
-      renderList();
-      if (selectedKey && customFonts[selectedKey]) selectFont(selectedKey);
+      customPanel.render();
+    }
+    if (changes[FAV_KEY]) {
+      favorites = changes[FAV_KEY].newValue || [];
+      favPanel.render();
     }
   });
 } catch (e) {}
-
-loadCustomFonts();
