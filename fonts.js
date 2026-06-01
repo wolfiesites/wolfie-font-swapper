@@ -74,7 +74,7 @@ const GOOGLE_FONTS = [
   "ABeeZee","Abel","Abril Fatface","Aclonica","Acme","Alata","Alegreya","Alegreya Sans",
   "Alfa Slab One","Alice","Allura","Almarai","Amaranth","Amatic SC","Anonymous Pro","Anton",
   "Antic Slab","Archivo","Archivo Black","Archivo Narrow","Arimo","Armata","Arsenal","Arvo",
-  "Asap","Asap Condensed","Assistant","Asul","Athiti","Atkinson Hyperlegible","Average",
+  "Asap","Asap Condensed","Assistant","Asul","Athiti","Atkinson Hyperlegible","Audiowide","Average",
   "Bad Script","Bai Jamjuree","Balsamiq Sans","Bangers","Barlow","Barlow Condensed",
   "Barlow Semi Condensed","Be Vietnam Pro","Bebas Neue","Bellefair","BenchNine","Bitter",
   "Black Ops One","Bodoni Moda","Bree Serif","Bungee","Cabin","Cabin Condensed","Cairo",
