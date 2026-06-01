@@ -317,6 +317,77 @@ if (purgeBtn) {
   });
 }
 
+// ---- Presety (wyświetlanie + zmiana nazwy) ----
+const PRESETS_KEY = "wfs_presets";
+let presets = [];
+const psList = document.getElementById("ps-list");
+
+function targetLabel(key) {
+  const map = {
+    base: "sec_base",
+    headings: "sec_headings",
+    paragraphs: "sec_paragraphs",
+    navigation: "sec_navigation",
+    buttons: "sec_buttons",
+  };
+  return I18N.t(map[key] || key);
+}
+function presetSummary(sel) {
+  const parts = [];
+  ["base", "headings", "paragraphs", "navigation", "buttons"].forEach((k) => {
+    const pp = sel && sel[k];
+    if (pp && pp.family) parts.push(targetLabel(k) + ": " + pp.family);
+  });
+  return parts.join(" · ");
+}
+function savePresets() {
+  try { chrome.storage.local.set({ [PRESETS_KEY]: presets }); } catch (e) {}
+}
+function renderPresets() {
+  if (!psList) return;
+  psList.innerHTML = "";
+  if (!presets.length) {
+    const e = document.createElement("div");
+    e.className = "ps-empty";
+    e.textContent = I18N.t("preset_empty");
+    psList.appendChild(e);
+    return;
+  }
+  presets.forEach((preset, i) => {
+    const row = document.createElement("div");
+    row.className = "ps-item";
+    const name = document.createElement("input");
+    name.className = "ps-name";
+    name.type = "text";
+    name.maxLength = 40;
+    name.value = preset.name || "Preset " + (i + 1);
+    name.addEventListener("change", () => {
+      const v = name.value.trim();
+      if (v) {
+        presets[i].name = v;
+        savePresets();
+      } else {
+        name.value = presets[i].name;
+      }
+    });
+    const sum = document.createElement("span");
+    sum.className = "ps-sum";
+    sum.textContent = presetSummary(preset.selection);
+    const del = document.createElement("button");
+    del.className = "ps-del";
+    del.type = "button";
+    del.textContent = "✕";
+    del.title = I18N.t("preset_delete_title");
+    del.addEventListener("click", () => {
+      presets.splice(i, 1);
+      savePresets();
+      renderPresets();
+    });
+    row.append(name, sum, del);
+    psList.appendChild(row);
+  });
+}
+
 // Purge ulubionych — czyści TYLKO wfs_favorites.
 const favPurgeBtn = document.getElementById("fav-purge");
 if (favPurgeBtn) {
@@ -330,11 +401,13 @@ if (favPurgeBtn) {
   });
 }
 
-chrome.storage.local.get([CUSTOM_KEY, FAV_KEY], (data) => {
+chrome.storage.local.get([CUSTOM_KEY, FAV_KEY, PRESETS_KEY], (data) => {
   customFonts = data[CUSTOM_KEY] && typeof data[CUSTOM_KEY] === "object" ? data[CUSTOM_KEY] : {};
   favorites = Array.isArray(data[FAV_KEY]) ? data[FAV_KEY] : [];
+  presets = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
   customPanel.render();
   favPanel.render();
+  renderPresets();
 });
 
 // Aktualizuj na żywo, gdy popup zmieni dane przy otwartej stronie opcji.
@@ -348,6 +421,10 @@ try {
     if (changes[FAV_KEY]) {
       favorites = changes[FAV_KEY].newValue || [];
       favPanel.render();
+    }
+    if (changes[PRESETS_KEY]) {
+      presets = Array.isArray(changes[PRESETS_KEY].newValue) ? changes[PRESETS_KEY].newValue : [];
+      renderPresets();
     }
   });
 } catch (e) {}
