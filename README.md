@@ -14,7 +14,14 @@ Autor: **Wolfie Paweł Witek**
   - **Cała strona** — ustawia `font-family` na całym dokumencie.
   - **Nagłówki** (`h1`–`h6`) — opcjonalny, nadpisuje nagłówki.
   - **Akapity** (`p`) — opcjonalny, nadpisuje akapity.
+- **Chipy pod każdym dropdownem** — szybkie, opcjonalne presety (klik = włącz, klik ponownie = wyłącz), osobno dla każdego targetu:
+  - **Grubość**: Light (300) / Regular (400) / Bold (700),
+  - **Odstęp liter**: Ciasno (−0.5px) / 0 / Luźno (1.5px),
+  - **Rozmiar**: S (14px) / M (18px) / L (24px).
+  
+  Uwaga: rozmiar dla „Całej strony" jest wymuszany na wszystkich elementach (`!important`), więc spłaszcza hierarchię — przydatne do podglądu, niekoniecznie do produkcji.
 - **Automatyczne wstrzykiwanie stylu** — zmiana widoczna natychmiast po wyborze.
+- **Fonty Google ładowane fizycznie z pominięciem CSP** — rozszerzenie pobiera pliki `.woff2` własnym `fetch`, osadza je jako `data:`-URL i wstrzykuje przez `insertCSS`, więc podgląd działa nawet na stronach blokujących zewnętrzne fonty.
 - **Reset jednym kliknięciem** — przycisk „↺ Resetuj" usuwa cały wstrzyknięty styl i wczytane fonty.
 - **Skrót klawiszowy `Ctrl+Shift+L`** (`⌘+Shift+L` na macOS) — otwiera popover.
 - **Snippet do skopiowania** — po wyborze fontu na dole pojawia się gotowy kod w zakładkach:

@@ -50,8 +50,51 @@ async function loadLocalFonts() {
 const STORAGE_KEY = "wfs_state";
 const statusEl = document.getElementById("wfs-status");
 
-// Aktualnie wybrane fonty dla każdego targetu.
-const selection = { base: null, headings: null, paragraphs: null };
+// Aktualne ustawienia dla każdego targetu: rodzina + chipy.
+function emptyProps() {
+  return { family: null, weight: null, spacing: null, size: null };
+}
+const selection = {
+  base: emptyProps(),
+  headings: emptyProps(),
+  paragraphs: emptyProps(),
+};
+
+function hasProps(p) {
+  return !!(p && (p.family || p.weight || p.spacing || p.size));
+}
+
+// Predefiniowane chipy pod każdym dropdownem (po 3 opcje, opcjonalne — klik
+// ponownie czyści). Wartości to gotowe wartości CSS.
+const CHIP_GROUPS = [
+  {
+    key: "weight",
+    label: "Grubość",
+    options: [
+      { label: "Light", value: "300" },
+      { label: "Regular", value: "400" },
+      { label: "Bold", value: "700" },
+    ],
+  },
+  {
+    key: "spacing",
+    label: "Odstęp",
+    options: [
+      { label: "Ciasno", value: "-0.5px" },
+      { label: "0", value: "normal" },
+      { label: "Luźno", value: "1.5px" },
+    ],
+  },
+  {
+    key: "size",
+    label: "Rozmiar",
+    options: [
+      { label: "S", value: "14px" },
+      { label: "M", value: "18px" },
+      { label: "L", value: "24px" },
+    ],
+  },
+];
 
 function setStatus(msg) {
   statusEl.textContent = msg || "";
@@ -70,29 +113,36 @@ function applyFontsInPage(state) {
 
   const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
   const q = (f) => (generic.test(f) ? f : '"' + f + '"');
+  const has = (p) => p && (p.family || p.weight || p.spacing || p.size);
+  const decl = (p) => {
+    const d = [];
+    if (p.family) d.push("font-family: " + q(p.family) + " !important");
+    if (p.weight) d.push("font-weight: " + p.weight + " !important");
+    if (p.spacing) d.push("letter-spacing: " + p.spacing + " !important");
+    if (p.size) d.push("font-size: " + p.size + " !important");
+    return d.join("; ");
+  };
 
   const rules = [];
-  if (state.base) {
+  if (has(state.base)) {
     // Cała strona, ale pomijamy elementy ikon, by nie psuć fontów ikonowych.
     // :where() ma zerową wagę (specificity), więc reguły dla nagłówków/akapitów
     // poniżej (h1.., p) zawsze wygrywają z regułą bazową.
     rules.push(
-      ':where(body, body *):not(:where(i, [class*="icon"], [class*="Icon"], [class*="material-"])) { font-family: ' +
-        q(state.base) +
-        " !important; }"
+      ':where(body, body *):not(:where(i, [class*="icon"], [class*="Icon"], [class*="material-"])) { ' +
+        decl(state.base) +
+        " }"
     );
   }
-  if (state.headings) {
+  if (has(state.headings)) {
     rules.push(
-      "h1,h2,h3,h4,h5,h6,h1 *,h2 *,h3 *,h4 *,h5 *,h6 * { font-family: " +
-        q(state.headings) +
-        " !important; }"
+      "h1,h2,h3,h4,h5,h6,h1 *,h2 *,h3 *,h4 *,h5 *,h6 * { " +
+        decl(state.headings) +
+        " }"
     );
   }
-  if (state.paragraphs) {
-    rules.push(
-      "p, p * { font-family: " + q(state.paragraphs) + " !important; }"
-    );
+  if (has(state.paragraphs)) {
+    rules.push("p, p * { " + decl(state.paragraphs) + " }");
   }
 
   let styleEl = document.getElementById(STYLE_ID);
@@ -173,7 +223,11 @@ async function fetchGoogleFontFaceCSS(family) {
 // Upewnij się, że wszystkie wybrane fonty Google są fizycznie załadowane w karcie.
 async function ensureGoogleFontsLoaded(tabId) {
   const families = [
-    ...new Set(Object.values(selection).filter((f) => f && isGoogle(f))),
+    ...new Set(
+      Object.values(selection)
+        .map((p) => p.family)
+        .filter((f) => f && isGoogle(f))
+    ),
   ];
   const rec = tabRecord(tabId);
   for (const fam of families) {
@@ -235,11 +289,15 @@ async function applyToPage() {
       args: [{ ...selection }],
     });
     chrome.storage.local.set({ [STORAGE_KEY]: selection });
-    const active = Object.entries(selection)
-      .filter(([, v]) => v)
-      .map(([, v]) => v);
-    if (active.length) setStatus("✓ Zastosowano: " + active.join(", "));
-    else setStatus("");
+    const names = Object.values(selection)
+      .map((p) => p.family)
+      .filter(Boolean);
+    const anyActive = Object.values(selection).some(hasProps);
+    if (anyActive) {
+      setStatus("✓ Zastosowano" + (names.length ? ": " + names.join(", ") : ""));
+    } else {
+      setStatus("");
+    }
     updateSnippet();
   } catch (e) {
     setStatus("✕ Błąd: " + (e && e.message ? e.message : String(e)));
@@ -269,7 +327,9 @@ async function resetPage() {
   } catch (e) {
     /* strona chroniona — ignorujemy */
   }
-  selection.base = selection.headings = selection.paragraphs = null;
+  selection.base = emptyProps();
+  selection.headings = emptyProps();
+  selection.paragraphs = emptyProps();
   chrome.storage.local.remove(STORAGE_KEY);
   document.querySelectorAll(".wfs-combo").forEach((combo) => {
     combo.classList.remove("has-value");
@@ -277,6 +337,9 @@ async function resetPage() {
     input.value = "";
     input.classList.remove("wfs-selected");
   });
+  document
+    .querySelectorAll(".wfs-chip.active")
+    .forEach((chip) => chip.classList.remove("active"));
   setStatus("Zresetowano — usunięto wstrzyknięty styl.");
   updateSnippet();
 }
@@ -300,7 +363,30 @@ function googleImportUrl(fam) {
 }
 
 function selectedGoogleFonts() {
-  return [...new Set(Object.values(selection).filter((f) => f && isGoogle(f)))];
+  return [
+    ...new Set(
+      Object.values(selection)
+        .map((p) => p.family)
+        .filter((f) => f && isGoogle(f))
+    ),
+  ];
+}
+
+// Bloki (selektor + ustawienia) dla każdego targetu.
+const SNIPPET_BLOCKS = [
+  { sel: "body, *", key: "base", scssVar: "$font-base" },
+  { sel: "h1, h2, h3, h4, h5, h6", key: "headings", scssVar: "$font-heading" },
+  { sel: "p", key: "paragraphs", scssVar: "$font-paragraph" },
+];
+
+function declList(p, familyExpr, indent) {
+  const pad = indent || "";
+  const d = [];
+  if (p.family) d.push(pad + "font-family: " + familyExpr + ";");
+  if (p.weight) d.push(pad + "font-weight: " + p.weight + ";");
+  if (p.spacing) d.push(pad + "letter-spacing: " + p.spacing + ";");
+  if (p.size) d.push(pad + "font-size: " + p.size + ";");
+  return d;
 }
 
 function buildCSS() {
@@ -308,16 +394,13 @@ function buildCSS() {
   const googles = selectedGoogleFonts();
   googles.forEach((g) => lines.push("@import url('" + googleImportUrl(g) + "');"));
   if (googles.length) lines.push("");
-  if (selection.base)
-    lines.push("body, * {\n  font-family: " + familyValue(selection.base) + ";\n}");
-  if (selection.headings)
-    lines.push(
-      "h1, h2, h3, h4, h5, h6 {\n  font-family: " +
-        familyValue(selection.headings) +
-        ";\n}"
-    );
-  if (selection.paragraphs)
-    lines.push("p {\n  font-family: " + familyValue(selection.paragraphs) + ";\n}");
+  for (const b of SNIPPET_BLOCKS) {
+    const p = selection[b.key];
+    if (!hasProps(p)) continue;
+    lines.push(b.sel + " {");
+    lines.push(...declList(p, familyValue(p.family), "  "));
+    lines.push("}");
+  }
   return lines.join("\n");
 }
 
@@ -326,16 +409,18 @@ function buildSCSS() {
   const googles = selectedGoogleFonts();
   googles.forEach((g) => lines.push("@import url('" + googleImportUrl(g) + "');"));
   if (googles.length) lines.push("");
-  if (selection.base) lines.push("$font-base: " + familyValue(selection.base) + ";");
-  if (selection.headings)
-    lines.push("$font-heading: " + familyValue(selection.headings) + ";");
-  if (selection.paragraphs)
-    lines.push("$font-paragraph: " + familyValue(selection.paragraphs) + ";");
+  for (const b of SNIPPET_BLOCKS) {
+    const p = selection[b.key];
+    if (p.family) lines.push(b.scssVar + ": " + familyValue(p.family) + ";");
+  }
   lines.push("");
-  if (selection.base) lines.push("body, * {\n  font-family: $font-base;\n}");
-  if (selection.headings)
-    lines.push("h1, h2, h3, h4, h5, h6 {\n  font-family: $font-heading;\n}");
-  if (selection.paragraphs) lines.push("p {\n  font-family: $font-paragraph;\n}");
+  for (const b of SNIPPET_BLOCKS) {
+    const p = selection[b.key];
+    if (!hasProps(p)) continue;
+    lines.push(b.sel + " {");
+    lines.push(...declList(p, b.scssVar, "  "));
+    lines.push("}");
+  }
   return lines.join("\n");
 }
 
@@ -353,16 +438,13 @@ function buildJS() {
     lines.push("");
   });
   const css = [];
-  if (selection.base)
-    css.push("body, * { font-family: " + familyValue(selection.base) + "; }");
-  if (selection.headings)
-    css.push(
-      "h1,h2,h3,h4,h5,h6 { font-family: " + familyValue(selection.headings) + "; }"
-    );
-  if (selection.paragraphs)
-    css.push("p { font-family: " + familyValue(selection.paragraphs) + "; }");
+  for (const b of SNIPPET_BLOCKS) {
+    const p = selection[b.key];
+    if (!hasProps(p)) continue;
+    css.push(b.sel + " { " + declList(p, familyValue(p.family)).join(" ") + " }");
+  }
   if (css.length) {
-    lines.push("// Zastosuj rodziny fontów");
+    lines.push("// Zastosuj ustawienia typografii");
     lines.push("const style = document.createElement('style');");
     lines.push("style.textContent = `\n  " + css.join("\n  ") + "\n`;");
     lines.push("document.head.appendChild(style);");
@@ -374,7 +456,7 @@ let currentTab = "css";
 
 function updateSnippet() {
   const section = document.getElementById("wfs-snippet");
-  const hasAny = Object.values(selection).some(Boolean);
+  const hasAny = Object.values(selection).some(hasProps);
   if (!hasAny) {
     section.hidden = true;
     return;
@@ -522,7 +604,7 @@ function buildCombo(combo) {
   }
 
   function choose(name) {
-    selection[target] = name;
+    selection[target].family = name;
     input.value = name;
     input.classList.add("wfs-selected");
     combo.classList.add("has-value");
@@ -531,11 +613,50 @@ function buildCombo(combo) {
   }
 
   function clearSelection() {
-    selection[target] = null;
+    selection[target].family = null;
     input.value = "";
     input.classList.remove("wfs-selected");
     combo.classList.remove("has-value");
     applyToPage();
+  }
+
+  // Chipy (grubość / odstęp / rozmiar) pod tym dropdownem.
+  const chipsBox = combo.closest(".wfs-field").querySelector(".wfs-chips");
+  if (chipsBox) {
+    CHIP_GROUPS.forEach((group) => {
+      const row = document.createElement("div");
+      row.className = "wfs-chip-row";
+      const lbl = document.createElement("span");
+      lbl.className = "wfs-chip-label";
+      lbl.textContent = group.label;
+      const wrap = document.createElement("div");
+      wrap.className = "wfs-chip-group";
+      group.options.forEach((opt) => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "wfs-chip";
+        chip.textContent = opt.label;
+        chip.dataset.key = group.key;
+        chip.dataset.value = opt.value;
+        chip.title = group.label + ": " + opt.label;
+        chip.addEventListener("click", () => {
+          if (selection[target][group.key] === opt.value) {
+            selection[target][group.key] = null; // klik ponownie = wyłącz
+            chip.classList.remove("active");
+          } else {
+            selection[target][group.key] = opt.value;
+            wrap
+              .querySelectorAll(".wfs-chip")
+              .forEach((c) => c.classList.remove("active"));
+            chip.classList.add("active");
+          }
+          applyToPage();
+        });
+        wrap.appendChild(chip);
+      });
+      row.append(lbl, wrap);
+      chipsBox.appendChild(row);
+    });
   }
 
   input.addEventListener("focus", async () => {
@@ -590,13 +711,21 @@ function buildCombo(combo) {
     if (!combo.contains(e.target)) list.hidden = true;
   });
 
-  // Przywrócenie zapamiętanego wyboru.
-  combo.restore = (name) => {
-    if (!name) return;
-    selection[target] = name;
-    input.value = name;
-    input.classList.add("wfs-selected");
-    combo.classList.add("has-value");
+  // Przywrócenie zapamiętanego wyboru (rodzina + chipy).
+  combo.restore = (saved) => {
+    if (!saved) return;
+    selection[target] = { ...emptyProps(), ...saved };
+    const p = selection[target];
+    if (p.family) {
+      input.value = p.family;
+      input.classList.add("wfs-selected");
+      combo.classList.add("has-value");
+    }
+    if (chipsBox) {
+      chipsBox.querySelectorAll(".wfs-chip").forEach((chip) => {
+        chip.classList.toggle("active", p[chip.dataset.key] === chip.dataset.value);
+      });
+    }
   };
 }
 

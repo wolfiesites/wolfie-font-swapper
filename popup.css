@@ -139,7 +139,47 @@ main { padding: 12px 14px 14px; }
 }
 .wfs-options .wfs-group:hover { background: transparent; }
 
-.wfs-actions { margin-top: 4px; }
+/* Chipy: grubość / odstęp / rozmiar — label z lewej, chipy z prawej. */
+.wfs-chips {
+  margin-top: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.wfs-chip-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.wfs-chip-label {
+  font-size: 11px;
+  color: var(--wfs-muted);
+  flex-shrink: 0;
+}
+.wfs-chip-group {
+  display: flex;
+  gap: 4px;
+}
+.wfs-chip {
+  border: 1px solid var(--wfs-border);
+  background: var(--wfs-surface);
+  color: var(--wfs-text);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1.3;
+}
+.wfs-chip:hover { border-color: var(--wfs-accent); }
+.wfs-chip.active {
+  background: var(--wfs-accent);
+  border-color: var(--wfs-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.wfs-actions { margin-top: 14px; }
 .wfs-btn-reset {
   width: 100%;
   padding: 9px;
