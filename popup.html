@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="popup.css" />
+  <title>Wolfie Font Swapper</title>
+</head>
+<body>
+  <header class="wfs-header">
+    <span class="wfs-logo">🐺</span>
+    <h1>Wolfie Font Swapper</h1>
+  </header>
+
+  <main>
+    <!-- CAŁA STRONA -->
+    <section class="wfs-field">
+      <label>Cała strona</label>
+      <div class="wfs-combo" data-target="base">
+        <input type="text" class="wfs-search" placeholder="Szukaj fontu… (np. Roboto)" autocomplete="off" />
+        <button class="wfs-clear" type="button" title="Wyczyść wybór">✕</button>
+        <ul class="wfs-options" hidden></ul>
+      </div>
+    </section>
+
+    <!-- NAGŁÓWKI -->
+    <section class="wfs-field">
+      <label>Nagłówki <small>(h1–h6, opcjonalne)</small></label>
+      <div class="wfs-combo" data-target="headings">
+        <input type="text" class="wfs-search" placeholder="Szukaj fontu dla nagłówków…" autocomplete="off" />
+        <button class="wfs-clear" type="button" title="Wyczyść wybór">✕</button>
+        <ul class="wfs-options" hidden></ul>
+      </div>
+    </section>
+
+    <!-- AKAPITY -->
+    <section class="wfs-field">
+      <label>Akapity <small>(p, opcjonalne)</small></label>
+      <div class="wfs-combo" data-target="paragraphs">
+        <input type="text" class="wfs-search" placeholder="Szukaj fontu dla akapitów…" autocomplete="off" />
+        <button class="wfs-clear" type="button" title="Wyczyść wybór">✕</button>
+        <ul class="wfs-options" hidden></ul>
+      </div>
+    </section>
+
+    <div class="wfs-actions">
+      <button id="wfs-reset" type="button" class="wfs-btn-reset">↺ Resetuj (usuń podmianę)</button>
+    </div>
+
+    <!-- SNIPPET DO SKOPIOWANIA -->
+    <section id="wfs-snippet" class="wfs-snippet" hidden>
+      <div class="wfs-snippet-head">
+        <div class="wfs-tabs" role="tablist">
+          <button class="wfs-tab active" data-tab="css" type="button">CSS</button>
+          <button class="wfs-tab" data-tab="scss" type="button">SCSS</button>
+          <button class="wfs-tab" data-tab="js" type="button">JS</button>
+        </div>
+        <button id="wfs-copy" class="wfs-copy" type="button" title="Kopiuj do schowka">⧉ Kopiuj</button>
+      </div>
+      <pre class="wfs-code"><code id="wfs-code"></code></pre>
+    </section>
+
+    <p id="wfs-status" class="wfs-status"></p>
+  </main>
+
+  <script src="fonts.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

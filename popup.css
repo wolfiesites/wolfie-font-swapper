@@ -1,0 +1,213 @@
+:root {
+  --wfs-bg: #1e1e24;
+  --wfs-surface: #2a2a33;
+  --wfs-surface-hi: #34343f;
+  --wfs-text: #f2f2f5;
+  --wfs-muted: #9a9aa8;
+  --wfs-accent: #8b6cef;
+  --wfs-accent-2: #6c8cef;
+  --wfs-border: #3c3c47;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  width: 320px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--wfs-bg);
+  color: var(--wfs-text);
+  font-size: 13px;
+}
+
+.wfs-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: linear-gradient(90deg, var(--wfs-accent), var(--wfs-accent-2));
+}
+.wfs-logo { font-size: 18px; }
+.wfs-header h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+main { padding: 12px 14px 14px; }
+
+.wfs-field { margin-bottom: 12px; }
+.wfs-field > label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: var(--wfs-text);
+}
+.wfs-field > label small {
+  font-weight: 400;
+  color: var(--wfs-muted);
+}
+
+.wfs-combo { position: relative; }
+
+.wfs-search {
+  width: 100%;
+  padding: 8px 30px 8px 10px;
+  border: 1px solid var(--wfs-border);
+  border-radius: 8px;
+  background: var(--wfs-surface);
+  color: var(--wfs-text);
+  font-size: 13px;
+  outline: none;
+}
+.wfs-search:focus { border-color: var(--wfs-accent); }
+.wfs-search.wfs-selected { font-weight: 600; }
+
+.wfs-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--wfs-muted);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  display: none;
+}
+.wfs-clear:hover { background: var(--wfs-surface-hi); color: var(--wfs-text); }
+.wfs-combo.has-value .wfs-clear { display: block; }
+
+.wfs-options {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--wfs-surface);
+  border: 1px solid var(--wfs-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.wfs-options li {
+  padding: 7px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.wfs-options li:hover,
+.wfs-options li.active { background: var(--wfs-surface-hi); }
+.wfs-options li .wfs-tag {
+  font-size: 10px;
+  color: var(--wfs-muted);
+  border: 1px solid var(--wfs-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+.wfs-options li .wfs-name { font-size: 14px; }
+.wfs-options .wfs-empty {
+  color: var(--wfs-muted);
+  cursor: default;
+  justify-content: center;
+}
+.wfs-options .wfs-group {
+  cursor: default;
+  color: var(--wfs-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: 6px 9px 2px;
+}
+.wfs-options .wfs-group:hover { background: transparent; }
+
+.wfs-actions { margin-top: 4px; }
+.wfs-btn-reset {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid var(--wfs-border);
+  border-radius: 8px;
+  background: var(--wfs-surface);
+  color: var(--wfs-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wfs-btn-reset:hover { background: #3a2a2a; border-color: #6e3b3b; }
+
+.wfs-snippet {
+  margin-top: 14px;
+  border: 1px solid var(--wfs-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #16161b;
+}
+.wfs-snippet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--wfs-surface);
+  border-bottom: 1px solid var(--wfs-border);
+}
+.wfs-tabs { display: flex; gap: 4px; }
+.wfs-tab {
+  border: none;
+  background: transparent;
+  color: var(--wfs-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.wfs-tab:hover { color: var(--wfs-text); }
+.wfs-tab.active {
+  background: var(--wfs-accent);
+  color: #fff;
+}
+.wfs-copy {
+  border: 1px solid var(--wfs-border);
+  background: var(--wfs-surface-hi);
+  color: var(--wfs-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.wfs-copy:hover { border-color: var(--wfs-accent); }
+.wfs-copy.copied { background: #2e7d4f; border-color: #2e7d4f; color: #fff; }
+.wfs-code {
+  margin: 0;
+  padding: 10px;
+  max-height: 200px;
+  overflow: auto;
+  font-family: "Consolas", "JetBrains Mono", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #d6d6e0;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.wfs-status {
+  margin: 10px 0 0;
+  min-height: 16px;
+  font-size: 11px;
+  color: var(--wfs-muted);
+  text-align: center;
+}
