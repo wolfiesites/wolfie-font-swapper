@@ -52,17 +52,18 @@ const statusEl = document.getElementById("wfs-status");
 
 // Aktualne ustawienia dla każdego targetu: rodzina + chipy.
 function emptyProps() {
-  return { family: null, weight: null, spacing: null, size: null };
+  return { family: null, weight: null, spacing: null, size: null, case: null };
 }
 const selection = {
   base: emptyProps(),
   headings: emptyProps(),
   paragraphs: emptyProps(),
   navigation: emptyProps(),
+  buttons: emptyProps(),
 };
 
 function hasProps(p) {
-  return !!(p && (p.family || p.weight || p.spacing || p.size));
+  return !!(p && (p.family || p.weight || p.spacing || p.size || p.case));
 }
 
 // Predefiniowane chipy pod każdym dropdownem (po 3 opcje, opcjonalne — klik
@@ -96,6 +97,16 @@ const CHIP_GROUPS = [
       { label: "L", value: "24px" },
     ],
   },
+  {
+    key: "case",
+    label: "Wielkość liter",
+    targets: ["buttons"], // text-transform tylko dla przycisków
+    options: [
+      { label: "ABC", value: "uppercase" },
+      { label: "abc", value: "lowercase" },
+      { label: "Abc", value: "capitalize" },
+    ],
+  },
 ];
 
 function setStatus(msg) {
@@ -115,13 +126,15 @@ function applyFontsInPage(state) {
 
   const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
   const q = (f) => (generic.test(f) ? f : '"' + f + '"');
-  const has = (p) => p && (p.family || p.weight || p.spacing || p.size);
+  const has = (p) =>
+    p && (p.family || p.weight || p.spacing || p.size || p.case);
   const decl = (p) => {
     const d = [];
     if (p.family) d.push("font-family: " + q(p.family) + " !important");
     if (p.weight) d.push("font-weight: " + p.weight + " !important");
     if (p.spacing) d.push("letter-spacing: " + p.spacing + " !important");
     if (p.size) d.push("font-size: " + p.size + " !important");
+    if (p.case) d.push("text-transform: " + p.case + " !important");
     return d.join("; ");
   };
 
@@ -177,6 +190,19 @@ function applyFontsInPage(state) {
     ];
     const navSel = navBases.map((s) => s + ", " + s + " *").join(", ");
     rules.push(navSel + " { " + decl(state.navigation) + " }");
+  }
+  if (has(state.buttons)) {
+    const btnBases = [
+      "button",
+      '[role="button"]',
+      ".btn",
+      ".button",
+      'input[type="button"]',
+      'input[type="submit"]',
+      'input[type="reset"]',
+    ];
+    const btnSel = btnBases.map((s) => s + ", " + s + " *").join(", ");
+    rules.push(btnSel + " { " + decl(state.buttons) + " }");
   }
 
   let styleEl = document.getElementById(STYLE_ID);
@@ -365,6 +391,7 @@ async function resetPage() {
   selection.headings = emptyProps();
   selection.paragraphs = emptyProps();
   selection.navigation = emptyProps();
+  selection.buttons = emptyProps();
   chrome.storage.local.remove(STORAGE_KEY);
   document.querySelectorAll(".wfs-combo").forEach((combo) => {
     combo.classList.remove("has-value");
@@ -417,6 +444,11 @@ const SNIPPET_BLOCKS = [
     key: "navigation",
     scssVar: "$font-nav",
   },
+  {
+    sel: 'button, [role="button"], .btn, .button, input[type="button"], input[type="submit"]',
+    key: "buttons",
+    scssVar: "$font-btn",
+  },
 ];
 
 function declList(p, familyExpr, indent) {
@@ -426,6 +458,7 @@ function declList(p, familyExpr, indent) {
   if (p.weight) d.push(pad + "font-weight: " + p.weight + ";");
   if (p.spacing) d.push(pad + "letter-spacing: " + p.spacing + ";");
   if (p.size) d.push(pad + "font-size: " + p.size + ";");
+  if (p.case) d.push(pad + "text-transform: " + p.case + ";");
   return d;
 }
 
@@ -663,7 +696,9 @@ function buildCombo(combo) {
   // Chipy (grubość / odstęp / rozmiar) pod tym dropdownem.
   const chipsBox = combo.closest(".wfs-field").querySelector(".wfs-chips");
   if (chipsBox) {
-    CHIP_GROUPS.forEach((group) => {
+    CHIP_GROUPS.filter(
+      (group) => !group.targets || group.targets.includes(target)
+    ).forEach((group) => {
       const row = document.createElement("div");
       row.className = "wfs-chip-row";
       const lbl = document.createElement("span");
