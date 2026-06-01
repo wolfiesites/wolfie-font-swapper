@@ -27,7 +27,7 @@ body {
   padding: 12px 14px;
   background: linear-gradient(90deg, var(--wfs-accent-2), var(--wfs-accent));
 }
-.wfs-logo { width: 24px; height: 24px; display: block; }
+.wfs-logo { width: 32px; height: 32px; display: block; }
 .wfs-header h1 {
   margin: 0;
   font-size: 15px;
