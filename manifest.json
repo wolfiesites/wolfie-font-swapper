@@ -2,10 +2,14 @@
   "manifest_version": 3,
   "name": "Wolfie Font Swapper",
   "version": "1.0.0",
-  "description": "Szybka podmiana i podgląd fontów (Google Fonts + fonty systemowe) na dowolnej stronie. Osobne dropdowny dla całej strony, nagłówków i akapitów.",
+  "description": "Quickly swap and preview fonts on any page — Google Fonts + system fonts, presets, and copyable CSS/SCSS/JS snippets.",
   "author": "Wolfie Paweł Witek",
+  "homepage_url": "https://wolfiesites.com",
   "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "https://fonts.googleapis.com/*",
+    "https://fonts.gstatic.com/*"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Wolfie Font Swapper (Ctrl+Shift+L)"

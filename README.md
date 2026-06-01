@@ -81,11 +81,35 @@ wolfie-font-swapper/
 
 ## 🔒 Uprawnienia
 
-- `activeTab`, `scripting` — wstrzyknięcie/usuwanie stylu na aktywnej karcie.
-- `storage` — zapamiętanie ostatniego wyboru fontów.
-- `host_permissions: <all_urls>` — działanie na dowolnej stronie.
+Minimalny, „store-friendly" zestaw:
 
-Dodatek **nie wysyła żadnych danych** na zewnątrz. Fonty Google ładowane są bezpośrednio z `fonts.googleapis.com` dopiero w momencie ich wyboru.
+- `activeTab` + `scripting` — wstrzyknięcie/usuwanie stylu **tylko na aktywnej karcie**, po otwarciu popovera (gest użytkownika). Brak `<all_urls>`.
+- `storage` — lokalne zapamiętanie wyboru, presetów i języka.
+- `host_permissions` ograniczone do `https://fonts.googleapis.com/*` i `https://fonts.gstatic.com/*` — pobieranie podglądanych fontów Google.
+
+Dodatek **nie zbiera ani nie wysyła żadnych danych** osobowych — patrz [PRIVACY.md](PRIVACY.md).
+
+---
+
+## 🚀 Publikacja w Chrome Web Store
+
+Repo jest gotowe do spakowania i wgrania:
+
+1. Spakuj **zawartość folderu** do ZIP (bez `node_modules`, `package.json`, plików `*.mjs`, `preview*.png` — i tak są w `.gitignore`):
+   - powinny znaleźć się: `manifest.json`, `popup.*`, `options.*`, `fonts.js`, `i18n.js`, `background.js`, `icons/`, `LICENSE`, `PRIVACY.md`.
+2. Wejdź do [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/) (jednorazowa opłata rejestracyjna dewelopera).
+3. **New item** → wgraj ZIP.
+4. Uzupełnij listing: ikona 128×128 (jest), zrzuty ekranu (1280×800 lub 640×400), krótki + pełny opis, kategoria, język.
+5. Podlinkuj politykę prywatności (`PRIVACY.md` lub strona) i uzasadnij uprawnienia (font hosts + activeTab — opis powyżej).
+6. Wyślij do recenzji.
+
+> Wskazówka: wąskie uprawnienia (bez `<all_urls>`) przyspieszają recenzję.
+
+---
+
+## 📄 Licencja
+
+[MIT](LICENSE) © 2026 Wolfie Paweł Witek
 
 ---
 
