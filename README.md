@@ -4,6 +4,8 @@ Prosty dodatek do Chrome do **szybkiej podmiany i podglądu fontów** na dowolne
 
 Autor: **Wolfie Paweł Witek**
 
+![Wolfie Font Swapper — demo](store/usage.gif)
+
 ---
 
 ## ✨ Funkcje
