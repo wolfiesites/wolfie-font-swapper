@@ -26,6 +26,8 @@ Author: **Wolfie Paweł Witek**
   - **Size**: S (14px) / M (18px) / L (24px),
   - **Letter case** (Buttons only): ABC / abc / Abc.
 - **Font picker (Fontninja‑style)** — the crosshair icon (in each field and the header) starts an inspector: hover the page to highlight elements and see the font + its license (Open / Commercial / Unknown); click to pick. The picked name is copied to the clipboard, and if a field was focused it's pasted there. Custom web fonts found on the page are **captured (with their `@font-face` file embedded as `data:`)** and saved, so you can reuse them anywhere.
+- **Live hover preview** — hovering a font in the dropdown previews it on the page instantly (debounced, async); moving away reverts to your committed choice, clicking commits it.
+- **Persistent font cache** — each Google font is fetched & embedded **once** and cached in `chrome.storage.local` (LRU‑capped), so previews and reuse across tabs/sessions need no network.
 - **Instant style injection** — change is visible immediately after selection.
 - **Google fonts loaded for real, bypassing page CSP** — the extension fetches the `.woff2` files itself, embeds them as `data:` URLs and injects them via `insertCSS`, so the preview works even on sites that block external fonts.
 - **Favorites ❤** — click the heart next to any field to favorite the current font. Favorites are **pinned to the very top** of the dropdown (above the popular Google fonts) and persisted in `chrome.storage.local`.

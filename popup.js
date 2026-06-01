@@ -477,8 +477,49 @@ function arrayBufferToBase64(buf) {
   return btoa(binary);
 }
 
-// Pobierz CSS @font-face z Google i osadź pliki woff2 jako data:-URL.
+// Trwały cache fontów Google (osadzone @font-face). Pobierz raz, używaj zawsze
+// — także między sesjami i kartami. LRU z limitem, by nie przekroczyć quoty.
+const FONT_CACHE_KEY = "wfs_font_cache";
+const FONT_CACHE_CAP = 4 * 1024 * 1024; // ~4 MB
+let fontCacheMap = {}; // key(lower) -> css
+let fontCacheOrder = []; // klucze; najświeższe na końcu
+let fontCacheTimer = null;
+
+function fontCacheBytes() {
+  let n = 0;
+  for (const k in fontCacheMap) n += fontCacheMap[k].length;
+  return n;
+}
+function persistFontCache() {
+  if (fontCacheTimer) clearTimeout(fontCacheTimer);
+  fontCacheTimer = setTimeout(() => {
+    try {
+      chrome.storage.local.set({ [FONT_CACHE_KEY]: { map: fontCacheMap, order: fontCacheOrder } });
+    } catch (e) {}
+  }, 800);
+}
+function cacheTouch(key) {
+  const i = fontCacheOrder.indexOf(key);
+  if (i >= 0) fontCacheOrder.splice(i, 1);
+  fontCacheOrder.push(key);
+}
+function cachePut(key, css) {
+  fontCacheMap[key] = css;
+  cacheTouch(key);
+  while (fontCacheBytes() > FONT_CACHE_CAP && fontCacheOrder.length > 1) {
+    delete fontCacheMap[fontCacheOrder.shift()];
+  }
+  persistFontCache();
+}
+
+// Pobierz CSS @font-face z Google i osadź pliki woff2 jako data:-URL (z cache).
 async function fetchGoogleFontFaceCSS(family) {
+  const key = family.toLowerCase();
+  if (fontCacheMap[key]) {
+    cacheTouch(key);
+    persistFontCache();
+    return fontCacheMap[key]; // z cache — bez sieci
+  }
   const res = await fetch(googleImportUrl(family));
   if (!res.ok) throw new Error("HTTP " + res.status);
   let css = await res.text();
@@ -499,14 +540,16 @@ async function fetchGoogleFontFaceCSS(family) {
       /* pomijamy ten plik, reszta i tak zadziała */
     }
   }
+  cachePut(key, css); // zapisz do trwałego cache
   return css;
 }
 
 // Upewnij się, że wszystkie wybrane fonty Google są fizycznie załadowane w karcie.
-async function ensureGoogleFontsLoaded(tabId) {
+async function ensureGoogleFontsLoaded(tabId, sel) {
+  sel = sel || selection;
   const families = [
     ...new Set(
-      Object.values(selection)
+      Object.values(sel)
         .map((p) => p.family)
         .filter((f) => f && isGoogle(f))
     ),
@@ -523,9 +566,10 @@ async function ensureGoogleFontsLoaded(tabId) {
 
 // Wstrzyknij customowe fonty (pobrane pickerem) dla wybranych rodzin — by płatne
 // czy nie, realnie renderowały się na stronie.
-async function ensureCustomFontsLoaded(tabId) {
+async function ensureCustomFontsLoaded(tabId, sel) {
+  sel = sel || selection;
   const families = [
-    ...new Set(Object.values(selection).map((p) => p.family).filter(Boolean)),
+    ...new Set(Object.values(sel).map((p) => p.family).filter(Boolean)),
   ];
   const rec = tabRecord(tabId);
   for (const fam of families) {
@@ -609,6 +653,54 @@ async function applyToPage() {
   } catch (e) {
     setStatus(t("status_error") + " " + (e && e.message ? e.message : String(e)));
   }
+}
+
+// ---- Live preview na hover w dropdownie ----
+function isRestrictedUrl(url) {
+  return (
+    !url ||
+    /^(chrome|edge|brave|opera|about|chrome-extension|moz-extension|devtools|view-source|file):/i.test(url) ||
+    /^https?:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/i.test(url)
+  );
+}
+let previewActive = false;
+
+// Podejrzyj font na stronie BEZ zmiany zatwierdzonego wyboru i bez zapisu.
+async function livePreview(target, family) {
+  const tab = await getActiveTab();
+  if (!tab || !tab.id || isRestrictedUrl(tab.url || "")) return;
+  // jeśli to już zatwierdzony font tego pola — nic nie rób
+  if ((selection[target].family || "") === family) return;
+  const temp = {};
+  for (const k of Object.keys(selection)) temp[k] = { ...selection[k] };
+  temp[target] = { ...selection[target], family };
+  try {
+    await ensureGoogleFontsLoaded(tab.id, temp); // pobierze tylko gdy trzeba (cache!)
+    await ensureCustomFontsLoaded(tab.id, temp);
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: applyFontsInPage,
+      args: [temp],
+    });
+    previewActive = true;
+  } catch (e) {
+    /* strona chroniona / błąd — ignorujemy */
+  }
+}
+
+// Przywróć zatwierdzony wybór (gdy zjedziesz z listy bez wyboru).
+async function revertPreview() {
+  if (!previewActive) return;
+  previewActive = false;
+  const tab = await getActiveTab();
+  if (!tab || !tab.id || isRestrictedUrl(tab.url || "")) return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: applyFontsInPage,
+      args: [{ ...selection }],
+    });
+  } catch (e) {}
 }
 
 async function resetPage() {
@@ -826,6 +918,7 @@ function buildCombo(combo) {
   let filtered = []; // pełny wynik filtrowania
   let shownCount = 0; // ile z `filtered` jest już w DOM
   let debounceTimer = null;
+  let hoverTimer = null; // debounce dla live-preview na hover
 
   // Stopka informująca o doładowywaniu / liczbie pozostałych wyników.
   let footer = null;
@@ -861,6 +954,11 @@ function buildCombo(combo) {
     li.addEventListener("mousedown", (e) => {
       e.preventDefault();
       choose(font.name);
+    });
+    // Live preview na hover (asynchronicznie, z debounce; font ładowany raz, z cache).
+    li.addEventListener("mouseenter", () => {
+      if (hoverTimer) clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => livePreview(target, font.name), 180);
     });
     return li;
   }
@@ -959,6 +1057,15 @@ function buildCombo(combo) {
     }
   });
 
+  // Zjechanie z listy bez wyboru — przywróć zatwierdzony font.
+  list.addEventListener("mouseleave", () => {
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    revertPreview();
+  });
+
   function highlight(delta) {
     let items = [...list.querySelectorAll("li[data-index]")];
     if (!items.length) return;
@@ -978,6 +1085,8 @@ function buildCombo(combo) {
   }
 
   function choose(name) {
+    if (hoverTimer) clearTimeout(hoverTimer);
+    previewActive = false; // commit nadpisuje podgląd
     selection[target].family = name;
     input.value = name;
     input.classList.add("wfs-selected");
@@ -1079,6 +1188,11 @@ function buildCombo(combo) {
         clearTimeout(debounceTimer);
         debounceTimer = null;
       }
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+      revertPreview();
       list.hidden = true;
     }
   });
@@ -1127,9 +1241,16 @@ function buildCombo(combo) {
   combo.appendChild(favBtn);
   combo.updateHeart = updateHeart;
 
-  // Zamknij listę po kliknięciu poza nią.
+  // Zamknij listę po kliknięciu poza nią (i przywróć podgląd).
   document.addEventListener("click", (e) => {
-    if (!combo.contains(e.target)) list.hidden = true;
+    if (!combo.contains(e.target)) {
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        hoverTimer = null;
+      }
+      revertPreview();
+      list.hidden = true;
+    }
   });
 
   // Ustawienie stanu targetu (rodzina + chipy) i odświeżenie UI.
@@ -1267,8 +1388,15 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
 });
 
 chrome.storage.local.get(
-  [STORAGE_KEY, "wfs_custom_fonts", "wfs_favorites", "wfs_picked", "wfs_pending_target"],
+  [STORAGE_KEY, "wfs_custom_fonts", "wfs_favorites", "wfs_font_cache", "wfs_picked", "wfs_pending_target"],
   (data) => {
+    // Trwały cache fontów Google.
+    if (data.wfs_font_cache && data.wfs_font_cache.map) {
+      fontCacheMap = data.wfs_font_cache.map;
+      fontCacheOrder = Array.isArray(data.wfs_font_cache.order)
+        ? data.wfs_font_cache.order
+        : Object.keys(fontCacheMap);
+    }
     // Ulubione (przypinane na górze listy).
     if (Array.isArray(data.wfs_favorites)) favorites = data.wfs_favorites;
     // Wczytaj zapisane customowe fonty (z poprzednich sesji).
