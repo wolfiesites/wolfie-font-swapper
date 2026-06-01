@@ -1234,6 +1234,8 @@ if (pickerBtn)
 
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);
+const resetTop = document.getElementById("wfs-reset-top");
+if (resetTop) resetTop.addEventListener("click", resetPage);
 
 // Zakładki snippetu.
 document.querySelectorAll(".wfs-tab").forEach((tab) => {
