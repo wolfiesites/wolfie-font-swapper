@@ -5,6 +5,13 @@
   font-style: normal;
   font-display: swap;
 }
+@font-face {
+  font-family: "Audiowide";
+  src: url("fonts/Audiowide.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --wfs-bg: #1e1e24;
@@ -55,10 +62,12 @@ body {
 }
 .wfs-header h1 {
   margin: 0;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: .2px;
+  font-family: "Audiowide", "Rubik", system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 0;
   color: #000;
+  white-space: nowrap;
 }
 
 main { padding: 12px 14px 14px; }

@@ -9,6 +9,11 @@
       src: url("fonts/Rubik.woff2") format("woff2");
       font-weight: 300 900; font-style: normal; font-display: swap;
     }
+    @font-face {
+      font-family: "Audiowide";
+      src: url("fonts/Audiowide.woff2") format("woff2");
+      font-weight: 400; font-style: normal; font-display: swap;
+    }
     :root {
       --bg: #1e1e24; --surface: #2a2a33; --surface2: #34343f; --text: #f2f2f5; --muted: #9a9aa8;
       --accent: #ff3dae; --accent2: #00e0ff; --border: #3c3c47;
@@ -22,7 +27,7 @@
     .wrap { width: 100%; max-width: 960px; }
     .head { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
     .head img { width: 40px; height: 40px; display: block; }
-    .head h1 { margin: 0; font-size: 18px; font-weight: 800; }
+    .head h1 { margin: 0; font-size: 18px; font-weight: 400; font-family: "Audiowide", "Rubik", system-ui, sans-serif; }
     .field {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; padding: 16px; margin-bottom: 18px;
