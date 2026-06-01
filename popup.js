@@ -58,6 +58,7 @@ const selection = {
   base: emptyProps(),
   headings: emptyProps(),
   paragraphs: emptyProps(),
+  navigation: emptyProps(),
 };
 
 function hasProps(p) {
@@ -144,6 +145,13 @@ function applyFontsInPage(state) {
   }
   if (has(state.paragraphs)) {
     rules.push("p, p * { " + decl(state.paragraphs) + " }");
+  }
+  if (has(state.navigation)) {
+    rules.push(
+      'nav, nav *, [role="navigation"], [role="navigation"] * { ' +
+        decl(state.navigation) +
+        " }"
+    );
   }
 
   let styleEl = document.getElementById(STYLE_ID);
@@ -331,6 +339,7 @@ async function resetPage() {
   selection.base = emptyProps();
   selection.headings = emptyProps();
   selection.paragraphs = emptyProps();
+  selection.navigation = emptyProps();
   chrome.storage.local.remove(STORAGE_KEY);
   document.querySelectorAll(".wfs-combo").forEach((combo) => {
     combo.classList.remove("has-value");
@@ -378,6 +387,7 @@ const SNIPPET_BLOCKS = [
   { sel: "body, *", key: "base", scssVar: "$font-base" },
   { sel: "h1, h2, h3, h4, h5, h6", key: "headings", scssVar: "$font-heading" },
   { sel: "p", key: "paragraphs", scssVar: "$font-paragraph" },
+  { sel: 'nav, [role="navigation"]', key: "navigation", scssVar: "$font-nav" },
 ];
 
 function declList(p, familyExpr, indent) {

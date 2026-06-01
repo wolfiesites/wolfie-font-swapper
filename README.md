@@ -14,6 +14,7 @@ Autor: **Wolfie Paweł Witek**
   - **Cała strona** — ustawia `font-family` na całym dokumencie.
   - **Nagłówki** (`h1`–`h6`) — opcjonalny, nadpisuje nagłówki.
   - **Akapity** (`p`) — opcjonalny, nadpisuje akapity.
+  - **Nawigacja** (`nav`, `[role="navigation"]`) — opcjonalny, nadpisuje elementy nawigacji.
 - **Chipy pod każdym dropdownem** — szybkie, opcjonalne presety (klik = włącz, klik ponownie = wyłącz), osobno dla każdego targetu:
   - **Grubość**: Light (300) / Regular (400) / Bold (700),
   - **Odstęp liter**: Ciasno (−0.5px) / 0 / Luźno (1.5px),
