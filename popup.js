@@ -1,12 +1,51 @@
 "use strict";
 
-const { SYSTEM_FONTS, GOOGLE_FONTS } = window.WOLFIE_FONTS;
+const { SYSTEM_FONTS, GOOGLE_FONTS, POPULAR_GOOGLE_FONTS } = window.WOLFIE_FONTS;
 
-// Połączona, posortowana lista fontów z oznaczeniem źródła.
-const ALL_FONTS = [
+const POPULAR_SET = new Set(POPULAR_GOOGLE_FONTS);
+
+// Najpierw popularne Google Fonts (w zadanej kolejności, oznaczone gwiazdką),
+// potem reszta (systemowe + pozostałe Google) alfabetycznie.
+const popularEntries = POPULAR_GOOGLE_FONTS.filter((name) =>
+  GOOGLE_FONTS.includes(name)
+).map((name) => ({ name, type: "google", popular: true }));
+
+const restEntries = [
   ...SYSTEM_FONTS.map((name) => ({ name, type: "system" })),
-  ...GOOGLE_FONTS.map((name) => ({ name, type: "google" })),
+  ...GOOGLE_FONTS.filter((name) => !POPULAR_SET.has(name)).map((name) => ({
+    name,
+    type: "google",
+  })),
 ].sort((a, b) => a.name.localeCompare(b.name));
+
+const ALL_FONTS = [...popularEntries, ...restEntries];
+
+// Enumeracja realnie zainstalowanych fontów przez Local Font Access API.
+// Wymaga gestu użytkownika (np. kliknięcia w pole) i jednorazowej zgody.
+let localFontsLoaded = false;
+async function loadLocalFonts() {
+  if (localFontsLoaded || typeof window.queryLocalFonts !== "function") return false;
+  localFontsLoaded = true;
+  try {
+    const fonts = await window.queryLocalFonts();
+    const have = new Set(ALL_FONTS.map((f) => f.name.toLowerCase()));
+    const added = [];
+    for (const fam of new Set(fonts.map((f) => f.family))) {
+      if (fam && !have.has(fam.toLowerCase())) {
+        have.add(fam.toLowerCase());
+        added.push({ name: fam, type: "system" });
+      }
+    }
+    if (added.length) {
+      added.sort((a, b) => a.name.localeCompare(b.name));
+      ALL_FONTS.push(...added);
+    }
+    return true;
+  } catch (e) {
+    // Brak wsparcia lub odmowa zgody — zostaje lista wbudowana.
+    return false;
+  }
+}
 
 const STORAGE_KEY = "wfs_state";
 const statusEl = document.getElementById("wfs-status");
@@ -49,8 +88,10 @@ function applyFontsInPage(state) {
   const rules = [];
   if (state.base) {
     // Cała strona, ale pomijamy elementy ikon, by nie psuć fontów ikonowych.
+    // :where() ma zerową wagę (specificity), więc reguły dla nagłówków/akapitów
+    // poniżej (h1.., p) zawsze wygrywają z regułą bazową.
     rules.push(
-      '*:not(i):not([class*="icon"]):not([class*="Icon"]):not([class*="material-"]) { font-family: ' +
+      ':where(body, body *):not(:where(i, [class*="icon"], [class*="Icon"], [class*="material-"])) { font-family: ' +
         q(state.base) +
         " !important; }"
     );
@@ -98,10 +139,34 @@ async function getActiveTab() {
 
 async function applyToPage() {
   const tab = await getActiveTab();
-  if (!tab || !tab.id) return;
+  if (!tab || !tab.id) {
+    setStatus("⚠ Brak aktywnej karty.");
+    return;
+  }
 
-  const googleToLoad = Object.values(selection)
-    .filter((f) => f && isGoogle(f));
+  const url = tab.url || "";
+  if (/^file:/i.test(url)) {
+    setStatus(
+      "⚠ Strony file:// wymagają włączenia „Zezwalaj na dostęp do adresów URL plików” w szczegółach dodatku."
+    );
+    return;
+  }
+  if (
+    !url ||
+    /^(chrome|edge|brave|opera|about|chrome-extension|moz-extension|devtools|view-source):/i.test(
+      url
+    ) ||
+    /^https?:\/\/(chrome\.google\.com\/webstore|chromewebstore\.google\.com)/i.test(
+      url
+    )
+  ) {
+    setStatus(
+      "⚠ Ta karta jest chroniona przez przeglądarkę — otwórz zwykłą stronę (np. wikipedia.org) i spróbuj ponownie."
+    );
+    return;
+  }
+
+  const googleToLoad = Object.values(selection).filter((f) => f && isGoogle(f));
 
   const state = { ...selection, googleToLoad };
 
@@ -115,10 +180,10 @@ async function applyToPage() {
     const active = Object.entries(selection)
       .filter(([, v]) => v)
       .map(([, v]) => v);
-    setStatus(active.length ? "Zastosowano: " + active.join(", ") : "");
+    setStatus(active.length ? "✓ Zastosowano: " + active.join(", ") : "");
     updateSnippet();
   } catch (e) {
-    setStatus("Nie można zmienić fontów na tej stronie.");
+    setStatus("✕ Błąd: " + (e && e.message ? e.message : String(e)));
   }
 }
 
@@ -274,7 +339,12 @@ function buildCombo(combo) {
     name.textContent = font.name;
     const tag = document.createElement("span");
     tag.className = "wfs-tag";
-    tag.textContent = font.type === "google" ? "Google" : "System";
+    if (font.popular) {
+      tag.classList.add("wfs-tag-pop");
+      tag.textContent = "★ Google";
+    } else {
+      tag.textContent = font.type === "google" ? "Google" : "System";
+    }
     li.append(name, tag);
     li.addEventListener("mousedown", (e) => {
       e.preventDefault();
@@ -397,7 +467,14 @@ function buildCombo(combo) {
     applyToPage();
   }
 
-  input.addEventListener("focus", () => render(input.value));
+  input.addEventListener("focus", async () => {
+    render(input.value);
+    // Spróbuj dociągnąć realne fonty systemowe (jednorazowo, za zgodą).
+    if (!localFontsLoaded) {
+      const ok = await loadLocalFonts();
+      if (ok && !input.value.trim()) render(input.value);
+    }
+  });
   input.addEventListener("input", () => {
     combo.classList.add("has-value"); // pokaż ✕ do czyszczenia
     showSearching(); // natychmiastowy wskaźnik

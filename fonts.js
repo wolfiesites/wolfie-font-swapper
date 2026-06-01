@@ -21,6 +21,7 @@ const SYSTEM_FONTS = [
   "Gabriola",
   "Gadugi",
   "Georgia",
+  "Hack",
   "Impact",
   "Ink Free",
   "Javanese Text",
@@ -115,7 +116,37 @@ const GOOGLE_FONTS = [
   "Yantramanav","Yellowtail","Yeseva One","Zeyada","Zilla Slab"
 ];
 
+// Najpopularniejsze Google Fonts — wg kolejności trafień na Google Fonts.
+// Te trafią na samą górę dropdownu (z gwiazdką ★), zachowując tę kolejność.
+const POPULAR_GOOGLE_FONTS = [
+  "Roboto",
+  "Open Sans",
+  "Inter",
+  "Montserrat",
+  "Lato",
+  "Poppins",
+  "Roboto Condensed",
+  "Oswald",
+  "Noto Sans",
+  "Raleway",
+  "Roboto Mono",
+  "Nunito",
+  "Nunito Sans",
+  "Ubuntu",
+  "Playfair Display",
+  "Merriweather",
+  "Rubik",
+  "Work Sans",
+  "Source Sans 3",
+  "Mulish",
+  "DM Sans",
+  "PT Sans",
+  "Lora",
+  "Quicksand",
+  "Fira Sans"
+];
+
 // Eksport do globalnego zasięgu (popup.js korzysta z tych zmiennych).
 // Nazwy trzymamy w IIFE, by nie kolidowały z deklaracjami w popup.js.
-window.WOLFIE_FONTS = { SYSTEM_FONTS, GOOGLE_FONTS };
+window.WOLFIE_FONTS = { SYSTEM_FONTS, GOOGLE_FONTS, POPULAR_GOOGLE_FONTS };
 })();

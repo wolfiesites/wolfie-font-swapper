@@ -118,6 +118,11 @@ main { padding: 12px 14px 14px; }
   padding: 1px 5px;
   flex-shrink: 0;
 }
+.wfs-options li .wfs-tag-pop {
+  color: #ffd54a;
+  border-color: #6a5a1e;
+  background: rgba(255, 213, 74, 0.08);
+}
 .wfs-options li .wfs-name { font-size: 14px; }
 .wfs-options .wfs-empty {
   color: var(--wfs-muted);
