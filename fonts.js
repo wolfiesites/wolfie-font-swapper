@@ -2,6 +2,7 @@
 // SYSTEM_FONTS  – fonty zwykle dostępne lokalnie (nie wymagają pobrania).
 // GOOGLE_FONTS  – nazwy rodzin z Google Fonts (ładowane dynamicznie z fonts.googleapis.com).
 
+(function () {
 const SYSTEM_FONTS = [
   "Arial",
   "Arial Black",
@@ -115,4 +116,6 @@ const GOOGLE_FONTS = [
 ];
 
 // Eksport do globalnego zasięgu (popup.js korzysta z tych zmiennych).
+// Nazwy trzymamy w IIFE, by nie kolidowały z deklaracjami w popup.js.
 window.WOLFIE_FONTS = { SYSTEM_FONTS, GOOGLE_FONTS };
+})();
