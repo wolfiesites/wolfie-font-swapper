@@ -147,11 +147,36 @@ function applyFontsInPage(state) {
     rules.push("p, p * { " + decl(state.paragraphs) + " }");
   }
   if (has(state.navigation)) {
-    rules.push(
-      'nav, nav *, [role="navigation"], [role="navigation"] * { ' +
-        decl(state.navigation) +
-        " }"
-    );
+    // Częste wzorce nawigacji: semantyczny <nav>, role, oraz typowe klasy/id
+    // i menu w nagłówku. Każdy wzorzec łapie też swoich potomków (" *").
+    const navBases = [
+      "nav",
+      '[role="navigation"]',
+      ".navbar",
+      ".navbar-nav",
+      ".nav",
+      ".nav-menu",
+      ".navmenu",
+      ".navigation",
+      ".menu",
+      ".main-menu",
+      ".main-nav",
+      ".primary-menu",
+      ".primary-nav",
+      ".site-nav",
+      ".topnav",
+      ".top-nav",
+      ".menu-list",
+      "#nav",
+      "#navbar",
+      "#menu",
+      "#navigation",
+      "#main-nav",
+      "#primary-menu",
+      "header ul",
+    ];
+    const navSel = navBases.map((s) => s + ", " + s + " *").join(", ");
+    rules.push(navSel + " { " + decl(state.navigation) + " }");
   }
 
   let styleEl = document.getElementById(STYLE_ID);
@@ -387,7 +412,11 @@ const SNIPPET_BLOCKS = [
   { sel: "body, *", key: "base", scssVar: "$font-base" },
   { sel: "h1, h2, h3, h4, h5, h6", key: "headings", scssVar: "$font-heading" },
   { sel: "p", key: "paragraphs", scssVar: "$font-paragraph" },
-  { sel: 'nav, [role="navigation"]', key: "navigation", scssVar: "$font-nav" },
+  {
+    sel: 'nav, [role="navigation"], .navbar, .nav, .navigation, .menu',
+    key: "navigation",
+    scssVar: "$font-nav",
+  },
 ];
 
 function declList(p, familyExpr, indent) {
