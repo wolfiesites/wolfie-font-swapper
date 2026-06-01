@@ -2,3 +2,9 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Dev tooling do podglądu logo (Playwright) — nie jest częścią rozszerzenia
+package.json
+package-lock.json
+render-check.mjs
+preview.png

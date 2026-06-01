@@ -5,23 +5,21 @@
 <stop offset="1" stop-color="#ff3dae"/>
 </linearGradient>
 <linearGradient id="wfFace" x1="0" y1="0" x2="0" y2="1">
-<stop offset="0" stop-color="#e6f6fc"/>
-<stop offset=".55" stop-color="#7cc6e0"/>
-<stop offset="1" stop-color="#3f9fc4"/>
+<stop offset="0" stop-color="#eaf7fd"/>
+<stop offset=".5" stop-color="#86cce4"/>
+<stop offset="1" stop-color="#3f97bd"/>
 </linearGradient>
 </defs>
 <circle cx="32" cy="32" r="29" fill="#0a0e1a" stroke="url(#wfRing)" stroke-width="2.4"/>
-<g stroke="#0a0e1a" stroke-width=".5" stroke-linejoin="round">
-<path d="M16 7 L25 25 L11 22 Z" fill="#7cc6e0"/>
-<path d="M48 7 L39 25 L53 22 Z" fill="#7cc6e0"/>
-<path d="M16 9 L23 24 L14 21 Z" fill="#2b3a59"/>
-<path d="M48 9 L41 24 L50 21 Z" fill="#2b3a59"/>
-<path d="M11 22 L25 24 L32 18 L39 24 L53 22 L47 40 L38 52 L32 57 L26 52 L17 40 Z" fill="url(#wfFace)"/>
-<path d="M53 22 L47 40 L41 31 L45 24 Z" fill="#ff5ec4" opacity=".75"/>
-<path d="M32 18 L26 33 L38 33 Z" fill="#eef8fc"/>
-<path d="M21 30 L29 28 L28 34 L22 35 Z" fill="#ff3b3b"/>
-<path d="M43 30 L35 28 L36 34 L42 35 Z" fill="#ff3b3b"/>
-<path d="M26 35 L38 35 L35 48 L32 53 L29 48 Z" fill="#28324d"/>
-<path d="M30 45 L34 45 L32 49 Z" fill="#161d30"/>
+<g stroke="#0a1020" stroke-width=".4" stroke-linejoin="round">
+<path d="M32 15 L39 21 L46 8 L49 24 L54 32 L47 35 L50 45 L41 47 L36 56 L32 52 L28 56 L23 47 L14 45 L17 35 L10 32 L15 24 L18 8 L25 21 Z" fill="url(#wfFace)"/>
+<path d="M44 13 L48 24 L40 21 Z" fill="#243349"/>
+<path d="M20 13 L16 24 L24 21 Z" fill="#243349"/>
+<path d="M54 32 L47 35 L50 45 Z" fill="#ff5ec4" opacity=".7"/>
+<path d="M37 30 L47 35 L41 47 L35 42 Z" fill="#5fb0d0"/>
+<path d="M32 15 L37 30 L35 42 L32 47 L29 42 L27 30 Z" fill="#f3fbff"/>
+<path d="M35 27 L41 25 L40 30 L34 31 Z" fill="#ff2f2f"/>
+<path d="M29 27 L23 25 L24 30 L30 31 Z" fill="#ff2f2f"/>
+<path d="M29.5 44 L34.5 44 L32 49 Z" fill="#141b2c"/>
 </g>
 </svg>
