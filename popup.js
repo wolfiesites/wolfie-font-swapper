@@ -198,8 +198,9 @@ const CHIP_GROUPS = [
     label: t("chip_size"),
     options: [
       { label: "S", value: "14px" },
-      { label: "M", value: "18px" },
-      { label: "L", value: "24px" },
+      { label: "M", value: "16px" },
+      { label: "L", value: "18px" },
+      { label: "XL", value: "20px" },
     ],
   },
   {
@@ -208,6 +209,7 @@ const CHIP_GROUPS = [
     options: [
       { label: "1.2", value: "1.2" },
       { label: "1.5", value: "1.5" },
+      { label: "1.8", value: "1.8" },
       { label: "2.0", value: "2" },
     ],
   },
@@ -1680,30 +1682,7 @@ if (editTextBtn) editTextBtn.addEventListener("click", startTextEditor);
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);
 
-// „Zapisz na stałe" — utrwal konfig tej domeny w local (przeżyje restart).
-const persistBtn = document.getElementById("wfs-persist");
-if (persistBtn) {
-  persistBtn.addEventListener("click", () => {
-    if (!currentHost) {
-      setStatus(t("status_protected"));
-      return;
-    }
-    if (!Object.values(selection).some(hasProps)) {
-      setStatus(t("status_need_setting"));
-      return;
-    }
-    const snap = JSON.parse(JSON.stringify(selection));
-    persistDomainConfig(currentHost, snap);
-    saveSessionConfig(currentHost, snap);
-    persistBtn.classList.add("saved");
-    persistBtn.textContent = t("persist_saved");
-    setStatus(t("status_persisted") + " " + currentHost);
-    setTimeout(() => {
-      persistBtn.classList.remove("saved");
-      persistBtn.textContent = t("persist_btn");
-    }, 1600);
-  });
-}
+// (Ustawienia per domena zapisują się automatycznie na sesję; trwałość → presety.)
 const resetTop = document.getElementById("wfs-reset-top");
 if (resetTop) resetTop.addEventListener("click", resetPage);
 

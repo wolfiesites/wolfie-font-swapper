@@ -18,7 +18,12 @@
       --bg: #1e1e24; --surface: #2a2a33; --surface2: #34343f; --text: #f2f2f5; --muted: #9a9aa8;
       --accent: #ff3dae; --accent2: #00e0ff; --border: #3c3c47;
     }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #0e7f99 #14141a; }
+    ::-webkit-scrollbar { width: 11px; height: 11px; }
+    ::-webkit-scrollbar-track { background: #14141a; }
+    ::-webkit-scrollbar-thumb { background: #0b6076; border-radius: 6px; border: 2px solid #14141a; }
+    ::-webkit-scrollbar-thumb:hover { background: #12a0c2; }
+    ::-webkit-scrollbar-corner { background: #14141a; }
     body {
       margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
       font-family: "Rubik", "Segoe UI", system-ui, sans-serif; font-size: 14px;

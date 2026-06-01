@@ -484,19 +484,17 @@ main { padding: 12px 14px 14px; }
   white-space: nowrap;
 }
 
-.wfs-persist-row { display: flex; justify-content: center; margin-top: 12px; }
-.wfs-persist-btn {
-  border: 1px solid var(--wfs-accent);
-  background: rgba(255, 61, 174, 0.12);
-  color: var(--wfs-accent);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 7px 14px;
-  border-radius: 999px;
-  cursor: pointer;
+/* Ciemne, cyanowe scrollbary (popup + dropdowny) */
+* { scrollbar-width: thin; scrollbar-color: #0e7f99 #14141a; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #14141a; }
+::-webkit-scrollbar-thumb {
+  background: #0b6076;
+  border-radius: 6px;
+  border: 2px solid #14141a;
 }
-.wfs-persist-btn:hover { background: var(--wfs-accent); color: #fff; }
-.wfs-persist-btn.saved { background: #2e7d4f; border-color: #2e7d4f; color: #fff; }
+::-webkit-scrollbar-thumb:hover { background: #12a0c2; }
+::-webkit-scrollbar-corner { background: #14141a; }
 
 .wfs-status {
   margin: 10px 0 0;
