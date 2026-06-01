@@ -78,6 +78,26 @@ const SESSION_KEY = "wfs_session"; // { host: selection } — per domena, per se
 const PERSIST_KEY = "wfs_persist"; // { host: selection } — trwałe (przycisk „Zapisz na stałe")
 const RULES_KEY = "wfs_rules"; // [ { pattern, preset } ] — reguły domen (globy)
 let currentHost = "";
+let rulesData = []; // wczytane reguły (do paska reguły)
+let presetsData = []; // wczytane presety (do przełącznika)
+let activeRulePattern = null; // wzorzec reguły, która dała bieżący konfig
+
+// Pasek reguły: pokaż gdy konfig pochodzi z reguły; pozwól zmienić preset / usunąć regułę.
+function setupRuleBar(rule) {
+  const bar = document.getElementById("wfs-rulebar");
+  const sel = document.getElementById("wfs-rule-preset");
+  if (!bar || !sel || !rule) return;
+  activeRulePattern = rule.pattern;
+  sel.innerHTML = "";
+  presetsData.forEach((p) => {
+    const o = document.createElement("option");
+    o.value = p.name;
+    o.textContent = p.name;
+    if (p.name === rule.preset) o.selected = true;
+    sel.appendChild(o);
+  });
+  bar.hidden = false;
+}
 
 function hostOf(url) {
   try {
@@ -92,11 +112,14 @@ function globToRegex(p) {
     "i"
   );
 }
-function matchRule(rules, host) {
-  if (!host) return null;
+function matchRule(rules, url, host) {
+  // Wzorce: "https://example.com/" (strona główna), "https://example.com/*" (cała
+  // witryna), "*.wolfiesites.com" (host). Testujemy glob na pełnym URL i na hoście.
   for (const r of rules || []) {
+    if (!r || !r.pattern) continue;
     try {
-      if (r.pattern && globToRegex(r.pattern).test(host)) return r;
+      const re = globToRegex(r.pattern);
+      if ((url && re.test(url)) || (host && re.test(host))) return r;
     } catch (e) {}
   }
   return null;
@@ -1683,6 +1706,32 @@ document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);
 
 // (Ustawienia per domena zapisują się automatycznie na sesję; trwałość → presety.)
+
+// Pasek reguły: dynamiczna zmiana presetu + usunięcie reguły.
+const rulePresetSel = document.getElementById("wfs-rule-preset");
+if (rulePresetSel) {
+  rulePresetSel.addEventListener("change", () => {
+    const ps = presetsData.find((p) => p.name === rulePresetSel.value);
+    if (!ps) return;
+    document.querySelectorAll(".wfs-combo").forEach((c) => c.restore(ps.selection[c.dataset.target]));
+    applyToPage();
+    const r = rulesData.find((x) => x.pattern === activeRulePattern);
+    if (r) {
+      r.preset = rulePresetSel.value;
+      chrome.storage.local.set({ [RULES_KEY]: rulesData });
+    }
+  });
+}
+const ruleRemoveBtn = document.getElementById("wfs-rule-remove");
+if (ruleRemoveBtn) {
+  ruleRemoveBtn.addEventListener("click", () => {
+    rulesData = rulesData.filter((x) => x.pattern !== activeRulePattern);
+    chrome.storage.local.set({ [RULES_KEY]: rulesData });
+    const bar = document.getElementById("wfs-rulebar");
+    if (bar) bar.hidden = true;
+    activeRulePattern = null;
+  });
+}
 const resetTop = document.getElementById("wfs-reset-top");
 if (resetTop) resetTop.addEventListener("click", resetPage);
 
@@ -1743,14 +1792,18 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
 
     // 1) Wybierz konfig dla tej domeny: sesja -> trwały -> reguła(preset) -> legacy.
     const persistMap = data[PERSIST_KEY] || {};
-    const rules = data[RULES_KEY] || [];
-    const presetsArr = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
+    rulesData = data[RULES_KEY] || [];
+    presetsData = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
     let saved = sessionMap[currentHost] || persistMap[currentHost] || null;
+    let ruleMatched = null;
     if (!saved) {
-      const r = matchRule(rules, currentHost);
+      const r = matchRule(rulesData, (tab0 && tab0.url) || "", currentHost);
       if (r) {
-        const ps = presetsArr.find((p) => p.name === r.preset);
-        if (ps) saved = ps.selection;
+        const ps = presetsData.find((p) => p.name === r.preset);
+        if (ps) {
+          saved = ps.selection;
+          ruleMatched = r;
+        }
       }
     }
     if (!saved && data[STORAGE_KEY]) saved = data[STORAGE_KEY]; // migracja starego globalnego
@@ -1797,6 +1850,7 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
     // 3) Zastosuj na aktywnej karcie (jeśli cokolwiek ustawione).
     if (saved || (picked && picked.family)) applyToPage();
     updateSnippet();
+    if (ruleMatched) setupRuleBar(ruleMatched); // pasek reguły (przełącz preset / usuń)
     }
   );
 })();

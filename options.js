@@ -158,7 +158,11 @@ function makePanel(cfg) {
       c.license === "open" ? I18N.t("lic_open") : c.license === "commercial" ? I18N.t("lic_commercial") : I18N.t("lic_unknown");
     const del = document.createElement("button");
     del.className = "cf-del"; del.type = "button"; del.textContent = "✕"; del.title = I18N.t("cf_delete");
-    del.addEventListener("click", (e) => { e.stopPropagation(); cfg.remove(it.key); });
+    del.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (cfg.confirmDelete && !confirm(I18N.t("cf_delete_confirm").replace("%s", it.name))) return;
+      cfg.remove(it.key);
+    });
     right.append(tag, del);
     node.append(nm, right);
     node.addEventListener("click", () => selectItem(it.key));
@@ -271,6 +275,7 @@ function sortedCustomKeys() {
 const customPanel = makePanel({
   prefix: "cf",
   emptyKey: "cf_empty",
+  confirmDelete: true,
   getItems: () =>
     sortedCustomKeys().map((k) => {
       const v = customFonts[k];
@@ -443,7 +448,26 @@ function saveRules() {
 }
 function renderRules() {
   if (!rulesList) return;
+  const addBtn = document.getElementById("rules-add");
   rulesList.innerHTML = "";
+  // Reguła wymaga presetu — bez presetów nie da się dodać reguły.
+  if (!presets.length) {
+    const e = document.createElement("div");
+    e.className = "rules-empty";
+    e.textContent = I18N.t("rules_need_preset");
+    rulesList.appendChild(e);
+    if (addBtn) {
+      addBtn.disabled = true;
+      addBtn.style.opacity = ".5";
+      addBtn.style.cursor = "not-allowed";
+    }
+    return;
+  }
+  if (addBtn) {
+    addBtn.disabled = false;
+    addBtn.style.opacity = "";
+    addBtn.style.cursor = "";
+  }
   if (!rules.length) {
     const e = document.createElement("div");
     e.className = "rules-empty";
@@ -486,7 +510,8 @@ function renderRules() {
 const rulesAddBtn = document.getElementById("rules-add");
 if (rulesAddBtn) {
   rulesAddBtn.addEventListener("click", () => {
-    rules.push({ pattern: "", preset: "" });
+    if (!presets.length) return; // reguła wymaga presetu
+    rules.push({ pattern: "", preset: presets[0].name }); // domyślnie pierwszy preset
     saveRules();
     renderRules();
   });

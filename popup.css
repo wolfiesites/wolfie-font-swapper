@@ -84,6 +84,42 @@ main { padding: 12px 14px 14px; }
   cursor: pointer;
 }
 .wfs-edit-btn:hover { background: rgba(0, 224, 255, 0.2); }
+
+/* Pasek aktywnej reguły domeny */
+.wfs-rulebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--wfs-accent-2);
+  border-radius: 8px;
+  background: rgba(0, 224, 255, 0.08);
+}
+.wfs-rule-label { font-size: 11px; font-weight: 600; color: var(--wfs-accent-2); flex-shrink: 0; }
+.wfs-rule-select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--wfs-border);
+  background: var(--wfs-surface);
+  color: var(--wfs-text);
+  font-size: 12px;
+}
+.wfs-rule-select:focus { outline: none; border-color: var(--wfs-accent); }
+.wfs-rule-remove {
+  flex-shrink: 0;
+  border: 1px solid var(--wfs-border);
+  background: transparent;
+  color: var(--wfs-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.wfs-rule-remove:hover { color: #ff6b6b; border-color: #6e3b3b; }
 .wfs-reset-mini {
   border: 1px solid var(--wfs-border);
   background: var(--wfs-surface);

@@ -108,9 +108,9 @@
     .ps-empty { color: var(--muted); font-size: 13px; }
 
     .rules-list { display: flex; flex-direction: column; gap: 8px; }
-    .rule-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
-    .rule-pattern { flex: 1; min-width: 140px; padding: 6px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: "Consolas", monospace; }
-    .rule-preset { flex: 0 0 200px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
+    .rule-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); flex-wrap: wrap; }
+    .rule-pattern { flex: 2 1 160px; min-width: 0; padding: 6px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-family: "Consolas", monospace; }
+    .rule-preset { flex: 1 1 140px; min-width: 0; max-width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; }
     .rule-pattern:focus, .rule-preset:focus { outline: none; border-color: var(--accent); }
     .rule-del { border: none; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; flex-shrink: 0; }
     .rule-del:hover { color: #ff6b6b; }
