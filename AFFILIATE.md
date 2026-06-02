@@ -28,10 +28,15 @@ Wszystko to zwykłe URL-e (zgodne z Manifest V3 — żadnego zdalnego kodu).
 Programy, które warto założyć (gdzie da się uzyskać afiliację). Każdy mapuje się
 na jedno pole w obiekcie `AFFILIATE`. Szczegóły krok-po-kroku w sekcjach niżej.
 
+> **Publisher vs Advertiser (CJ):** rejestrujesz się jako **Publisher** (= afiliant,
+> Ty) — raz, na całe konto. Potem w panelu wchodzisz w **Advertisers** (= marki,
+> np. Monotype, Fontspring) i klikasz **Join Program** dla każdej z osobna.
+> „Gdzie założyć" niżej = najpierw Publisher Sign Up, potem Join danego Advertisera.
+
 | # | Firma / zasięg | Sieć | Gdzie założyć | Pole w `AFFILIATE` | Prowizja |
 |---|---|---|---|---|---|
-| 1 | **MyFonts / Monotype** — główny, prawie każdy font komercyjny | CJ (Commission Junction) | [cj.com](https://www.cj.com/) → Publisher Sign Up → Join „Monotype/MyFonts"; kontakt `affiliates@monotype.com` | `myfontsCjPrefix` | ~10% |
-| 2 | **Fontspring** | CJ (ta sama sieć) | [cj.com](https://www.cj.com/) → Advertisers → Join „Fontspring" | `fontspringCjPrefix` | 20% nowi / 10% wracający |
+| 1 | **MyFonts / Monotype** — główny, prawie każdy font komercyjny | CJ (Commission Junction) | [cj.com](https://www.cj.com/) → **Publisher Sign Up** → w panelu **Advertisers** → Join „Monotype/MyFonts"; kontakt `affiliates@monotype.com` | `myfontsCjPrefix` | ~10% |
+| 2 | **Fontspring** | CJ (to samo konto Publisher) | w tym samym panelu CJ → **Advertisers** → Join „Fontspring" | `fontspringCjPrefix` | 20% nowi / 10% wracający |
 | 3 | **Adobe Fonts (Creative Cloud)** | Partnerize | [join.partnerize.com/adobe](https://join.partnerize.com/adobe) | `adobePartnerizePrefix` | ~85% za 1. mies. CC, cookie 30 dni |
 | 4 | **Creative Market** — indie/trendy kroje | Impact | [creativemarket.com/affiliate](https://creativemarket.com/affiliate) | `creativeMarketParam` | ~10–15% |
 | 5 | **Envato** (GraphicRiver / Elements) | Impact + `?ref=` | [account.envato.com](https://account.envato.com/sign_up) (username = ref) | `envatoRef` | wg programu |
