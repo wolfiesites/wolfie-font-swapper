@@ -117,6 +117,21 @@
     .rule-del:hover { color: #ff6b6b; }
     .rules-empty { color: var(--muted); font-size: 13px; }
 
+    /* Sekcja info: kroki + legenda tagów */
+    .legend-steps { margin: 0 0 14px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: #d6d6e0; font-size: 13px; line-height: 1.5; }
+    .legend-steps li { padding-left: 2px; }
+    .legend-code { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin: 0 0 12px; font-family: "Consolas", monospace; font-size: 13px; color: #d6d6e0; overflow-x: auto; }
+    .legend-code code { color: #d6d6e0; white-space: pre; }
+    .legend-sub { margin: 4px 0 10px; font-size: 14px; font-weight: 700; }
+    .legend-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .legend-table th, .legend-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .legend-table th { color: var(--muted); font-weight: 600; }
+    .legend-table tr:last-child td { border-bottom: none; }
+    .legend-table .cf-tag { white-space: nowrap; display: inline-block; }
+    .cf-tag.lg-green { color: #4cd964; border-color: #2e6b3e; background: rgba(76,217,100,0.08); }
+    .cf-tag.lg-gold { color: #ffb84a; border-color: #6a5a1e; background: rgba(255,184,74,0.12); font-weight: 700; }
+    .cf-tag.lg-amber { color: #ffb84a; border-color: #6a5a1e; background: rgba(255,184,74,0.06); }
+
     .opt-close {
       margin-left: auto; border: 1px solid var(--border); background: var(--surface);
       color: var(--text); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 15px;
@@ -237,6 +252,49 @@
       <div class="cf-desc" data-i18n="rules_hint">Automatycznie wczytaj preset na pasujących domenach (glob, np. *.wolfiesites.com).</div>
       <div id="rules-list" class="rules-list"></div>
       <button id="rules-add" class="cf-btn" type="button" data-i18n="rules_add" style="margin-top:10px">Dodaj regułę</button>
+    </div>
+
+    <!-- Info: jak działają fonty na stronie + tagi licencji -->
+    <div class="field">
+      <h2 class="cf-title" data-i18n="legend_howto_title">Jak fonty działają na stronie — w skrócie</h2>
+      <ol id="legend-steps" class="legend-steps"></ol>
+      <div class="cf-desc" data-i18n="legend_intro" style="margin-bottom:8px"></div>
+      <pre class="legend-code"><code>body, * {
+  font-family: "Arial", sans-serif;
+}</code></pre>
+      <div class="cf-desc" data-i18n="legend_code_note" style="margin-bottom:14px"></div>
+      <h3 class="legend-sub" data-i18n="legend_title">Tagi licencji — jak to działa</h3>
+      <table class="legend-table">
+        <thead>
+          <tr>
+            <th data-i18n="legend_col_tag">Tag</th>
+            <th data-i18n="legend_col_meaning">Co znaczy</th>
+            <th data-i18n="legend_col_license">Licencja do web?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="cf-tag lg-green">Web-safe</span></td>
+            <td data-i18n="legend_websafe_meaning"></td>
+            <td data-i18n="legend_websafe_lic"></td>
+          </tr>
+          <tr>
+            <td><span class="cf-tag lg-green">Free</span></td>
+            <td data-i18n="legend_free_meaning"></td>
+            <td data-i18n="legend_free_lic"></td>
+          </tr>
+          <tr>
+            <td><span class="cf-tag lg-gold">Premium $</span></td>
+            <td data-i18n="legend_premium_meaning"></td>
+            <td data-i18n="legend_premium_lic"></td>
+          </tr>
+          <tr>
+            <td><span class="cf-tag lg-amber">System</span></td>
+            <td data-i18n="legend_system_meaning"></td>
+            <td data-i18n="legend_system_lic"></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="foot">

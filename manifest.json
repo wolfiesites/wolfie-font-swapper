@@ -9,7 +9,8 @@
   "host_permissions": [
     "https://fonts.googleapis.com/*",
     "https://fonts.gstatic.com/*",
-    "https://fonts.google.com/*"
+    "https://fonts.google.com/*",
+    "https://extensionpay.com/*"
   ],
   "action": {
     "default_title": "Wolfie Font Swapper (Ctrl+Shift+L)"
@@ -30,7 +31,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["popup.html"],
+      "resources": ["popup.html", "ExtPay.js"],
       "matches": ["<all_urls>"]
     }
   ],

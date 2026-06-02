@@ -1660,10 +1660,15 @@ function buildCombo(combo) {
     }
     if (font.type === "system") {
       if (lic && lic.license === "commercial") {
+        // Komercyjny lub proprietary systemowy (Calibri, Tahoma…) — wymaga licencji.
         return { cls: "wfs-tag-paid", text: "Premium" };
       }
       if (meta && meta.isWebSafe && meta.isWebSafe(font.name)) {
         return { cls: "wfs-tag-websafe", text: "Web-safe" };
+      }
+      if (lic && lic.license === "open") {
+        // Darmowy (OFL/MIT) zainstalowany lokalnie — wolno self-hostować.
+        return { cls: "wfs-tag-free", text: "Free" };
       }
       return { cls: "wfs-tag-syslic", text: "System", title: t("system_web_note") };
     }
@@ -2441,10 +2446,16 @@ function askLicenseConfirm(names, onYes, onNo) {
   const search = document.createElement("button");
   search.className = "wfs-modal-btn wfs-modal-search";
   search.textContent = t("search_font_btn");
+  // Jeden font → jedna karta. Wiele fontów premium/systemowych → otwórz po
+  // karcie na każdy (dedup, pomijając te bez ścieżki, np. zakazane).
   const meta = window.WOLFIE_FONT_META;
-  const lurl = meta && meta.licenseSearchUrl ? meta.licenseSearchUrl(names[0]) : null;
-  if (lurl) {
-    search.addEventListener("click", () => window.open(lurl, "_blank", "noopener"));
+  const lurls = meta && meta.licenseSearchUrl
+    ? Array.from(new Set(names.map((n) => meta.licenseSearchUrl(n)).filter(Boolean)))
+    : [];
+  if (lurls.length) {
+    search.addEventListener("click", () =>
+      lurls.forEach((u) => window.open(u, "_blank", "noopener"))
+    );
   } else {
     search.style.display = "none";
   }
@@ -2512,7 +2523,14 @@ async function runCopy(code, btn) {
 document.getElementById("wfs-copy").addEventListener("click", () => {
   const code = document.getElementById("wfs-code").textContent;
   const btn = document.getElementById("wfs-copy");
-  const gated = selectedNeedsFontFace();
+  // Pytamy o licencję TYLKO dla fontów, które jej wymagają (komercyjne /
+  // proprietary systemowe / nieznane). Darmowe (OFL/MIT, np. Hack, Fira Code)
+  // dostają scaffold @font-face, ale bez pytania o licencję.
+  const meta = window.WOLFIE_FONT_META;
+  const gated = selectedNeedsFontFace().filter((n) => {
+    const lic = meta && meta.classify ? meta.classify(n) : null;
+    return !(lic && lic.license === "open");
+  });
   if (gated.length) {
     askLicenseConfirm(
       gated,
@@ -2628,8 +2646,41 @@ document.getElementById("wfs-copy").addEventListener("click", () => {
 // ---- Presety (max 5, trwałe między sesjami; niezależne od resetu stylów) ----
 
 const PRESETS_KEY = "wfs_presets";
-const MAX_PRESETS = 5;
+const FREE_PRESET_LIMIT = 3; // darmowo: max 3 presety; Pro: bez limitu
+let proActive = false; // subskrypcja Pro (ustawiana przez dostawcę płatności)
+function presetLimit() {
+  return proActive ? Infinity : FREE_PRESET_LIMIT;
+}
 let presets = [];
+
+// ---- Subskrypcja Pro (ExtensionPay) ----
+// EXTPAY_ID = slug zarejestrowany na https://extensionpay.com
+// (patrz docs/how-to-extension-pay.md). Gdy ExtPay niedostępny → tryb darmowy.
+const EXTPAY_ID = "wolfie-font-swapper";
+let extpay = null;
+try {
+  if (typeof ExtPay === "function") extpay = ExtPay(EXTPAY_ID);
+} catch (e) {}
+
+async function refreshProStatus() {
+  if (!extpay) return;
+  try {
+    const user = await extpay.getUser();
+    proActive = !!user.paid;
+    try { chrome.storage.local.set({ wfs_pro: { active: proActive } }); } catch (e) {}
+    if (typeof renderPresets === "function") renderPresets();
+  } catch (e) {}
+}
+function openProPage() {
+  if (extpay) {
+    try { extpay.openPaymentPage(); return; } catch (e) {}
+  }
+  window.open("https://extensionpay.com/", "_blank", "noopener"); // fallback (dev)
+}
+if (extpay && extpay.onPaid) {
+  try { extpay.onPaid.addListener(() => refreshProStatus()); } catch (e) {}
+}
+refreshProStatus();
 let pendingPresetDelete = null; // nazwa presetu czekającego na 2. klik (gdy ma regułę)
 
 // Reguły domen używające danego presetu (po nazwie).
@@ -2700,9 +2751,20 @@ function renderPresets() {
     chip.append(name, del);
     list.appendChild(chip);
   });
-  const full = presets.length >= MAX_PRESETS;
+  const full = presets.length >= presetLimit();
   saveBtn.disabled = full;
   saveBtn.textContent = full ? t("preset_max") : t("preset_save");
+  saveBtn.title = full && !proActive ? t("status_preset_max") : "";
+  // Limit darmowy wyczerpany → przycisk „Pro" otwierający stronę płatności.
+  if (full && !proActive) {
+    const up = document.createElement("button");
+    up.type = "button";
+    up.className = "wfs-pro-upsell";
+    up.textContent = t("pro_upsell");
+    up.title = t("status_preset_max");
+    up.addEventListener("click", openProPage);
+    list.appendChild(up);
+  }
   // Czerwona kropka „zapisz regułę": widoczna gdy jakiś preset jest aktywny.
   // Wyblakła+mała domyślnie; jaskrawa gdy dla tej strony ISTNIEJE reguła.
   const ruleDot = document.getElementById("wfs-preset-rule-dot");
@@ -2714,7 +2776,7 @@ function renderPresets() {
 }
 
 function savePreset() {
-  if (presets.length >= MAX_PRESETS) {
+  if (presets.length >= presetLimit()) {
     setStatus(t("status_preset_max"));
     return;
   }
@@ -2825,10 +2887,12 @@ async function toggleRuleForActivePreset() {
 const presetRuleDot = document.getElementById("wfs-preset-rule-dot");
 if (presetRuleDot) presetRuleDot.addEventListener("click", toggleRuleForActivePreset);
 
-chrome.storage.local.get([PRESETS_KEY, RULES_KEY], (data) => {
+chrome.storage.local.get([PRESETS_KEY, RULES_KEY, "wfs_pro"], (data) => {
   presets = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
   // Świeże reguły, by oznaczyć presety przypięte do reguł domen (kłódka/✕).
   if (Array.isArray(data[RULES_KEY])) rulesData = data[RULES_KEY];
+  // Status subskrypcji Pro (ustawiany przez integrację płatności — patrz niżej).
+  proActive = !!(data.wfs_pro && data.wfs_pro.active);
   renderPresets();
 });
 

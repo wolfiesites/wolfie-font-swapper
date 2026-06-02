@@ -1,7 +1,26 @@
 // Service worker:
+// - obsługuje subskrypcję Pro przez ExtensionPay (startBackground — wymagane),
 // - udostępnia chrome.storage.session content scriptom (by mogły czytać konfig per domena),
 // - rysuje kropkę na ikonie karty, gdy content script auto-zastosuje fonty
 //   (zielona = ręczna podmiana sesji/trwała, czerwona = reguła domeny z ustawień).
+
+// ExtensionPay — subskrypcja Pro (nielimitowane presety). EXTPAY_ID to slug
+// rejestrowany na https://extensionpay.com (patrz docs/how-to-extension-pay.md).
+// startBackground() MUSI działać w service workerze, by płatność dochodziła.
+const EXTPAY_ID = "wolfie-font-swapper";
+try {
+  importScripts("ExtPay.js");
+  const extpay = ExtPay(EXTPAY_ID);
+  extpay.startBackground();
+  // Po zmianie statusu płatności zapisz flagę, z której korzysta popup (limit presetów).
+  extpay.onPaid.addListener((user) => {
+    try {
+      chrome.storage.local.set({ wfs_pro: { active: !!(user && user.paid) } });
+    } catch (e) {}
+  });
+} catch (e) {
+  // Brak/niepoprawny ExtPay.js — dodatek działa dalej w trybie darmowym (limit 3).
+}
 
 function setSessionAccess() {
   try {

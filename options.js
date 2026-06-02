@@ -29,10 +29,26 @@ function currentPref() {
   }
 }
 
+// Kroki „jak działają fonty" — jeden string z i18n, rozbity po \n na <li>.
+function renderLegendSteps() {
+  const ol = document.getElementById("legend-steps");
+  if (!ol) return;
+  ol.textContent = "";
+  String(I18N.t("legend_steps") || "")
+    .split("\n")
+    .filter((s) => s.trim())
+    .forEach((step) => {
+      const li = document.createElement("li");
+      li.textContent = step;
+      ol.appendChild(li);
+    });
+}
+
 function refresh() {
   I18N.applyI18n(document);
   document.title = I18N.t("options_title");
   if (select.options[0]) select.options[0].textContent = I18N.t("options_lang_auto");
+  renderLegendSteps();
 }
 
 buildOptions();

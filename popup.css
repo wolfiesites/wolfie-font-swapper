@@ -383,6 +383,12 @@ main { padding: 12px 14px 14px; }
   background: rgba(255, 184, 74, 0.06);
   cursor: help;
 }
+/* Darmowy (OFL/MIT) zainstalowany lokalnie — wolno self-hostować */
+.wfs-options li .wfs-tag-free {
+  color: #4cd964;
+  border-color: #2e6b3e;
+  background: rgba(76, 217, 100, 0.08);
+}
 .wfs-options li .wfs-name { font-size: 14px; }
 
 /* Badge typu fonta w inpucie (obok wybranej nazwy przy pickowaniu) */
@@ -408,6 +414,7 @@ main { padding: 12px 14px 14px; }
 .wfs-input-tag.wfs-tag-custom { color: #00e0ff; border-color: #1e5a6a; background: #14242a; }
 .wfs-input-tag.wfs-tag-paid { color: #ffb84a; border-color: #6a5a1e; background: #2a2620; }
 .wfs-input-tag.wfs-tag-websafe { color: #4cd964; border-color: #2e6b3e; background: #16241a; }
+.wfs-input-tag.wfs-tag-free { color: #4cd964; border-color: #2e6b3e; background: #16241a; }
 .wfs-input-tag.wfs-tag-syslic { color: #ffb84a; border-color: #6a5a1e; background: #2a2620; }
 
 /* Pasek tabów źródła (All / Google / System / PAID) — przyklejony na górze listy */
@@ -648,6 +655,19 @@ main { padding: 12px 14px 14px; }
   gap: 6px;
 }
 .wfs-preset-empty { font-size: 11px; color: var(--wfs-muted); }
+/* „Pro — bez limitu": pojawia się, gdy darmowy limit 3 presetów jest pełny */
+.wfs-pro-upsell {
+  border: 1px solid #6a5a1e;
+  background: rgba(255, 184, 74, 0.12);
+  color: #ffd54a;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wfs-pro-upsell:hover { background: rgba(255, 184, 74, 0.2); border-color: #ffb84a; }
 .wfs-preset {
   display: flex;
   align-items: center;

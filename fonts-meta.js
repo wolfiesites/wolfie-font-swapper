@@ -80,6 +80,22 @@
     "Suisse Int'l": "Inter",
     "Sweet Sans": "Montserrat",
     "Sharp Sans": "Poppins",
+    // Proprietary systemowe (Windows/Office) — darmowe, metrycznie zbliżone
+    // odpowiedniki z Google Fonts (do podglądu, gdy nie masz licencji).
+    "Calibri": "Lato",
+    "Cambria": "PT Serif",
+    "Candara": "Quattrocento Sans",
+    "Consolas": "Inconsolata",
+    "Constantia": "Lora",
+    "Corbel": "Nunito Sans",
+    "Bahnschrift": "Oswald",
+    "Tahoma": "Open Sans",
+    "Microsoft Sans Serif": "Open Sans",
+    "Franklin Gothic Medium": "Libre Franklin",
+    "Palatino Linotype": "Domine",
+    "Lucida Console": "Inconsolata",
+    "Lucida Sans Unicode": "Source Sans 3",
+    "Arial Narrow": "Archivo Narrow",
   };
   const COMMERCIAL_ALT_LC = {};
   Object.keys(COMMERCIAL_ALT).forEach((k) => (COMMERCIAL_ALT_LC[k.toLowerCase()] = COMMERCIAL_ALT[k]));
@@ -155,6 +171,19 @@
       const code = APACHE.has(low) ? "APACHE" : UFL.has(low) ? "UFL" : "OFL";
       return openResult(name, code);
     }
+    // Darmowe fonty spoza Google (Hack, Fira Code, JetBrains Mono…) — OFL/MIT,
+    // NIE wymagają licencji. Wcześniej lądowały błędnie jako „System".
+    if (FREE_FONTS_LC[low]) {
+      return {
+        license: "open",
+        licenseCode: "FREE",
+        licenseName: "Open source (OFL / MIT / Apache)",
+        licenseUrl: FREE_FONTS_LC[low],
+        cost: "free",
+        buyUrl: null,
+        specimenUrl: FREE_FONTS_LC[low],
+      };
+    }
     if (COMMERCIAL_LC[low]) {
       return {
         license: "commercial",
@@ -165,6 +194,20 @@
         buyUrl: COMMERCIAL[COMMERCIAL_LC[low]],
         specimenUrl: null,
         freeAlt: freeAlternative(name), // darmowy odpowiednik (Google) do podglądu
+      };
+    }
+    // Proprietary systemowe (Windows/Office): Calibri, Cambria, Consolas, Tahoma…
+    // Działają lokalnie, ale do OSADZENIA w sieci wymagają licencji → premium.
+    if (SYSTEM_LICENSED.has(low)) {
+      return {
+        license: "commercial",
+        licenseCode: "SYSTEM_LICENSED",
+        licenseName: "Proprietary system font — webfont license required",
+        licenseUrl: null,
+        cost: "paid",
+        buyUrl: myfontsSearch(name),
+        specimenUrl: null,
+        freeAlt: freeAlternative(name),
       };
     }
     return { license: "unknown", licenseCode: "UNKNOWN", licenseName: "Unknown", licenseUrl: null, cost: "unknown", buyUrl: null, specimenUrl: null };
@@ -421,9 +464,34 @@
   const FREE_FONTS_LC = {};
   Object.keys(FREE_FONTS).forEach((k) => (FREE_FONTS_LC[k.toLowerCase()] = FREE_FONTS[k]));
 
+  // Proprietary fonty systemowe (Windows/Office) — działają lokalnie, ale do
+  // OSADZENIA jako webfont (self-host woff) WYMAGAJĄ licencji → traktujemy jak
+  // premium. Symbolowe (Webdings/Wingdings/Marlett/Symbol) celowo pomijamy.
+  const SYSTEM_LICENSED = new Set(
+    [
+      "Calibri", "Cambria", "Candara", "Consolas", "Constantia", "Corbel",
+      "Bahnschrift", "Tahoma", "Microsoft Sans Serif", "Franklin Gothic Medium",
+      "Palatino Linotype", "Lucida Console", "Lucida Sans Unicode", "Arial Narrow",
+      "Sitka", "Sylfaen", "Gabriola", "Ebrima", "Gadugi", "Leelawadee UI",
+      "Nirmala UI", "Malgun Gothic", "Microsoft YaHei", "Microsoft JhengHei",
+      "MS Gothic", "Yu Gothic", "SimSun", "MingLiU-ExtB", "Microsoft Himalaya",
+      "Microsoft Tai Le", "Microsoft New Tai Lue", "Microsoft PhagsPa",
+      "Mongolian Baiti", "Myanmar Text", "Javanese Text", "MV Boli", "Ink Free",
+    ].map((s) => s.toLowerCase())
+  );
+  function isSystemLicensed(name) {
+    return !!name && SYSTEM_LICENSED.has(String(name).toLowerCase());
+  }
+
+  // Wyszukiwarka MyFonts (afiliacja TYLKO gdy ustawiona; inaczej czysty link).
+  function myfontsSearch(name) {
+    const mf = "https://www.myfonts.com/search/" + encodeURIComponent(name) + "/";
+    return cjWrap(AFFILIATE.myfontsCjPrefix, withParam(mf, utmTag()));
+  }
+
   // Gdzie ZDOBYĆ / ZLICENCJONOWAĆ dany font (przycisk „Szukaj fonta").
-  // Darmowe → oficjalne źródło (bez afiliacji). Google → specimen. Komercyjny →
-  // wydawca lub wyszukiwarka MyFonts (afiliacja TYLKO gdy ustawiona; inaczej plain).
+  // Darmowe → oficjalne źródło (bez afiliacji). Google → specimen. Komercyjny /
+  // proprietary systemowy → wydawca lub MyFonts (afiliacja gdy ustawiona).
   function licenseSearchUrl(name) {
     if (!name || isForbidden(name)) return null; // zakazane — brak ścieżki
     const low = String(name).toLowerCase();
@@ -432,14 +500,14 @@
       return "https://fonts.google.com/specimen/" + encodeURIComponent(name).replace(/%20/g, "+");
     }
     if (COMMERCIAL_LC[low]) return COMMERCIAL[COMMERCIAL_LC[low]]; // bezpośredni wydawca
-    const mf = "https://www.myfonts.com/search/" + encodeURIComponent(name) + "/";
-    return cjWrap(AFFILIATE.myfontsCjPrefix, withParam(mf, utmTag()));
+    return myfontsSearch(name); // systemowy proprietary / nieznany → wyszukiwarka
   }
 
   window.WOLFIE_FONT_META = {
     FORBIDDEN,
     isForbidden,
     FREE_FONTS,
+    isSystemLicensed,
     licenseSearchUrl,
     COMMERCIAL,
     COMMERCIAL_ALT,
