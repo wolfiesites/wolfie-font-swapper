@@ -385,6 +385,31 @@ main { padding: 12px 14px 14px; }
 }
 .wfs-options li .wfs-name { font-size: 14px; }
 
+/* Badge typu fonta w inpucie (obok wybranej nazwy przy pickowaniu) */
+.wfs-input-tag {
+  position: absolute;
+  right: 110px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  pointer-events: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--wfs-muted);
+  border: 1px solid var(--wfs-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: var(--wfs-surface);
+}
+.wfs-input-tag.wfs-tag-pop { color: #ffd54a; border-color: #6a5a1e; background: #2a2620; }
+.wfs-input-tag.wfs-tag-custom { color: #00e0ff; border-color: #1e5a6a; background: #14242a; }
+.wfs-input-tag.wfs-tag-paid { color: #ffb84a; border-color: #6a5a1e; background: #2a2620; }
+.wfs-input-tag.wfs-tag-websafe { color: #4cd964; border-color: #2e6b3e; background: #16241a; }
+.wfs-input-tag.wfs-tag-syslic { color: #ffb84a; border-color: #6a5a1e; background: #2a2620; }
+
 /* Pasek tabów źródła (All / Google / System / PAID) — przyklejony na górze listy */
 .wfs-options li.wfs-tabs-row {
   position: sticky;
@@ -478,6 +503,14 @@ main { padding: 12px 14px 14px; }
 .wfs-modal-no:hover { color: var(--wfs-text); border-color: var(--wfs-muted); }
 .wfs-modal-yes { background: var(--wfs-accent); border-color: var(--wfs-accent); color: #fff; }
 .wfs-modal-yes:hover { filter: brightness(1.1); }
+/* „Szukaj fonta" — po lewej stronie wiersza akcji */
+.wfs-modal-search {
+  margin-right: auto;
+  background: transparent;
+  color: var(--wfs-accent-2);
+  border-color: var(--wfs-accent-2);
+}
+.wfs-modal-search:hover { background: rgba(0, 224, 255, 0.12); }
 .wfs-options .wfs-empty {
   color: var(--wfs-muted);
   cursor: default;

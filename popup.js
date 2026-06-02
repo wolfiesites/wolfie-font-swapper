@@ -25,11 +25,16 @@ const restEntries = [
   })),
 ].sort((a, b) => a.name.localeCompare(b.name));
 
+// Fonty ZAKAZANE „no matter what" (Segoe MS, fonty Apple) — wykluczamy z listy,
+// bo i tak nie da się ich legalnie użyć w sieci.
+const isForbiddenFont = (n) =>
+  !!(window.WOLFIE_FONT_META && window.WOLFIE_FONT_META.isForbidden && window.WOLFIE_FONT_META.isForbidden(n));
+
 // UWAGA: NIE wstrzykujemy „na sztywno" nazw fontów komercyjnych do listy — byłyby
 // mylące (i tak niedostępne bez instalacji). Premium pojawia się w wyszukiwarce
 // TYLKO jeśli jest faktycznie zainstalowane na komputerze (wykryte przez Local
 // Font Access → typ "system", z markerem $). Odkrywanie/kupno premium = karta PAID.
-const ALL_FONTS = [...popularEntries, ...restEntries];
+const ALL_FONTS = [...popularEntries, ...restEntries].filter((f) => !isForbiddenFont(f.name));
 
 // Dodaj zapisane customowe fonty (pobrane pickerem) do listy wyszukiwania,
 // oznaczając źródło: "google" (z gstatic) lub "web" (skądś indziej).
@@ -74,7 +79,7 @@ async function loadLocalFonts() {
     const have = new Set(ALL_FONTS.map((f) => f.name.toLowerCase()));
     const added = [];
     for (const fam of new Set(fonts.map((f) => f.family))) {
-      if (fam && !have.has(fam.toLowerCase())) {
+      if (fam && !have.has(fam.toLowerCase()) && !isForbiddenFont(fam)) {
         have.add(fam.toLowerCase());
         added.push({ name: fam, type: "system" });
       }
@@ -1262,6 +1267,7 @@ async function resetPage() {
   document.querySelectorAll(".wfs-combo").forEach((c) => {
     if (c.updateHeart) c.updateHeart();
     if (c.updateDollar) c.updateDollar();
+    if (c.updateTag) c.updateTag();
   });
   activePresetName = null; // reset zdejmuje oznaczenie aktywnego presetu
   renderPresets();
@@ -1638,6 +1644,44 @@ function buildCombo(combo) {
     list.appendChild(li);
   }
 
+  // Wspólna logika znacznika (Web-safe / Premium / System / Google) — używana
+  // i na liście (makeItem), i jako badge w inpucie po wybraniu fonta.
+  function tagInfoFor(font, lic) {
+    const meta = window.WOLFIE_FONT_META;
+    if (lic === undefined) lic = meta && meta.classify ? meta.classify(font.name) : null;
+    if (font.type === "custom") {
+      return { cls: "wfs-tag-custom", text: font.source === "google" ? "★ Google" : "Custom" };
+    }
+    if (font.type === "commercial") {
+      return { cls: "wfs-tag-paid", text: "Premium" };
+    }
+    if (font.popular) {
+      return { cls: "wfs-tag-pop", text: "★ Google" };
+    }
+    if (font.type === "system") {
+      if (lic && lic.license === "commercial") {
+        return { cls: "wfs-tag-paid", text: "Premium" };
+      }
+      if (meta && meta.isWebSafe && meta.isWebSafe(font.name)) {
+        return { cls: "wfs-tag-websafe", text: "Web-safe" };
+      }
+      return { cls: "wfs-tag-syslic", text: "System", title: t("system_web_note") };
+    }
+    return { cls: "", text: "Google" };
+  }
+
+  // Znajdź wpis fonta po nazwie (do badge'a w inpucie). Jeśli nieznany — system.
+  function fontEntryByName(name) {
+    if (!name) return null;
+    const low = name.toLowerCase();
+    return (
+      ALL_FONTS.find((f) => f.name.toLowerCase() === low) || {
+        name,
+        type: "system",
+      }
+    );
+  }
+
   function makeItem(font, i) {
     const li = document.createElement("li");
     li.dataset.index = i;
@@ -1656,34 +1700,10 @@ function buildCombo(combo) {
     }
     const tag = document.createElement("span");
     tag.className = "wfs-tag";
-    if (font.type === "custom") {
-      tag.classList.add("wfs-tag-custom");
-      tag.textContent = font.source === "google" ? "★ Google" : "Custom";
-    } else if (font.type === "commercial") {
-      tag.classList.add("wfs-tag-paid");
-      tag.textContent = "Premium";
-    } else if (font.popular) {
-      tag.classList.add("wfs-tag-pop");
-      tag.textContent = "★ Google";
-    } else if (font.type === "system") {
-      const meta = window.WOLFIE_FONT_META;
-      if (lic && lic.license === "commercial") {
-        // Zainstalowany komercyjny font (user go ma u siebie) — oznacz jako Premium.
-        tag.classList.add("wfs-tag-paid");
-        tag.textContent = "Premium";
-      } else if (meta && meta.isWebSafe && meta.isWebSafe(font.name)) {
-        // Preinstalowany wszędzie (Win+Mac) — działa w sieci bez pliku/licencji.
-        tag.classList.add("wfs-tag-websafe");
-        tag.textContent = "Web-safe";
-      } else {
-        // Windows/Microsoft — do web potrzebny plik fontu + licencja.
-        tag.classList.add("wfs-tag-syslic");
-        tag.textContent = "System";
-        tag.title = t("system_web_note");
-      }
-    } else {
-      tag.textContent = "Google";
-    }
+    const ti = tagInfoFor(font, lic);
+    if (ti.cls) tag.classList.add(ti.cls);
+    tag.textContent = ti.text;
+    if (ti.title) tag.title = ti.title;
     const left = document.createElement("span");
     left.style.cssText = "display:flex;align-items:center;gap:6px;min-width:0";
     if (isFavorite(font.name)) {
@@ -1866,6 +1886,7 @@ function buildCombo(combo) {
     list.hidden = true;
     if (combo.updateHeart) combo.updateHeart();
     if (combo.updateDollar) combo.updateDollar();
+    if (combo.updateTag) combo.updateTag();
     applyToPage();
   }
 
@@ -1877,6 +1898,7 @@ function buildCombo(combo) {
     combo.classList.remove("has-value");
     if (combo.updateHeart) combo.updateHeart();
     if (combo.updateDollar) combo.updateDollar();
+    if (combo.updateTag) combo.updateTag();
     applyToPage();
   }
 
@@ -2107,6 +2129,30 @@ function buildCombo(combo) {
   combo.appendChild(dollarBtn);
   combo.updateDollar = updateDollar;
   combo.closeDollarPop = closeDollarPop;
+
+  // Badge typu fonta w inpucie (Web-safe / Premium / System / Google) — pokazuje
+  // się obok wybranej nazwy, tak jak na liście przy pickowaniu.
+  const tagBadge = document.createElement("span");
+  tagBadge.className = "wfs-tag wfs-input-tag";
+  tagBadge.hidden = true;
+  function updateTag() {
+    const fam = selection[target].family;
+    tagBadge.className = "wfs-tag wfs-input-tag";
+    if (!fam) {
+      tagBadge.hidden = true;
+      tagBadge.textContent = "";
+      tagBadge.title = "";
+      return;
+    }
+    const ti = tagInfoFor(fontEntryByName(fam));
+    if (ti.cls) tagBadge.classList.add(ti.cls);
+    tagBadge.textContent = ti.text;
+    tagBadge.title = ti.title || "";
+    tagBadge.hidden = false;
+  }
+  updateTag();
+  combo.appendChild(tagBadge);
+  combo.updateTag = updateTag;
   // Odśwież listę, jeśli dropdown jest otwarty (np. po doczytaniu fontów lokalnych).
   combo.rerenderIfOpen = () => {
     if (!list.hidden) render(input.value);
@@ -2154,6 +2200,7 @@ function buildCombo(combo) {
     }
     if (combo.updateHeart) combo.updateHeart();
     if (combo.updateDollar) combo.updateDollar();
+    if (combo.updateTag) combo.updateTag();
   };
 }
 
@@ -2389,6 +2436,18 @@ function askLicenseConfirm(names, onYes, onNo) {
   msg.textContent = t("license_confirm").replace("%s", names.join(", "));
   const row = document.createElement("div");
   row.className = "wfs-modal-actions";
+  // „Szukaj fonta" — link (afiliacyjny, gdy ustawiony) do strony, gdzie można
+  // zdobyć/zlicencjonować ten font. Po lewej, obok „Nie". Nie zamyka modala.
+  const search = document.createElement("button");
+  search.className = "wfs-modal-btn wfs-modal-search";
+  search.textContent = t("search_font_btn");
+  const meta = window.WOLFIE_FONT_META;
+  const lurl = meta && meta.licenseSearchUrl ? meta.licenseSearchUrl(names[0]) : null;
+  if (lurl) {
+    search.addEventListener("click", () => window.open(lurl, "_blank", "noopener"));
+  } else {
+    search.style.display = "none";
+  }
   const no = document.createElement("button");
   no.className = "wfs-modal-btn wfs-modal-no";
   no.textContent = t("answer_no");
@@ -2401,7 +2460,7 @@ function askLicenseConfirm(names, onYes, onNo) {
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) { close(); if (onNo) onNo(); }
   });
-  row.append(no, yes);
+  row.append(search, no, yes);
   box.append(msg, row);
   overlay.appendChild(box);
   document.body.appendChild(overlay);

@@ -23,6 +23,33 @@ Wszystko to zwykłe URL-e (zgodne z Manifest V3 — żadnego zdalnego kodu).
 
 ---
 
+## TL;DR — lista afiliacji do pozyskania
+
+Programy, które warto założyć (gdzie da się uzyskać afiliację). Każdy mapuje się
+na jedno pole w obiekcie `AFFILIATE`. Szczegóły krok-po-kroku w sekcjach niżej.
+
+| # | Firma / zasięg | Sieć | Gdzie założyć | Pole w `AFFILIATE` | Prowizja |
+|---|---|---|---|---|---|
+| 1 | **MyFonts / Monotype** — główny, prawie każdy font komercyjny | CJ (Commission Junction) | [cj.com](https://www.cj.com/) → Publisher Sign Up → Join „Monotype/MyFonts"; kontakt `affiliates@monotype.com` | `myfontsCjPrefix` | ~10% |
+| 2 | **Fontspring** | CJ (ta sama sieć) | [cj.com](https://www.cj.com/) → Advertisers → Join „Fontspring" | `fontspringCjPrefix` | 20% nowi / 10% wracający |
+| 3 | **Adobe Fonts (Creative Cloud)** | Partnerize | [join.partnerize.com/adobe](https://join.partnerize.com/adobe) | `adobePartnerizePrefix` | ~85% za 1. mies. CC, cookie 30 dni |
+| 4 | **Creative Market** — indie/trendy kroje | Impact | [creativemarket.com/affiliate](https://creativemarket.com/affiliate) | `creativeMarketParam` | ~10–15% |
+| 5 | **Envato** (GraphicRiver / Elements) | Impact + `?ref=` | [account.envato.com](https://account.envato.com/sign_up) (username = ref) | `envatoRef` | wg programu |
+
+> **SkyFonts** — to tylko instalator Monotype, **nie ma własnego programu
+> afiliacyjnego**. Fonty z biblioteki Monotype rozliczasz przez **MyFonts/CJ** (#1).
+>
+> **Adobe Fonts** — **nie sprzedaje się osobno**, wchodzi w subskrypcję Creative
+> Cloud. Afiliujesz więc subskrypcję CC przez **Partnerize** (#3), a ona daje
+> dostęp do Adobe Fonts.
+
+**Kolejność wdrażania (rekomendacja):** najpierw **CJ** (załatwia #1 MyFonts i #2
+Fontspring jednym kontem) → potem **Impact** (#4 Creative Market, #5 Envato
+Elements) → na końcu **Partnerize** (#3 Adobe). Linki działają bez ID od razu,
+więc możesz publikować dodatek, a afiliacje dopinać później.
+
+---
+
 ## 1. MyFonts — przez CJ Affiliate (Commission Junction) — GŁÓWNY
 
 Najszersza oferta (Monotype/MyFonts), niemal każdy font komercyjny.

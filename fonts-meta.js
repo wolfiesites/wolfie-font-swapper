@@ -381,7 +381,66 @@
     return !!name && WEB_SAFE.has(String(name).toLowerCase());
   }
 
+  // ===========================================================================
+  // ZAKAZANE „no matter what" — fontów, których NIE da się legalnie użyć w sieci
+  // (brak licencji webfont w ogóle). Wykluczamy je z listy w dodatku.
+  //  • Microsoft Segoe (font UI Windows — niedostępny do licencji web; FontSquirrel
+  //    blokuje konwersję). • Apple San Francisco / New York (licencja tylko do
+  //    mockupów UI na platformach Apple, zakaz dystrybucji i użycia w sieci).
+  // ===========================================================================
+  const FORBIDDEN = new Set(
+    [
+      "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "Segoe UI Historic",
+      "Segoe UI Variable", "Segoe Print", "Segoe Script", "Segoe MDL2 Assets",
+      "Segoe Fluent Icons", "Segoe",
+      "San Francisco", "SF Pro", "SF Pro Text", "SF Pro Display", "SF Pro Rounded",
+      "SF Mono", "SF Compact", "SF Compact Text", "SF Compact Display",
+      "SF Compact Rounded", "New York", ".SF NS", ".SF NS Text", ".SF NS Display",
+      "SFNS", "-apple-system", "BlinkMacSystemFont",
+    ].map((s) => s.toLowerCase())
+  );
+  function isForbidden(name) {
+    return !!name && FORBIDDEN.has(String(name).toLowerCase());
+  }
+
+  // DARMOWE fonty (OFL/MIT/Apache) spoza Google Fonts — bezpośrednie, OFICJALNE
+  // źródła pobrania (bez afiliacji). Dla fontów z Google Fonts używamy specimen.
+  const FREE_FONTS = {
+    "Hack": "https://sourcefoundry.org/hack/",
+    "Fira Code": "https://github.com/tonsky/FiraCode",
+    "Cascadia Code": "https://github.com/microsoft/cascadia-code",
+    "Cascadia Mono": "https://github.com/microsoft/cascadia-code",
+    "JetBrains Mono": "https://www.jetbrains.com/lp/mono/",
+    "DejaVu Sans": "https://dejavu-fonts.github.io/",
+    "DejaVu Sans Mono": "https://dejavu-fonts.github.io/",
+    "DejaVu Serif": "https://dejavu-fonts.github.io/",
+    "Liberation Sans": "https://github.com/liberationfonts/liberation-fonts",
+    "Liberation Serif": "https://github.com/liberationfonts/liberation-fonts",
+    "Liberation Mono": "https://github.com/liberationfonts/liberation-fonts",
+  };
+  const FREE_FONTS_LC = {};
+  Object.keys(FREE_FONTS).forEach((k) => (FREE_FONTS_LC[k.toLowerCase()] = FREE_FONTS[k]));
+
+  // Gdzie ZDOBYĆ / ZLICENCJONOWAĆ dany font (przycisk „Szukaj fonta").
+  // Darmowe → oficjalne źródło (bez afiliacji). Google → specimen. Komercyjny →
+  // wydawca lub wyszukiwarka MyFonts (afiliacja TYLKO gdy ustawiona; inaczej plain).
+  function licenseSearchUrl(name) {
+    if (!name || isForbidden(name)) return null; // zakazane — brak ścieżki
+    const low = String(name).toLowerCase();
+    if (FREE_FONTS_LC[low]) return FREE_FONTS_LC[low];
+    if (googleList().some((g) => g.toLowerCase() === low)) {
+      return "https://fonts.google.com/specimen/" + encodeURIComponent(name).replace(/%20/g, "+");
+    }
+    if (COMMERCIAL_LC[low]) return COMMERCIAL[COMMERCIAL_LC[low]]; // bezpośredni wydawca
+    const mf = "https://www.myfonts.com/search/" + encodeURIComponent(name) + "/";
+    return cjWrap(AFFILIATE.myfontsCjPrefix, withParam(mf, utmTag()));
+  }
+
   window.WOLFIE_FONT_META = {
+    FORBIDDEN,
+    isForbidden,
+    FREE_FONTS,
+    licenseSearchUrl,
     COMMERCIAL,
     COMMERCIAL_ALT,
     WEB_SAFE,
