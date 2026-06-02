@@ -1362,11 +1362,11 @@ function systemFontDir() {
 function fontFaceScaffold(name) {
   const slug = name.replace(/[^a-z0-9]+/gi, "-");
   return (
-    '/* "' + name + '" — font systemowy, niepreinstalowany w sieci.\n' +
-    "   Plik fontu masz w systemie: " + systemFontDir() + "\n" +
-    "   1) Skonwertuj go do .woff2 (np. transfonter.org / fontsquirrel)\n" +
-    "   2) Skopiuj plik na swój serwer (np. /fonts/) i podmień src poniżej\n" +
-    "   3) Upewnij się, że masz licencję na użycie w sieci (webfont). */\n" +
+    "/* " + t("ff_title").replace("%s", name) + "\n" +
+    "   " + t("ff_path") + " " + systemFontDir() + "\n" +
+    "   " + t("ff_step1") + "\n" +
+    "   " + t("ff_step2") + "\n" +
+    "   " + t("ff_step3") + " */\n" +
     "@font-face {\n" +
     '  font-family: "' + name + '";\n' +
     '  src: url("/fonts/' + slug + '.woff2") format("woff2");\n' +
@@ -1418,7 +1418,7 @@ function buildJS() {
   const googles = selectedGoogleFonts();
   const lines = [];
   googles.forEach((g) => {
-    lines.push("// Wczytaj font Google: " + g);
+    lines.push("// " + t("js_load_google") + " " + g);
     lines.push("(() => {");
     lines.push("  const link = document.createElement('link');");
     lines.push("  link.rel = 'stylesheet';");
@@ -1436,7 +1436,7 @@ function buildJS() {
     css.push(b.sel + " { " + declList(p, familyValue(p.family)).join(" ") + " }");
   }
   if (css.length) {
-    lines.push("// Zastosuj ustawienia typografii");
+    lines.push("// " + t("js_apply_typo"));
     lines.push("const style = document.createElement('style');");
     lines.push("style.textContent = `\n  " + css.join("\n  ") + "\n`;");
     lines.push("document.head.appendChild(style);");
