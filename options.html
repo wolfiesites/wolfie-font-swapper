@@ -117,6 +117,21 @@
     .rule-del:hover { color: #ff6b6b; }
     .rules-empty { color: var(--muted); font-size: 13px; }
 
+    /* Accordion „dla deweloperów" (details/summary) */
+    details.legend-acc { padding: 0; }
+    .legend-acc-summary {
+      list-style: none; cursor: pointer; user-select: none;
+      padding: 16px; font-weight: 800; font-size: 16px; color: var(--text);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .legend-acc-summary::-webkit-details-marker { display: none; }
+    .legend-acc-summary::before {
+      content: "▸"; color: var(--accent2); font-size: 13px; transition: transform 0.15s ease;
+    }
+    details.legend-acc[open] .legend-acc-summary::before { transform: rotate(90deg); }
+    .legend-acc-summary:hover { color: var(--accent2); }
+    .legend-acc-body { padding: 0 16px 16px; }
+
     /* Sekcja info: kroki + legenda tagów */
     .legend-steps { margin: 0 0 14px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: #d6d6e0; font-size: 13px; line-height: 1.5; }
     .legend-steps li { padding-left: 2px; }
@@ -254,9 +269,11 @@
       <button id="rules-add" class="cf-btn" type="button" data-i18n="rules_add" style="margin-top:10px">Dodaj regułę</button>
     </div>
 
-    <!-- Info: jak działają fonty na stronie + tagi licencji -->
-    <div class="field">
-      <h2 class="cf-title" data-i18n="legend_howto_title">Jak fonty działają na stronie — w skrócie</h2>
+    <!-- Info (accordion): jak działają fonty na stronie + tagi licencji -->
+    <details class="field legend-acc">
+      <summary class="legend-acc-summary" data-i18n="legend_acc_title">For developers — quick reminder: how to implement fonts</summary>
+      <div class="legend-acc-body">
+      <h3 class="cf-title" data-i18n="legend_howto_title" style="margin-top:14px">Jak fonty działają na stronie — w skrócie</h3>
       <ol id="legend-steps" class="legend-steps"></ol>
       <div class="cf-desc" data-i18n="legend_intro" style="margin-bottom:8px"></div>
       <pre class="legend-code"><code>body, * {
@@ -308,7 +325,8 @@ body, * {
           </tr>
         </tbody>
       </table>
-    </div>
+      </div>
+    </details>
 
     <div class="foot">
       <a class="foot-coffee" href="https://buymeacoffee.com/wolfiesites" target="_blank" rel="noopener noreferrer">☕ buy me a coffee</a>
