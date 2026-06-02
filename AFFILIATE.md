@@ -55,6 +55,69 @@ więc możesz publikować dodatek, a afiliacje dopinać później.
 
 ---
 
+## CJ krok-po-kroku (po założeniu konta)
+
+Samo konto CJ = **zero linków**. Afiliacja rusza dopiero, gdy dołączysz do
+programów marek i wkleisz wygenerowane prefiksy do dodatku.
+
+```
+[ ] 1. Network Profile   → Settings → Network Profile → wklej opis (patrz cj-network-profile.md) → Save
+[ ] 2. Promotional Properties → dodaj wolfiesites.com, sklepy klientów, Wolfie Font Swapper
+        ⚠ rozszerzenie/aplikację oznacz jako „special / software" (NIE „website")
+[ ] 3. Ustawienia konta  → tax form (W-8BEN), bank (IBAN + SWIFT), waluta, próg wypłaty
+[ ] 4. Advertisers       → Join „Monotype/MyFonts" i „Fontspring" → czekaj na akceptację
+[ ] 5. Link Generator    → Deep Link do docelowego URL → skopiuj PREFIKS
+[ ] 6. fonts-meta.js     → wklej prefiks do AFFILIATE (myfontsCjPrefix / fontspringCjPrefix)
+                           TYLKO w paczce do CWS, nie w publicznym repo
+```
+
+**Szczegóły:**
+
+1. **Network Profile** — Twoja „wizytówka" dla marek. Bez niej programy częściej
+   odrzucają. Treść w `docs/cj-network-profile.md` (jeśli zapisana) lub wklej
+   przygotowany opis.
+2. **Promotional Properties** (osobne od profilu!) — dodajesz swoje „nośniki":
+   strony i rozszerzenie. **Browser extension to „software", nie „website"** →
+   musisz oznaczyć metodę jako **„special"**, co wymaga ręcznej akceptacji
+   advertisera (wymóg PSA — patrz sekcja „Zanim zaakceptujesz CJ" niżej).
+3. **Konto** — W-8BEN (pole US TIN puste, Foreign TIN = NIP), IBAN `PL…` +
+   SWIFT/BIC (mBank: `BREXPLPWMBK`), waluta i Minimum Account Balance.
+4. **Join Programs** — w zakładce **Advertisers** wyszukaj markę → **Join
+   Program** → zaakceptuj warunki → **czekaj na akceptację** (przy „software"
+   bywa ręczna, kilka dni). Jednym kontem dołączasz i do MyFonts, i do Fontspring.
+5. **Generuj linki** — `Links → Link Generator` (Deep Link): wklej docelowy URL,
+   wygeneruj, skopiuj **prefiks** (część przed Twoim URL-em).
+6. **Wklej prefiks** do obiektu `AFFILIATE` w `fonts-meta.js` (`myfontsCjPrefix`,
+   `fontspringCjPrefix`). Dodatek sam dokleja zakodowany URL fonta.
+
+> **Ważne:** Pamiętaj o **opłacie „dormant"** — brak rozliczalnej transakcji
+> przez 6 mies. → CJ nalicza miesięczną opłatę, aż saldo zejdzie do zera. Przy
+> starcie bez ruchu rozważ, czy aktywować CJ teraz, czy gdy dodatek ma userów.
+
+### Zanim zaakceptujesz CJ (kluczowe punkty PSA)
+
+Umowa Publisher Service Agreement (dla UE/UK: **Epsilon International UK Ltd**,
+prawo Anglii i Walii). Na co uważać przy rozszerzeniu:
+
+- **Rozszerzenie = „software/special".** To nie „website" — musisz zadeklarować
+  metodę jako „special" i uzyskać **ręczną akceptację** advertisera. Pominięcie =
+  naruszenie umowy od pierwszego kliknięcia.
+- **Software Publishers Policy.** Zakaz: wymuszania kliknięć, redirectów bez
+  kliknięcia usera, podmiany cudzych referrali, „pop-over" wyników wyszukiwania;
+  wymóg `afsrc=1`. Twój model (user sam klika link w UI) jest OK — **byle linki
+  NIE były wstrzykiwane w cudze strony**.
+- **Linki tylko w UI dodatku** (popup/opcje), z `rel="sponsored"` — nigdy
+  wstrzykiwane w odwiedzane strony (łamie i CJ, i politykę Chrome).
+- **Privacy policy + zgoda na cookies (GDPR).** Obie strony to „Controllers";
+  potrzebny mechanizm zgody przed trackingiem CJ. I tak wymagane przez CWS.
+- **Self-clicking zabroniony** — nie klikasz własnych linków po prowizję.
+- **Aktywność konta** — brak logowania/transakcji ~30 dni roboczych → możliwa
+  deaktywacja. Loguj się okresowo.
+- **Indemnifikacja (§9)** — bierzesz na siebie roszczenia (np. spór o znak
+  towarowy). Wymienianie nazw fontów to użycie nominatywne (zwykle OK).
+
+---
+
 ## 1. MyFonts — przez CJ Affiliate (Commission Junction) — GŁÓWNY
 
 Najszersza oferta (Monotype/MyFonts), niemal każdy font komercyjny.
