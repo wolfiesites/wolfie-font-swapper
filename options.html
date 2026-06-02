@@ -263,6 +263,19 @@
   font-family: "Arial", sans-serif;
 }</code></pre>
       <div class="cf-desc" data-i18n="legend_code_note" style="margin-bottom:14px"></div>
+      <h3 class="legend-sub" data-i18n="legend_selfhost_title">Self-hosting — własny plik fonta (+ licencja)</h3>
+      <pre class="legend-code"><code>@font-face {
+  font-family: "My Font";
+  src: url("/fonts/my-font.woff2") format("woff2"),
+       url("/fonts/my-font.woff")  format("woff"),
+       url("/fonts/my-font.ttf")   format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+body, * {
+  font-family: "My Font", sans-serif;
+}</code></pre>
+      <div class="cf-desc" data-i18n="legend_selfhost_note" style="margin-bottom:18px"></div>
       <h3 class="legend-sub" data-i18n="legend_title">Tagi licencji — jak to działa</h3>
       <table class="legend-table">
         <thead>
