@@ -12,6 +12,9 @@
   function makeIframe(tabId) {
     const iframe = document.createElement("iframe");
     iframe.id = PANEL_ID;
+    // Deleguj do panelu dostęp do lokalnych fontów (Local Font Access API),
+    // by enumeracja zainstalowanych fontów działała i nie zgłaszała naruszenia.
+    iframe.allow = "local-fonts";
     iframe.src =
       chrome.runtime.getURL("popup.html") + "?tabId=" + tabId + "&panel=1";
     Object.assign(iframe.style, {
@@ -108,17 +111,38 @@
   const STYLE_ID = "wolfie-font-swapper-style";
 
   function globToRegex(p) {
+    let s = String(p).trim();
+    // Gdy wzorzec nie kończy się '*' ani '/', dopnij '*' — reguła dla domeny
+    // działa też na podstronach ("wikipedia.org" ~ "wikipedia.org*").
+    if (s && !s.endsWith("*") && !s.endsWith("/")) s += "*";
     return new RegExp(
-      "^" + String(p).trim().replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$",
+      "^" + s.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$",
       "i"
     );
+  }
+  function bareDomainOf(pattern) {
+    // Zdejmij końcowe '*' i '/' — "wikipedia.org", "wikipedia.org*",
+    // "wikipedia.org/" i "wikipedia.org/*" traktujemy tak samo.
+    const bare = String(pattern || "").trim().replace(/[*/]+$/, "");
+    if (!bare || bare.includes("*") || bare.includes("://") || bare.includes("/")) return null;
+    if (!/^[a-z0-9.-]+(:\d+)?$/i.test(bare)) return null;
+    return bare.replace(/^www\./i, "");
+  }
+  function patternMatches(pattern, url, host) {
+    const d = bareDomainOf(pattern);
+    if (d) {
+      // „goła domena" → apex + www, dowolny schemat i podstrony (po hoście).
+      const re = new RegExp("^(www\\.)?" + d.replace(/[.+^${}()|[\]\\]/g, "\\$&") + "$", "i");
+      return re.test(host || "");
+    }
+    const re = globToRegex(pattern);
+    return (url && re.test(url)) || (host && re.test(host));
   }
   function matchRule(rules, url, host) {
     for (const r of rules || []) {
       if (!r || !r.pattern) continue;
       try {
-        const re = globToRegex(r.pattern);
-        if ((url && re.test(url)) || (host && re.test(host))) return r;
+        if (patternMatches(r.pattern, url, host)) return r;
       } catch (e) {}
     }
     return null;
@@ -169,17 +193,77 @@
     }
     return out.join("\n");
   }
-  function faceCss(sel, cache, custom) {
+  // Lista fontów Google (z fonts.js, ładowanego przed content.js) — by wiedzieć,
+  // które rodziny pobierać na żywo z Google, gdy nie ma ich w cache.
+  const GOOGLE_SET = new Set(
+    ((window.WOLFIE_FONTS && window.WOLFIE_FONTS.GOOGLE_FONTS) || []).map((s) =>
+      s.toLowerCase()
+    )
+  );
+
+  // Pobierz @font-face z Google i osadź pliki woff2 jako data: (jak w popupie),
+  // by font realnie renderował się także bez wcześniejszego cache.
+  async function fetchGoogleFace(family) {
+    const url =
+      "https://fonts.googleapis.com/css2?family=" +
+      encodeURIComponent(family).replace(/%20/g, "+") +
+      ":ital,wght@0,300;0,400;0,500;0,700;0,800;1,400;1,700&display=swap";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    let css = await res.text();
+    const urls = [
+      ...new Set(
+        [...css.matchAll(/url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.woff2)\)/g)].map(
+          (m) => m[1]
+        )
+      ),
+    ];
+    for (const fu of urls) {
+      try {
+        const fr = await fetch(fu);
+        if (!fr.ok) continue;
+        const buf = await fr.arrayBuffer();
+        const bytes = new Uint8Array(buf);
+        let bin = "";
+        const ch = 0x8000;
+        for (let i = 0; i < bytes.length; i += ch) {
+          bin += String.fromCharCode.apply(null, bytes.subarray(i, i + ch));
+        }
+        css = css.split(fu).join("data:font/woff2;base64," + btoa(bin));
+      } catch (e) {}
+    }
+    return css;
+  }
+
+  // Zbierz @font-face dla wszystkich rodzin: cache → custom → (Google na żywo).
+  async function buildFaceCss(sel, cache, custom) {
     const fams = [...new Set(Object.values(sel).map((p) => p.family).filter(Boolean))];
     const map = (cache && cache.map) || {};
     let css = "";
+    const fetched = {}; // nowo pobrane (do dopisania do cache)
     for (const f of fams) {
       const low = f.toLowerCase();
-      if (map[low]) css += map[low] + "\n";
+      if (map[low]) {
+        css += map[low] + "\n";
+        continue;
+      }
       const c = custom && custom[low];
-      if (c) css += (typeof c === "string" ? c : c.css) + "\n";
+      if (c) {
+        css += (typeof c === "string" ? c : c.css) + "\n";
+        continue;
+      }
+      // Nie w cache i nie custom — jeśli to font Google, pobierz teraz.
+      if (GOOGLE_SET.has(low)) {
+        try {
+          const g = await fetchGoogleFace(f);
+          if (g && /@font-face/i.test(g)) {
+            css += g + "\n";
+            fetched[low] = g;
+          }
+        } catch (e) {}
+      }
     }
-    return css;
+    return { css, fetched };
   }
 
   try {
@@ -205,7 +289,12 @@
       }
     }
     if (!hasAny(sel)) return;
-    const css = faceCss(sel, local.wfs_font_cache, local.wfs_custom_fonts) + "\n" + buildRules(sel);
+    const { css: faces, fetched } = await buildFaceCss(
+      sel,
+      local.wfs_font_cache,
+      local.wfs_custom_fonts
+    );
+    const css = faces + "\n" + buildRules(sel);
     let st = document.getElementById(STYLE_ID);
     if (!st) {
       st = document.createElement("style");
@@ -213,6 +302,18 @@
       (document.head || document.documentElement).appendChild(st);
     }
     st.textContent = css;
+    // Dopisz nowo pobrane fonty Google do trwałego cache (na kolejne wczytania).
+    if (Object.keys(fetched).length) {
+      try {
+        const fc =
+          local.wfs_font_cache && local.wfs_font_cache.map
+            ? local.wfs_font_cache
+            : { map: {}, order: [] };
+        Object.assign(fc.map, fetched);
+        fc.order = [...(fc.order || []), ...Object.keys(fetched)];
+        chrome.storage.local.set({ wfs_font_cache: fc });
+      } catch (e) {}
+    }
     try {
       chrome.runtime.sendMessage({ type: "wfs-active", fromRule }); // kropka na ikonie (czerwona dla reguły)
     } catch (e) {}

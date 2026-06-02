@@ -49,8 +49,21 @@ function addCustomFontsToList() {
 // Enumeracja realnie zainstalowanych fontów przez Local Font Access API.
 // Wymaga gestu użytkownika (np. kliknięcia w pole) i jednorazowej zgody.
 let localFontsLoaded = false;
+// Czy polityka uprawnień pozwala na local-fonts w TYM dokumencie? W panelu
+// (iframe na obcej stronie) zwykle nie — wtedy pomijamy, by nie generować
+// błędu „Permissions policy violation: local-fonts" (i tak mamy fallback).
+function localFontsAllowed() {
+  try {
+    const fp = document.featurePolicy || document.permissionsPolicy;
+    if (fp && typeof fp.allowsFeature === "function") {
+      return fp.allowsFeature("local-fonts");
+    }
+  } catch (e) {}
+  return true; // brak API polityki → spróbuj (i tak jest try/catch niżej)
+}
 async function loadLocalFonts() {
   if (localFontsLoaded || typeof window.queryLocalFonts !== "function") return false;
+  if (!localFontsAllowed()) return false; // cichy fallback, bez naruszenia polityki
   localFontsLoaded = true;
   try {
     const fonts = await window.queryLocalFonts();
@@ -78,10 +91,20 @@ const SESSION_KEY = "wfs_session"; // { host: selection } — per domena, per se
 const PERSIST_KEY = "wfs_persist"; // { host: selection } — trwałe (przycisk „Zapisz na stałe")
 const RULES_KEY = "wfs_rules"; // [ { pattern, preset } ] — reguły domen (globy)
 let currentHost = "";
+let currentUrl = ""; // pełny URL aktywnej karty (do dopasowania reguł)
 let rulesData = []; // wczytane reguły (do paska reguły)
 let presetsData = []; // wczytane presety (do przełącznika)
 let activeRulePattern = null; // wzorzec reguły, która dała bieżący konfig
 let appliedFromRule = false; // czy bieżący konfig pochodzi z reguły domeny (czerwona kropka)
+let activePresetName = null; // nazwa zastosowanego presetu (chip podświetlony; 2. klik resetuje)
+
+// Wyczyść oznaczenie aktywnego presetu (np. po ręcznej zmianie fontu).
+function clearActivePreset() {
+  if (activePresetName !== null) {
+    activePresetName = null;
+    if (typeof renderPresets === "function") renderPresets();
+  }
+}
 
 // Pasek reguły: pokaż TYLKO przycisk usuwający regułę tej domeny, gdy konfig
 // pochodzi z reguły (reguły dodaje/edytuje się wyłącznie w ustawieniach).
@@ -107,19 +130,43 @@ function hostOf(url) {
   }
 }
 function globToRegex(p) {
+  let s = String(p).trim();
+  // Gdy wzorzec nie kończy się '*' ani '/', dopnij '*' — reguła dla domeny działa
+  // też na podstronach ("wikipedia.org" ~ "wikipedia.org*", "*wikipedia.org" ~ "*wikipedia.org*").
+  if (s && !s.endsWith("*") && !s.endsWith("/")) s += "*";
   return new RegExp(
-    "^" + String(p).trim().replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$",
+    "^" + s.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$",
     "i"
   );
 }
+// Czy wzorzec to „goła domena" (sam host, bez *, schematu i ścieżki; ewentualny
+// / na końcu)? Wtedy dopasowujemy sprytnie: apex + alias www, dowolny schemat
+// (http/https) i podstrony — bo i tak porównujemy po hoście.
+function bareDomainOf(pattern) {
+  // Zdejmij końcowe '*' i '/' — "wikipedia.org", "wikipedia.org*", "wikipedia.org/"
+  // i "wikipedia.org/*" traktujemy tak samo (domena + wszystko z prawej).
+  const bare = String(pattern || "").trim().replace(/[*/]+$/, "");
+  if (!bare || bare.includes("*") || bare.includes("://") || bare.includes("/")) return null;
+  if (!/^[a-z0-9.-]+(:\d+)?$/i.test(bare)) return null;
+  return bare.replace(/^www\./i, ""); // znormalizuj alias www w samym wzorcu
+}
+function patternMatches(pattern, url, host) {
+  const d = bareDomainOf(pattern);
+  if (d) {
+    // host == domena LUB www.domena (https://, http://, podstrony obsłużone z natury)
+    const re = new RegExp("^(www\\.)?" + d.replace(/[.+^${}()|[\]\\]/g, "\\$&") + "$", "i");
+    return re.test(host || "");
+  }
+  const re = globToRegex(pattern);
+  return (url && re.test(url)) || (host && re.test(host));
+}
 function matchRule(rules, url, host) {
-  // Wzorce: "https://example.com/" (strona główna), "https://example.com/*" (cała
-  // witryna), "*.wolfiesites.com" (host). Testujemy glob na pełnym URL i na hoście.
+  // Wzorce: "wikipedia.org" (apex+www, dowolny schemat/podstrony), "*.wolfiesites.com"
+  // (host), "https://example.com/*" (glob na URL). Glob ma auto '*' na końcu.
   for (const r of rules || []) {
     if (!r || !r.pattern) continue;
     try {
-      const re = globToRegex(r.pattern);
-      if ((url && re.test(url)) || (host && re.test(host))) return r;
+      if (patternMatches(r.pattern, url, host)) return r;
     } catch (e) {}
   }
   return null;
@@ -1018,12 +1065,16 @@ async function setTabDot(tabId, on, color) {
 }
 
 async function applyToPage() {
+  // Ręczna zmiana rozjeżdża się z presetem → zdejmij oznaczenie aktywnego
+  // (applyPreset ustawia je ponownie PO wywołaniu applyToPage).
+  clearActivePreset();
   const tab = await getActiveTab();
   if (!tab || !tab.id) {
     setStatus(t("status_no_tab"));
     return;
   }
   currentHost = hostOf(tab.url || "");
+  currentUrl = tab.url || "";
 
   const url = tab.url || "";
   if (/^file:/i.test(url)) {
@@ -1179,6 +1230,8 @@ async function resetPage() {
   document.querySelectorAll(".wfs-combo").forEach((c) => {
     if (c.updateHeart) c.updateHeart();
   });
+  activePresetName = null; // reset zdejmuje oznaczenie aktywnego presetu
+  renderPresets();
   setStatus(t("status_reset"));
   updateSnippet();
 }
@@ -1344,6 +1397,45 @@ function updateSnippet() {
   }
 }
 
+// ---- Podgląd fontów na liście (każda pozycja własnym krojem) ----
+// Tylko pozycje w dropdownie; aktywny wybór w polu zostaje w Rubiku.
+let previewStyleEl = null;
+const previewRequested = new Set();
+function injectPreviewCss(css) {
+  if (!css) return;
+  if (!previewStyleEl) {
+    previewStyleEl = document.createElement("style");
+    previewStyleEl.id = "wfs-preview-fonts";
+    (document.head || document.documentElement).appendChild(previewStyleEl);
+  }
+  previewStyleEl.appendChild(document.createTextNode("\n" + css));
+}
+// Zadbaj, by font był dostępny do podglądu: cache → custom → Google (lekki link).
+function ensurePreviewFont(name) {
+  if (!name) return;
+  const low = name.toLowerCase();
+  if (previewRequested.has(low)) return;
+  previewRequested.add(low);
+  if (fontCacheMap[low]) {
+    injectPreviewCss(fontCacheMap[low]); // osadzony @font-face (data:)
+    return;
+  }
+  const c = customFonts[low];
+  if (c) {
+    injectPreviewCss(typeof c === "string" ? c : c.css);
+    return;
+  }
+  if (isGoogle(name)) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=" +
+      encodeURIComponent(name).replace(/%20/g, "+") +
+      "&display=swap"; // tylko zwykła grubość — lekki podgląd
+    (document.head || document.documentElement).appendChild(link);
+  }
+}
+
 // ---- Budowa wyszukiwalnych dropdownów ----
 
 function buildCombo(combo) {
@@ -1369,6 +1461,9 @@ function buildCombo(combo) {
     const name = document.createElement("span");
     name.className = "wfs-name";
     name.textContent = font.name;
+    // Każda pozycja własnym krojem (podgląd). Aktywny wybór w polu zostaje w Rubiku.
+    name.style.fontFamily = generic.test(font.name) ? font.name : '"' + font.name + '"';
+    ensurePreviewFont(font.name);
     const tag = document.createElement("span");
     tag.className = "wfs-tag";
     if (font.type === "custom") {
@@ -1809,6 +1904,10 @@ if (minimizeBtn) {
   });
 }
 
+// Krzyżyk — zamknij dodatek (usuń panel całkowicie; to nie minimalizacja).
+const closeBtn = document.getElementById("wfs-close");
+if (closeBtn) closeBtn.addEventListener("click", closeSelf);
+
 // Picker — pobierz font ze strony (tryb inspekcji). target = pole docelowe (lub null).
 async function startPicker(target) {
   const tab = await getActiveTab();
@@ -1919,7 +2018,7 @@ async function startTextEditor() {
       func: pageTextEditor,
       args: [{ labels: { hint: t("edit_text_hint") } }],
     });
-    closeSelf();
+    setStatus(t("edit_text_hint")); // panel zostaje otwarty
   } catch (e) {
     setStatus(t("status_protected"));
   }
@@ -1933,18 +2032,19 @@ document.getElementById("wfs-reset").addEventListener("click", resetPage);
 // (Ustawienia per domena zapisują się automatycznie na sesję; trwałość → presety.)
 
 // Pasek reguły: jedyna akcja w popupie to usunięcie reguły tej domeny.
-// (Reguły dodaje/edytuje się wyłącznie w ustawieniach.) Po usunięciu reguły
-// czyścimy też podmianę na stronie — bo to reguła ją narzucała.
+// (Reguły dodaje/edytuje się wyłącznie w ustawieniach.) Usunięcie reguły zdejmuje
+// tylko „przypięcie" domeny — fonty/preset zostają (kropka wraca do wyblakłej).
+// Żeby zdjąć też podmianę na stronie, jest osobny przycisk Reset (↺).
 const ruleRemoveBtn = document.getElementById("wfs-rule-remove");
 if (ruleRemoveBtn) {
-  ruleRemoveBtn.addEventListener("click", async () => {
+  ruleRemoveBtn.addEventListener("click", () => {
     rulesData = rulesData.filter((x) => x.pattern !== activeRulePattern);
     chrome.storage.local.set({ [RULES_KEY]: rulesData });
     const bar = document.getElementById("wfs-rulebar");
     if (bar) bar.hidden = true;
     activeRulePattern = null;
     appliedFromRule = false;
-    await resetPage(); // zdejmij fonty narzucone regułą + zgaś kropkę
+    renderPresets(); // kropka → wyblakła (preset nadal aktywny)
   });
 }
 const resetTop = document.getElementById("wfs-reset-top");
@@ -1982,6 +2082,7 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
 (async () => {
   const tab0 = await getActiveTab();
   currentHost = hostOf((tab0 && tab0.url) || "");
+  currentUrl = (tab0 && tab0.url) || "";
   let sessionMap = {};
   try {
     sessionMap = (await chrome.storage.session.get(SESSION_KEY))[SESSION_KEY] || {};
@@ -2068,7 +2169,13 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
     appliedFromRule = !!ruleMatched && !(picked && picked.family);
     if (saved || (picked && picked.family)) applyToPage();
     updateSnippet();
-    if (ruleMatched) setupRuleBar(ruleMatched); // pasek reguły (przełącz preset / usuń)
+    if (ruleMatched) {
+      setupRuleBar(ruleMatched); // pasek reguły (usuń)
+      // Podświetl też chip presetu używanego przez regułę (po applyToPage,
+      // które czyści oznaczenie). renderPresets odświeży listę, gdy presety wczytane.
+      activePresetName = ruleMatched.preset;
+      renderPresets();
+    }
     }
   );
 })();
@@ -2120,12 +2227,17 @@ function renderPresets() {
   presets.forEach((preset, i) => {
     const chip = document.createElement("div");
     chip.className = "wfs-preset";
+    if (activePresetName === preset.name) chip.classList.add("active");
     const name = document.createElement("button");
     name.type = "button";
     name.className = "wfs-preset-name";
     name.textContent = preset.name;
     name.title = t("preset_load_title");
-    name.addEventListener("click", () => applyPreset(preset));
+    name.addEventListener("click", () => {
+      // Ponowny klik w aktywny preset = reset (usuń podmianę). Inaczej zastosuj.
+      if (activePresetName === preset.name) resetPage();
+      else applyPreset(preset);
+    });
     const del = document.createElement("button");
     del.type = "button";
     del.className = "wfs-preset-del";
@@ -2146,6 +2258,14 @@ function renderPresets() {
   const full = presets.length >= MAX_PRESETS;
   saveBtn.disabled = full;
   saveBtn.textContent = full ? t("preset_max") : t("preset_save");
+  // Czerwona kropka „zapisz regułę": widoczna gdy jakiś preset jest aktywny.
+  // Wyblakła+mała domyślnie; jaskrawa gdy dla tej strony ISTNIEJE reguła.
+  const ruleDot = document.getElementById("wfs-preset-rule-dot");
+  if (ruleDot) {
+    ruleDot.hidden = !activePresetName;
+    const ruleActive = !!matchRule(rulesData, currentUrl, currentHost);
+    ruleDot.classList.toggle("active", ruleActive);
+  }
 }
 
 function savePreset() {
@@ -2182,7 +2302,12 @@ function deletePreset(i) {
     return;
   }
   // Usuń też powiązane reguły (potwierdzone) i zapisz.
+  let resetThisPage = false;
   if (linked.length) {
+    // Czy bieżąca strona była stylowana TĄ regułą? Jeśli tak — zdejmiemy też
+    // wstrzyknięty styl (reguła znika, więc i jej podmiana ma zniknąć).
+    resetThisPage =
+      appliedFromRule && linked.some((r) => r.pattern === activeRulePattern);
     rulesData = rulesData.filter((r) => !(r && r.preset === preset.name));
     chrome.storage.local.set({ [RULES_KEY]: rulesData });
   }
@@ -2190,7 +2315,15 @@ function deletePreset(i) {
   pendingPresetDelete = null;
   persistPresets();
   renderPresets();
-  setStatus(t("status_preset_deleted"));
+  if (resetThisPage) {
+    const bar = document.getElementById("wfs-rulebar");
+    if (bar) bar.hidden = true;
+    activeRulePattern = null;
+    appliedFromRule = false;
+    resetPage(); // usuwa wstrzyknięty styl + konfig sesji + gasi kropkę
+  } else {
+    setStatus(t("status_preset_deleted"));
+  }
 }
 
 function applyPreset(preset) {
@@ -2199,10 +2332,53 @@ function applyPreset(preset) {
     combo.restore(preset.selection[combo.dataset.target]);
   });
   applyToPage();
+  activePresetName = preset.name; // oznacz chip jako aktywny (ponowny klik = reset)
+  renderPresets();
   setStatus(t("status_preset_loaded") + " " + preset.name);
 }
 
 document.getElementById("wfs-save-preset").addEventListener("click", savePreset);
+
+// Czerwona kropka przy „Presety" = przełącznik PERSISTANT reguły dla tej strony.
+// Wyblakła (brak reguły) + klik → utwórz regułę (apex → aktywny preset) = jaskrawa.
+// Jaskrawa (reguła jest) + klik → usuń regułę = wyblakła. Preset zostaje aktywny,
+// fonty na stronie nie znikają.
+async function toggleRuleForActivePreset() {
+  if (!activePresetName) return;
+  const tab = await getActiveTab();
+  const host = hostOf((tab && tab.url) || "") || currentHost;
+  const url = (tab && tab.url) || currentUrl;
+  const existing = matchRule(rulesData, url, host);
+  if (existing) {
+    // Reguła istnieje dla tej strony → usuń (toggle off).
+    rulesData = rulesData.filter((r) => r !== existing);
+    chrome.storage.local.set({ [RULES_KEY]: rulesData });
+    if (activeRulePattern === existing.pattern) {
+      const bar = document.getElementById("wfs-rulebar");
+      if (bar) bar.hidden = true;
+      activeRulePattern = null;
+      appliedFromRule = false;
+    }
+    renderPresets(); // kropka → wyblakła
+    setStatus(t("preset_rule_removed") + " " + (existing.pattern || ""));
+    return;
+  }
+  // Brak reguły → utwórz dla AKTUALNEGO hosta (obejmie bieżącą stronę, także
+  // subdomenę, np. "en.wikipedia.org"). Smart-match dołoży alias www + podstrony.
+  if (!host) {
+    setStatus(t("status_no_tab"));
+    return;
+  }
+  const key = bareDomainOf(host) || host.toLowerCase();
+  const i = rulesData.findIndex((r) => r && (bareDomainOf(r.pattern) || "") === key);
+  if (i >= 0) rulesData[i].preset = activePresetName;
+  else rulesData.push({ pattern: host, preset: activePresetName });
+  chrome.storage.local.set({ [RULES_KEY]: rulesData });
+  renderPresets(); // kropka → jaskrawa
+  setStatus(t("preset_rule_saved") + " " + host + " → " + activePresetName);
+}
+const presetRuleDot = document.getElementById("wfs-preset-rule-dot");
+if (presetRuleDot) presetRuleDot.addEventListener("click", toggleRuleForActivePreset);
 
 chrome.storage.local.get([PRESETS_KEY, RULES_KEY], (data) => {
   presets = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];

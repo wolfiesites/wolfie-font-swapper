@@ -95,22 +95,25 @@ main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; } /*
 .wfs-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
+  gap: 5px;
+  padding: 10px 12px;
   background: linear-gradient(90deg, var(--wfs-accent-2), var(--wfs-accent));
 }
-.wfs-logo { width: 32px; height: 32px; display: block; }
+.wfs-logo { width: 30px; height: 30px; display: block; flex: 0 0 auto; }
 .wfs-iconbtn {
   border: none;
   background: transparent;
-  padding: 4px;
+  padding: 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
   border-radius: 8px;
   opacity: .8;
+  flex: 0 0 auto;
 }
 .wfs-iconbtn:hover { opacity: 1; background: rgba(0, 0, 0, .12); }
+.wfs-close:hover { background: rgba(179, 38, 30, .85); }
+.wfs-close:hover svg { stroke: #fff; }
 .wfs-picker { margin-left: auto; }      /* zepchnij grupę ikon w prawo */
 .wfs-iconbtn.active {
   opacity: 1;
@@ -122,12 +125,12 @@ main { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; } /*
   flex: 1 1 auto;
   min-width: 0; /* pozwól się zmieścić obok ikon (bez poszerzania nagłówka) */
   font-family: "Audiowide", "Rubik", system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0;
   color: #000;
   line-height: 1.1;
-  white-space: normal; /* zawinie do 2 linii zamiast rozpychać szerokość */
+  white-space: normal; /* zawinie zamiast rozpychać szerokość nagłówka */
   overflow-wrap: anywhere;
 }
 
@@ -409,7 +412,34 @@ main { padding: 12px 14px 14px; }
   justify-content: space-between;
   margin-bottom: 7px;
 }
+.wfs-presets-labelwrap { display: inline-flex; align-items: center; gap: 7px; }
 .wfs-presets-label { font-weight: 600; font-size: 12px; }
+/* Czerwona kropka: zapisz persistant regułę (apex domena → aktywny preset).
+   Domyślnie WYBLAKŁA i mała; JASKRAWA gdy dla tej strony istnieje reguła. */
+.wfs-preset-rule-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #ff3b30;
+  opacity: .38;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease, width .12s ease, height .12s ease;
+}
+.wfs-preset-rule-dot:hover { opacity: .7; transform: scale(1.2); }
+.wfs-preset-rule-dot.active {
+  width: 11px;
+  height: 11px;
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255, 59, 48, 0.25);
+}
+.wfs-preset-rule-dot.active:hover {
+  background: #ff6b6b;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.35);
+}
 .wfs-preset-save {
   border: 1px solid var(--wfs-accent);
   background: transparent;
@@ -446,6 +476,12 @@ main { padding: 12px 14px 14px; }
   cursor: pointer;
 }
 .wfs-preset:hover { border-color: var(--wfs-accent); }
+/* Aktywny (zastosowany) preset — podświetlony; ponowny klik resetuje. */
+.wfs-preset.active {
+  border-color: var(--wfs-accent);
+  background: rgba(255, 61, 174, 0.16);
+}
+.wfs-preset.active .wfs-preset-name { color: var(--wfs-accent); }
 .wfs-preset-del {
   border: none;
   background: transparent;
