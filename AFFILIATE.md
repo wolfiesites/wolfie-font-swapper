@@ -90,6 +90,18 @@ programów marek i wkleisz wygenerowane prefiksy do dodatku.
 6. **Wklej prefiks** do obiektu `AFFILIATE` w `fonts-meta.js` (`myfontsCjPrefix`,
    `fontspringCjPrefix`). Dodatek sam dokleja zakodowany URL fonta.
 
+**Links vs Products vs Deep Link** (3 sposoby na link — co wybrać):
+
+| Sposób | Co to | Dla dodatku |
+|---|---|---|
+| **Links** (Get Code) | gotowe bannery / linki tekstowe / smart links | raczej dla strony, nie dla dodatku |
+| **Product Search / Products** | link do **konkretnego produktu** z feedu marki (font + cena + zdjęcie) | gdy chcesz linkować do konkretnego kroju |
+| **Deep Link / Link Generator** | dowolny URL marki opakowany w tracking | ✅ **TO bierzesz** — z niego kopiujesz prefiks do `AFFILIATE` |
+
+**EPC** = *Earnings Per Click* = zarobek na **100 kliknięć** (miara jakości
+programu). W tabeli linków widzisz „Network EPC" (średnia całej sieci) — wysoki =
+program dobrze konwertuje/płaci. Pełne wyjaśnienie: [`docs/how-cj-works.md`](./docs/how-cj-works.md).
+
 > **Ważne:** Pamiętaj o **opłacie „dormant"** — brak rozliczalnej transakcji
 > przez 6 mies. → CJ nalicza miesięczną opłatę, aż saldo zejdzie do zera. Przy
 > starcie bez ruchu rozważ, czy aktywować CJ teraz, czy gdy dodatek ma userów.

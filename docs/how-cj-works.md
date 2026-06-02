@@ -118,6 +118,60 @@ CJ Account Manager ma kilka głównych obszarów:
 > klikniesz **Join Program** i marka Cię **nie zaakceptuje**. Dopiero wtedy
 > wygenerujesz działające linki.
 
+### Strona „Links → Search" (ta tabelka linków)
+
+Adres typu `members.cj.com/member/<twoje-ID>/publisher/links/search` to
+**katalog gotowych linków/kreacji**, które marki Ci udostępniają. Każdy wiersz
+to jeden „Link" do wzięcia. Typowe kolumny:
+
+| Kolumna | Co znaczy |
+|---|---|
+| **Advertiser** | marka, od której jest link |
+| **Link Name** | nazwa kreacji (np. „Homepage", „Gotham banner 300x250") |
+| **Link Type** | rodzaj: **Text** (link tekstowy), **Banner** (grafika), **Content/Smart** (dynamiczny), **Click** (deep link do URL) |
+| **Promotion Type** | kategoria promocji (np. sale, coupon) |
+| **Sale Commission / Lead** | stawka prowizji za sprzedaż / lead |
+| **EPC (7-day / 3-month)** | zarobek na 100 kliknięć (jakość — patrz niżej) |
+| **Get Link / Get Code** | przycisk → kod HTML/URL do wklejenia |
+
+Bierzesz wiersz → **Get Code** → dostajesz gotowy link z Twoim trackingiem.
+
+### Linki vs Produkty (vs Deep Linki) — co generujesz
+
+To **trzy różne sposoby** zdobycia linka afiliacyjnego:
+
+| Sposób | Co to | Kiedy używać |
+|---|---|---|
+| **Links** (kreacje) | gotowe bannery / linki tekstowe / smart links od marki | gdy chcesz wstawić **baner** albo gotowy link na stronie |
+| **Product Search / Products** | wyszukiwarka **konkretnych produktów** z katalogu (feed) marki — pojedynczy font/towar z nazwą, ceną, zdjęciem, SKU | gdy chcesz link **do konkretnego fonta** (np. „Gotham") z danymi produktu |
+| **Deep Link / Link Generator** | zamieniasz **dowolny URL** marki w link śledzony | gdy chcesz link do dowolnej podstrony (np. wyniki wyszukiwania MyFonts) — **to wykorzystuje dodatek** |
+
+Najprościej: **Link** = reklama/baner; **Product** = konkretny towar z katalogu;
+**Deep Link** = dowolny URL marki opakowany w tracking.
+
+> **Dla Wolfie Font Swapper** najważniejszy jest **Deep Link** — bo dodatek
+> dokleja zakodowany URL fonta do Twojego **prefiksu**. „Products" przydaje się,
+> jeśli marka ma feed i chcesz linkować do konkretnego kroju z ceną/zdjęciem.
+> „Links" (bannery) są raczej dla klasycznej strony, nie dla dodatku.
+
+### Co to jest EPC?
+
+**EPC = Earnings Per Click** — w CJ liczone jako **zarobek na 100 kliknięć**
+(nie na 1). To **wskaźnik jakości programu**: ile średnio zarabia wydawca,
+wysyłając 100 kliknięć do danej marki.
+
+- **Network EPC** (to, co widzisz w tabeli) = **średnia w całej sieci** dla
+  danego programu/linku — pomaga wybrać marki, które dobrze konwertują i płacą.
+- **3-month EPC** i **7-day EPC** = ta sama miara, ale za 3 miesiące / 7 dni.
+- **Twój EPC** = `Twoje prowizje ÷ Twoje kliknięcia × 100`.
+
+Czytanie: **wysoki EPC** = program dobrze zamienia kliknięcia w kasę; **niski/0**
+= słabo konwertuje albo mało danych. To **orientacja**, nie gwarancja — Twój
+wynik zależy od jakości Twojego ruchu (a Twój ruch jest wysoko intencyjny).
+
+Przykład: EPC = 30 zł oznacza, że średnio za **100 kliknięć** w ten program
+wydawcy zarabiają ~30 zł (czyli ~0,30 zł na klik).
+
 ---
 
 ## 6. Kluczowe pojęcia (słowniczek)
