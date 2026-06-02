@@ -5,16 +5,22 @@
 #                    (tylko pliki dodatku; bez docs/assets/store/*.md/CI),
 #   2. publish:wppw — wysyła ZIP do api.wppw.pl (prywatnie, za kluczem API).
 #
-# WYMAGANE zmienne CI/CD (Settings → CI/CD → Variables; Masked + Protected):
-#   WPPW_UPLOAD_URL  endpoint API, np.
-#                    https://api.wppw.pl/v1/extensions/wolfie-font-swapper/releases
-#   WPPW_API_KEY     klucz API / licencyjny do api.wppw.pl
-# OPCJONALNE:
-#   WPPW_VISIBILITY  'private' (domyślnie) | 'public'
-#   WPPW_ORG         slug superorg (domyślnie 'wppw')
+# Platforma: WolfieGuard / api.wppw.pl (rejestr oprogramowania, license-gated).
+# Upload release'u: POST /api/service/products/<slug>/releases z nagłówkiem
+# X-Service-Key (klucz z mint_service_key / mint_vendor_api_key).
 #
-# Dopóki WPPW_UPLOAD_URL / WPPW_API_KEY nie są ustawione, krok publish kończy się
-# „skipped" (nie wysyła nic) — pipeline pozostaje zielony, a ZIP jest w artefaktach.
+# WYMAGANE zmienne CI/CD (Settings → CI/CD → Variables; Masked + Protected):
+#   WPPW_SERVICE_KEY     service key do api.wppw.pl (nagłówek X-Service-Key,
+#                        scope products.write; mint: mint_service_key)
+# OPCJONALNE (mają sensowne domyślne):
+#   WPPW_UPLOAD_URL      domyślnie https://api.wppw.pl/api/service/products/$PKG_NAME/releases
+#   WPPW_UPLOADER_EMAIL  e-mail do audit logu (domyślnie wit.paw4@gmail.com)
+#
+# Dopóki WPPW_SERVICE_KEY nie jest ustawiony, krok publish kończy się „skipped"
+# (nie wysyła nic) — pipeline pozostaje zielony, a ZIP jest w artefaktach.
+# Produkt (slug = wolfie-font-swapper) AUTO-tworzy się przy 1. uploadzie — nie
+# trzeba create_product. Aby release był prywatny/superorg: raz wywołaj
+# set_product_visibility { private } przez MCP api.wppw.pl.
 
 stages: [build, publish]
 
@@ -56,22 +62,29 @@ publish:wppw:
   rules:
     - if: '$CI_COMMIT_BRANCH == "production"'
   before_script:
-    - apk add --no-cache curl
+    - apk add --no-cache curl coreutils
   script:
+    - 'URL="${WPPW_UPLOAD_URL:-https://api.wppw.pl/api/service/products/${PKG_NAME}/releases}"'
     - |
-      if [ -z "$WPPW_UPLOAD_URL" ] || [ -z "$WPPW_API_KEY" ]; then
-        echo "WPPW_UPLOAD_URL / WPPW_API_KEY nie ustawione — pomijam upload."
-        echo "Ustaw je w GitLab → Settings → CI/CD → Variables (Masked, Protected)."
+      if [ -z "$WPPW_SERVICE_KEY" ]; then
+        echo "WPPW_SERVICE_KEY nieustawiony — pomijam upload (ZIP zostaje w artefaktach)."
+        echo "Ustaw go w GitLab → Settings → CI/CD → Variables (Masked, Protected)."
         exit 0
       fi
-    - echo "Uploading $ZIP (v$VERSION) → $WPPW_UPLOAD_URL"
+    - SHA=$(sha256sum "$ZIP" | cut -d' ' -f1)
+    - echo "Uploading $ZIP (v$VERSION, sha256=$SHA) → $URL"
+    # Produkt auto-tworzy się przy 1. uploadzie po slug ($PKG_NAME). Wymagane:
+    # version, sha256, file, uploaderEmail. Powtórka tej samej wersji = 409
+    # (podbij version w manifest.json). Aby było PRYWATNE/superorg: raz wywołaj
+    # set_product_visibility { private } przez MCP api.wppw.pl.
     - |
       curl --fail --show-error --silent \
-        -H "Authorization: Bearer $WPPW_API_KEY" \
-        -F "file=@${ZIP}" \
-        -F "name=${PKG_NAME}" \
+        -H "X-Service-Key: $WPPW_SERVICE_KEY" \
         -F "version=${VERSION}" \
-        -F "visibility=${WPPW_VISIBILITY:-private}" \
-        -F "org=${WPPW_ORG:-wppw}" \
-        "$WPPW_UPLOAD_URL"
-    - echo "OK — wysłano $ZIP do api.wppw.pl"
+        -F "sha256=${SHA}" \
+        -F "uploaderEmail=${WPPW_UPLOADER_EMAIL:-wit.paw4@gmail.com}" \
+        -F "productName=Wolfie Font Swapper" \
+        -F "uploadOrigin=gitlab-ci" \
+        -F "file=@${ZIP}" \
+        "$URL"
+    - echo "OK — release $VERSION wysłany do api.wppw.pl"

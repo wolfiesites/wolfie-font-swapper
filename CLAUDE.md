@@ -20,35 +20,50 @@ Przepływ: pracujesz na `main` → merge do **`production`** → GitLab CI
 ### Zmienne CI/CD (GitLab → Settings → CI/CD → Variables; Masked + Protected)
 | Zmienna | Opis |
 |---|---|
-| `WPPW_UPLOAD_URL` | endpoint, np. `https://api.wppw.pl/v1/extensions/wolfie-font-swapper/releases` |
-| `WPPW_API_KEY` | klucz API / licencyjny do api.wppw.pl |
-| `WPPW_VISIBILITY` | (opc.) `private` (domyślnie) / `public` |
-| `WPPW_ORG` | (opc.) slug superorg (domyślnie `wppw`) |
+| `WPPW_SERVICE_KEY` | **wymagana** — service key (X-Service-Key, scope `products.write`); mint przez `mint_service_key` |
+| `WPPW_UPLOAD_URL` | (opc.) domyślnie `https://api.wppw.pl/api/service/products/wolfie-font-swapper/releases` |
+| `WPPW_UPLOADER_EMAIL` | (opc.) e-mail do audit logu (domyślnie `wit.paw4@gmail.com`) |
 
-Bez `WPPW_UPLOAD_URL`/`WPPW_API_KEY` krok publish jest pomijany (pipeline zielony,
-ZIP zostaje w artefaktach).
+Bez `WPPW_SERVICE_KEY` krok publish jest pomijany (pipeline zielony, ZIP w artefaktach).
+
+Kontrakt API (z `wolfie-platform/apps/api-wppw`): `POST /api/service/products/<slug>/releases`,
+multipart: `version`, `sha256` (64 hex, SHA-256 ZIP-a), `uploaderEmail`, `file`
+(+ opc. `productName`, `uploadOrigin`, `metadata`). Header `X-Service-Key`.
+Produkt **auto-tworzy się** po slug przy 1. uploadzie. Ta sama wersja = **409**
+(podbij `version`).
 
 ### Wersja
 - Źródło prawdy: pole `version` w `manifest.json`.
 - **Aktualna wersja: 1.0.0** (zaktualizuj tę linię przy każdym wydaniu).
 - Przed merge do `production`: podbij `version` w `manifest.json`.
 
-## api.wppw.pl — MCP (DO UZUPEŁNIENIA)
+## api.wppw.pl — WolfieGuard (licensing + software registry)
 
-> Stan: **brak podłączonego MCP `api.wppw.pl`** w tej sesji i brak jego konfiguracji
-> w `~/.claude.json`. Gdy podasz dane, uzupełnij tę sekcję i (opcjonalnie) wpis w
-> `~/.claude.json` → `mcpServers`.
+To **WolfieGuard** — platforma licencyjna + rejestr oprogramowania (publiczne
+**i** prywatne, license-gated). Źródło: `wolfie-platform/apps/api-wppw` (na WSL).
+Globalny opis MCP: WSL `~/.claude/CLAUDE.md`.
 
-Docelowo api.wppw.pl ma:
-- przechowywać **najnowszą paczkę (ZIP)** tego dodatku (prywatnie, superorg),
-- pozwalać **listować** artefakty **publiczne i prywatne** za **kluczem
-  licencyjnym / API key**.
+- **MCP:** `POST https://api.wppw.pl/api/mcp` (JSON-RPC 2.0), auth `Authorization:
+  Bearer wgmcp_…`. **Skonfigurowany pod WSL**, nie w natywnym Windows — narzędzia
+  MCP (`create_product`, `issue_license`, `mint_service_key`, `list_products`,
+  `set_product_visibility`, …) wołaj z sesji Claude w WSL.
+- **Upload release'u (CI):** `POST /api/service/products/<slug>/releases` z
+  `X-Service-Key` — patrz „Wydanie" wyżej.
+- **Listowanie publiczne i prywatne** (czego chce właściciel): przez MCP
+  (`list_products` / `get_product` / `list_releases`) lub klucz licencyjny;
+  prywatne pobrania są license-gated (`issue_license`, `kind:comp` dla wewn.).
 
-Do wypełnienia, gdy znane:
-- **MCP**: nazwa serwera, transport (stdio/HTTP/SSE), URL, sposób auth.
-- **API**: endpoint uploadu (→ `WPPW_UPLOAD_URL`), schemat auth (Bearer?),
-  format payloadu (multipart `file`/`name`/`version`/`visibility`/`org`?),
-  endpoint listujący (public/private), pole klucza licencyjnego.
+### Setup (jednorazowo, z WSL przez MCP)
+1. (opc.) `create_product { slug:"wolfie-font-swapper", type:"custom-software",
+   private:true, name, description }` — lub pozwól auto-utworzyć przy 1. uploadzie,
+   potem `set_product_visibility { visibility:"private" }`.
+2. `mint_service_key` (scope `products.write`) → wartość do GitLab CI/CD var
+   `WPPW_SERVICE_KEY`.
+3. Merge do `production` → CI wysyła release.
+4. Dostęp prywatny: `issue_license` (np. `kind:"comp"` dla superorg).
+
+> **Sekrety** (wgmcp_/service/license keys) zwracane są **raz** — zapisz od razu.
+> Nigdy nie commituj ich do repo; trzymaj w GitLab CI/CD vars lub WSL config.
 
 ## Konwencje repo
 - `origin` = GitLab `pw-chrome` (prywatne). `github` = `wolfiesites` (publiczne).
