@@ -25,20 +25,11 @@ const restEntries = [
   })),
 ].sort((a, b) => a.name.localeCompare(b.name));
 
-// Fonty komercyjne (premium) z bazy metadanych — dołączamy do listy wyszukiwania,
-// by były odkrywalne (oznaczone $, z linkami do kupna). Pomijamy te już obecne
-// (np. zainstalowane systemowo). Na końcu listy — znajdziesz je wpisując nazwę.
-const commercialEntries = (() => {
-  const meta = window.WOLFIE_FONT_META;
-  if (!meta || !meta.COMMERCIAL) return [];
-  const have = new Set([...popularEntries, ...restEntries].map((f) => f.name.toLowerCase()));
-  return Object.keys(meta.COMMERCIAL)
-    .filter((n) => !have.has(n.toLowerCase()))
-    .map((n) => ({ name: n, type: "commercial" }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-})();
-
-const ALL_FONTS = [...popularEntries, ...restEntries, ...commercialEntries];
+// UWAGA: NIE wstrzykujemy „na sztywno" nazw fontów komercyjnych do listy — byłyby
+// mylące (i tak niedostępne bez instalacji). Premium pojawia się w wyszukiwarce
+// TYLKO jeśli jest faktycznie zainstalowane na komputerze (wykryte przez Local
+// Font Access → typ "system", z markerem $). Odkrywanie/kupno premium = karta PAID.
+const ALL_FONTS = [...popularEntries, ...restEntries];
 
 // Dodaj zapisane customowe fonty (pobrane pickerem) do listy wyszukiwania,
 // oznaczając źródło: "google" (z gstatic) lub "web" (skądś indziej).
@@ -1662,7 +1653,11 @@ function buildCombo(combo) {
       tag.textContent = "★ Google";
     } else if (font.type === "system") {
       const meta = window.WOLFIE_FONT_META;
-      if (meta && meta.isWebSafe && meta.isWebSafe(font.name)) {
+      if (lic && lic.license === "commercial") {
+        // Zainstalowany komercyjny font (user go ma u siebie) — oznacz jako Premium.
+        tag.classList.add("wfs-tag-paid");
+        tag.textContent = "Premium";
+      } else if (meta && meta.isWebSafe && meta.isWebSafe(font.name)) {
         // Preinstalowany wszędzie (Win+Mac) — działa w sieci bez pliku/licencji.
         tag.classList.add("wfs-tag-websafe");
         tag.textContent = "Web-safe";
