@@ -25,7 +25,20 @@ const restEntries = [
   })),
 ].sort((a, b) => a.name.localeCompare(b.name));
 
-const ALL_FONTS = [...popularEntries, ...restEntries];
+// Fonty komercyjne (premium) z bazy metadanych — dołączamy do listy wyszukiwania,
+// by były odkrywalne (oznaczone $, z linkami do kupna). Pomijamy te już obecne
+// (np. zainstalowane systemowo). Na końcu listy — znajdziesz je wpisując nazwę.
+const commercialEntries = (() => {
+  const meta = window.WOLFIE_FONT_META;
+  if (!meta || !meta.COMMERCIAL) return [];
+  const have = new Set([...popularEntries, ...restEntries].map((f) => f.name.toLowerCase()));
+  return Object.keys(meta.COMMERCIAL)
+    .filter((n) => !have.has(n.toLowerCase()))
+    .map((n) => ({ name: n, type: "commercial" }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+})();
+
+const ALL_FONTS = [...popularEntries, ...restEntries, ...commercialEntries];
 
 // Dodaj zapisane customowe fonty (pobrane pickerem) do listy wyszukiwania,
 // oznaczając źródło: "google" (z gstatic) lub "web" (skądś indziej).
@@ -1370,10 +1383,12 @@ function updateSnippet() {
   const builders = { css: buildCSS, scss: buildSCSS, js: buildJS };
   document.getElementById("wfs-code").textContent = builders[currentTab]();
 
-  // Badge PAID + przycisk „Kup font" dla fontów komercyjnych.
+  // Badge PAID + opcje zakupu (afiliacja) dla fontów komercyjnych.
   const buy = document.getElementById("wfs-buy");
   const paid = document.getElementById("wfs-paid");
+  const buyOptions = document.getElementById("wfs-buy-options");
   let buyUrl = null;
+  let commercialName = null;
   let isCommercial = false;
   const meta = window.WOLFIE_FONT_META;
   if (meta) {
@@ -1382,17 +1397,39 @@ function updateSnippet() {
       const c = meta.classify(p.family);
       if (c.license === "commercial") {
         isCommercial = true;
-        if (c.buyUrl && !buyUrl) buyUrl = c.buyUrl;
+        if (!commercialName) {
+          commercialName = p.family;
+          buyUrl = c.buyUrl || null;
+        }
       }
     }
   }
   if (paid) paid.hidden = !isCommercial;
-  if (buy) {
-    if (buyUrl) {
-      buy.href = buyUrl;
-      buy.hidden = false;
+  if (buy) buy.hidden = true; // zastąpione przez listę opcji poniżej
+  if (buyOptions) {
+    buyOptions.innerHTML = "";
+    if (isCommercial && commercialName && meta && meta.affiliateLinks) {
+      const lbl = document.createElement("span");
+      lbl.className = "wfs-buy-label";
+      lbl.textContent = t("buy_font") + " „" + commercialName + "”:";
+      buyOptions.appendChild(lbl);
+      meta.affiliateLinks(commercialName, buyUrl).forEach((lnk) => {
+        const a = document.createElement("a");
+        a.className = "wfs-buy-chip";
+        a.href = lnk.url;
+        a.target = "_blank";
+        // rel=sponsored — uczciwe oznaczenie linku afiliacyjnego.
+        a.rel = "noopener noreferrer" + (lnk.affiliate ? " sponsored" : "");
+        a.textContent = lnk.label;
+        buyOptions.appendChild(a);
+      });
+      const note = document.createElement("span");
+      note.className = "wfs-buy-aff";
+      note.textContent = t("affiliate_note");
+      buyOptions.appendChild(note);
+      buyOptions.hidden = false;
     } else {
-      buy.hidden = true;
+      buyOptions.hidden = true;
     }
   }
 }
@@ -1469,6 +1506,9 @@ function buildCombo(combo) {
     if (font.type === "custom") {
       tag.classList.add("wfs-tag-custom");
       tag.textContent = font.source === "google" ? "★ Google" : "Custom";
+    } else if (font.type === "commercial") {
+      tag.classList.add("wfs-tag-paid");
+      tag.textContent = "Premium";
     } else if (font.popular) {
       tag.classList.add("wfs-tag-pop");
       tag.textContent = "★ Google";
@@ -1485,6 +1525,15 @@ function buildCombo(combo) {
       left.appendChild(h);
     }
     left.appendChild(name);
+    // Znacznik $ dla fontów premium (wymagana płatna licencja).
+    const lic = window.WOLFIE_FONT_META && window.WOLFIE_FONT_META.classify(font.name);
+    if (lic && lic.license === "commercial") {
+      const dollar = document.createElement("span");
+      dollar.className = "wfs-paidmark";
+      dollar.textContent = "$";
+      dollar.title = t("premium_required");
+      left.appendChild(dollar);
+    }
     li.append(left, tag);
     li.addEventListener("mousedown", (e) => {
       e.preventDefault();

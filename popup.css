@@ -320,6 +320,11 @@ main { padding: 12px 14px 14px; }
   border-color: #1e5a6a;
   background: rgba(0, 224, 255, 0.08);
 }
+.wfs-options li .wfs-tag-paid {
+  color: #ffb84a;
+  border-color: #6a5a1e;
+  background: rgba(255, 184, 74, 0.08);
+}
 .wfs-options li .wfs-name { font-size: 14px; }
 .wfs-options .wfs-empty {
   color: var(--wfs-muted);
@@ -579,6 +584,29 @@ main { padding: 12px 14px 14px; }
 }
 .wfs-buy:hover { background: rgba(255, 184, 74, 0.22); }
 .wfs-copy.copied { background: #2e7d4f; border-color: #2e7d4f; color: #fff; }
+
+/* Opcje zakupu (afiliacja) — dyskretne, nienachalne: małe, wyblakłe linki. */
+.wfs-buy-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  padding: 6px 10px;
+  font-size: 10px;
+  color: var(--wfs-muted);
+  border-top: 1px solid var(--wfs-border);
+}
+.wfs-buy-label { opacity: .8; }
+.wfs-buy-chip {
+  color: var(--wfs-muted);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--wfs-border);
+}
+.wfs-buy-chip:hover { color: var(--wfs-text); border-bottom-color: var(--wfs-muted); }
+.wfs-buy-aff { margin-left: auto; font-size: 9px; font-style: italic; opacity: .55; }
+
+/* Znacznik fontu premium ($) — wymaga płatnej licencji. */
+.wfs-paidmark { color: #ffb84a; font-weight: 700; flex: 0 0 auto; cursor: help; }
 .wfs-code {
   margin: 0;
   padding: 10px;

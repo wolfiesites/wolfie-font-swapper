@@ -150,6 +150,17 @@ function makePanel(cfg) {
     const nm = document.createElement("span");
     nm.className = "nm";
     nm.textContent = it.name;
+    // Lewa grupa: nazwa + ewentualny znacznik $ (font premium / płatna licencja).
+    const left = document.createElement("span");
+    left.style.cssText = "display:flex;gap:6px;align-items:center;min-width:0";
+    left.appendChild(nm);
+    if (c.license === "commercial") {
+      const dollar = document.createElement("span");
+      dollar.className = "cf-paidmark";
+      dollar.textContent = "$";
+      dollar.title = I18N.t("premium_required");
+      left.appendChild(dollar);
+    }
     const right = document.createElement("span");
     right.style.cssText = "display:flex;gap:6px;align-items:center";
     const tag = document.createElement("span");
@@ -164,7 +175,7 @@ function makePanel(cfg) {
       cfg.remove(it.key);
     });
     right.append(tag, del);
-    node.append(nm, right);
+    node.append(left, right);
     node.addEventListener("click", () => selectItem(it.key));
     return node;
   }

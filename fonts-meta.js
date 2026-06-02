@@ -170,11 +170,70 @@
     return SEARCH_PROVIDERS.map((p) => ({ name: p.name, url: p.url(name) }));
   }
 
+  // ===========================================================================
+  // AFILIACJA — uzupełnij identyfikatory po rejestracji w programach partnerskich.
+  // Linki DZIAŁAJĄ od razu (bez prowizji); po wklejeniu ID zaczynają zarabiać.
+  // Wszystko to zwykłe DANE/URL-e (zgodne z MV3 — żadnego zdalnego kodu).
+  // ---------------------------------------------------------------------------
+  // • MyFonts → CJ Affiliate (Commission Junction). W panelu CJ wygeneruj
+  //   „deep link" i wklej PREFIX poniżej; doklejamy enkodowany URL docelowy.
+  //   Pusty prefix = zwykły link do MyFonts (bez prowizji).
+  // • Creative Market → Impact. Wklej swój parametr lub prefix linku Impact.
+  // • Envato → Twój username; doklejamy ?ref=username (proste i działa).
+  // ===========================================================================
+  const AFFILIATE = {
+    myfontsCjPrefix: "", // np. "https://www.anrdoezrs.net/links/0000000/type/dlg/sid/wfs/"
+    creativeMarketParam: "", // np. "ui=000000" lub "ref=wolfie"
+    envatoRef: "", // np. "wolfiesites"
+    subId: "wfs", // własny tag kampanii (opcjonalnie)
+  };
+
+  function withParam(url, param) {
+    if (!param) return url;
+    return url + (url.indexOf("?") >= 0 ? "&" : "?") + param;
+  }
+  function cjWrap(prefix, target) {
+    if (!prefix) return target;
+    return prefix + encodeURIComponent(target); // format deep-linka z panelu CJ
+  }
+
+  // Lista opcji zakupu dla danego fontu (wydawca + marketplace'y afiliacyjne).
+  // directBuyUrl — bezpośredni link wydawcy z bazy COMMERCIAL (jeśli jest).
+  function affiliateLinks(name, directBuyUrl) {
+    const q = name || "";
+    const out = [];
+    if (directBuyUrl) {
+      out.push({ label: "Wydawca", url: directBuyUrl, affiliate: false });
+    }
+    // MyFonts (najszersza oferta) — przez CJ, jeśli ustawiony prefix.
+    const mf = "https://www.myfonts.com/search/" + encodeURIComponent(q) + "/";
+    out.push({
+      label: "MyFonts",
+      url: cjWrap(AFFILIATE.myfontsCjPrefix, mf),
+      affiliate: !!AFFILIATE.myfontsCjPrefix,
+    });
+    // Creative Market.
+    const cm = withParam(
+      "https://creativemarket.com/search?q=" + encodeURIComponent(q) + "&category=fonts",
+      AFFILIATE.creativeMarketParam
+    );
+    out.push({ label: "Creative Market", url: cm, affiliate: !!AFFILIATE.creativeMarketParam });
+    // Envato Market (GraphicRiver) — proste ?ref=.
+    const ev = withParam(
+      "https://graphicriver.net/search?term=" + encodeURIComponent(q) + "&category=fonts",
+      AFFILIATE.envatoRef ? "ref=" + encodeURIComponent(AFFILIATE.envatoRef) : ""
+    );
+    out.push({ label: "Envato", url: ev, affiliate: !!AFFILIATE.envatoRef });
+    return out;
+  }
+
   window.WOLFIE_FONT_META = {
     COMMERCIAL,
     LICENSE_INFO,
     SEARCH_PROVIDERS,
+    AFFILIATE,
     searchLinks,
+    affiliateLinks,
     classify,
     classifyAuthoritative,
   };
