@@ -28,7 +28,9 @@
       colorScheme: "normal",
       boxShadow: "0 10px 40px rgba(0,0,0,.5)",
       borderRadius: "0 0 0 14px",
-      background: "transparent",
+      // Ciemnoszare tło iframe (nie przezroczyste) — żadna szczelina w panelu nie
+      // pokaze juz strony pod spodem (np. przerwa input/lista).
+      background: "#1e1e24",
     });
     return iframe;
   }
