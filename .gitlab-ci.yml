@@ -1,0 +1,77 @@
+# Pipeline publikacji Wolfie Font Swapper.
+#
+# Na branchu `production` (np. po zmergowaniu z `main`):
+#   1. build:zip   — buduje paczkę rozszerzenia gotową do Chrome Web Store
+#                    (tylko pliki dodatku; bez docs/assets/store/*.md/CI),
+#   2. publish:wppw — wysyła ZIP do api.wppw.pl (prywatnie, za kluczem API).
+#
+# WYMAGANE zmienne CI/CD (Settings → CI/CD → Variables; Masked + Protected):
+#   WPPW_UPLOAD_URL  endpoint API, np.
+#                    https://api.wppw.pl/v1/extensions/wolfie-font-swapper/releases
+#   WPPW_API_KEY     klucz API / licencyjny do api.wppw.pl
+# OPCJONALNE:
+#   WPPW_VISIBILITY  'private' (domyślnie) | 'public'
+#   WPPW_ORG         slug superorg (domyślnie 'wppw')
+#
+# Dopóki WPPW_UPLOAD_URL / WPPW_API_KEY nie są ustawione, krok publish kończy się
+# „skipped" (nie wysyła nic) — pipeline pozostaje zielony, a ZIP jest w artefaktach.
+
+stages: [build, publish]
+
+variables:
+  PKG_NAME: "wolfie-font-swapper"
+
+build:zip:
+  stage: build
+  image: alpine:3.20
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "production"'
+  before_script:
+    - apk add --no-cache git zip jq
+  script:
+    - VERSION=$(jq -r .version manifest.json)
+    - ZIP="${PKG_NAME}-${VERSION}.zip"
+    # Paczka = wszystkie śledzone pliki MINUS materiały nie-dodatkowe.
+    - mkdir -p pkg
+    - git archive HEAD | tar -x -C pkg
+    - rm -rf pkg/docs pkg/assets pkg/store
+    - rm -f pkg/*.md pkg/CLAUDE.md pkg/.gitignore pkg/.gitlab-ci.yml
+    - 'rm -f pkg/_tmp* pkg/assets/generate.py 2>/dev/null || true'
+    - (cd pkg && zip -r "../$ZIP" . -x "*.DS_Store")
+    - echo "Built $ZIP"; unzip -l "$ZIP"
+    - echo "VERSION=$VERSION" > build.env
+    - echo "ZIP=$ZIP" >> build.env
+  artifacts:
+    name: "wfs-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - "*.zip"
+    expire_in: 90 days
+    reports:
+      dotenv: build.env
+
+publish:wppw:
+  stage: publish
+  image: alpine:3.20
+  needs: ["build:zip"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "production"'
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - |
+      if [ -z "$WPPW_UPLOAD_URL" ] || [ -z "$WPPW_API_KEY" ]; then
+        echo "WPPW_UPLOAD_URL / WPPW_API_KEY nie ustawione — pomijam upload."
+        echo "Ustaw je w GitLab → Settings → CI/CD → Variables (Masked, Protected)."
+        exit 0
+      fi
+    - echo "Uploading $ZIP (v$VERSION) → $WPPW_UPLOAD_URL"
+    - |
+      curl --fail --show-error --silent \
+        -H "Authorization: Bearer $WPPW_API_KEY" \
+        -F "file=@${ZIP}" \
+        -F "name=${PKG_NAME}" \
+        -F "version=${VERSION}" \
+        -F "visibility=${WPPW_VISIBILITY:-private}" \
+        -F "org=${WPPW_ORG:-wppw}" \
+        "$WPPW_UPLOAD_URL"
+    - echo "OK — wysłano $ZIP do api.wppw.pl"
