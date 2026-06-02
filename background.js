@@ -1,6 +1,7 @@
 // Service worker:
 // - udostępnia chrome.storage.session content scriptom (by mogły czytać konfig per domena),
-// - rysuje zieloną kropkę na ikonie karty, gdy content script auto-zastosuje fonty.
+// - rysuje kropkę na ikonie karty, gdy content script auto-zastosuje fonty
+//   (zielona = ręczna podmiana sesji/trwała, czerwona = reguła domeny z ustawień).
 
 function setSessionAccess() {
   try {
@@ -8,7 +9,7 @@ function setSessionAccess() {
   } catch (e) {}
 }
 
-async function iconWithDot(size, withDot) {
+async function iconWithDot(size, withDot, color) {
   const srcSize = size >= 48 ? 48 : size >= 32 ? 48 : 16;
   const resp = await fetch(chrome.runtime.getURL("icons/icon" + srcSize + ".png"));
   const bmp = await createImageBitmap(await resp.blob());
@@ -27,22 +28,41 @@ async function iconWithDot(size, withDot) {
     ctx.fill();
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = "#21c95e";
+    // Czerwona kropka = reguła domeny (z ustawień). Zielona = ręczna podmiana.
+    ctx.fillStyle = color === "red" ? "#ff3b30" : "#21c95e";
     ctx.fill();
   }
   return ctx.getImageData(0, 0, size, size);
 }
-async function setDot(tabId, on) {
+async function setDot(tabId, on, color) {
   if (tabId == null) return;
   try {
-    const [d16, d32] = await Promise.all([iconWithDot(16, on), iconWithDot(32, on)]);
+    const [d16, d32] = await Promise.all([iconWithDot(16, on, color), iconWithDot(32, on, color)]);
     await chrome.action.setIcon({ tabId, imageData: { 16: d16, 32: d32 } });
   } catch (e) {}
 }
 
 chrome.runtime.onMessage.addListener((msg, sender) => {
   if (msg && msg.type === "wfs-active" && sender.tab && sender.tab.id != null) {
-    setDot(sender.tab.id, true);
+    setDot(sender.tab.id, true, msg.fromRule ? "red" : "green");
+  }
+});
+
+// ---- Panel wstrzykiwany w stronę (fixed, prawy górny róg) ----
+// Manifest nie ma default_popup, więc klik w ikonę odpala onClicked. Wysyłamy
+// do content scriptu prośbę o przełączenie panelu (iframe z popup.html).
+chrome.action.onClicked.addListener(async (tab) => {
+  if (!tab || tab.id == null) return;
+  const msg = { type: "wfs-toggle-panel", tabId: tab.id };
+  try {
+    await chrome.tabs.sendMessage(tab.id, msg);
+  } catch (e) {
+    // Content script jeszcze nie wstrzyknięty (np. karta otwarta przed instalacją)
+    // — wstrzyknij go i ponów.
+    try {
+      await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] });
+      await chrome.tabs.sendMessage(tab.id, msg);
+    } catch (e2) {}
   }
 });
 

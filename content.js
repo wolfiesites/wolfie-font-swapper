@@ -1,3 +1,107 @@
+// ---- Panel UI wstrzykiwany w stronę (iframe popup.html, fixed prawy górny róg) ----
+// Klik w ikonę rozszerzenia przełącza panel. Minimalizacja zwija go do małej
+// okrągłej ikony przyklejonej do prawego górnego rogu (klik = rozwiń z powrotem).
+(function () {
+  if (window.__wfsPanelInit) return; // chroni przed podwójnym wstrzyknięciem
+  window.__wfsPanelInit = true;
+
+  const PANEL_ID = "wolfie-font-swapper-panel";
+  const MINI_ID = "wolfie-font-swapper-mini";
+  let panelTabId = null;
+
+  function makeIframe(tabId) {
+    const iframe = document.createElement("iframe");
+    iframe.id = PANEL_ID;
+    iframe.src =
+      chrome.runtime.getURL("popup.html") + "?tabId=" + tabId + "&panel=1";
+    Object.assign(iframe.style, {
+      position: "fixed",
+      top: "0",
+      right: "0",
+      width: "320px",
+      height: "min(660px, 100vh)",
+      border: "none",
+      zIndex: "2147483647",
+      colorScheme: "normal",
+      boxShadow: "0 10px 40px rgba(0,0,0,.5)",
+      borderRadius: "0 0 0 14px",
+      background: "transparent",
+    });
+    return iframe;
+  }
+
+  function removeMini() {
+    const m = document.getElementById(MINI_ID);
+    if (m) m.remove();
+  }
+
+  function showMini() {
+    if (document.getElementById(MINI_ID)) return;
+    const btn = document.createElement("button");
+    btn.id = MINI_ID;
+    btn.type = "button";
+    btn.title = "Wolfie Font Swapper";
+    btn.textContent = "Aa";
+    Object.assign(btn.style, {
+      position: "fixed",
+      top: "12px",
+      right: "12px",
+      width: "44px",
+      height: "44px",
+      borderRadius: "50%",
+      border: "2px solid #00e0ff",
+      background: "#1e1e24",
+      color: "#00e0ff",
+      font: "700 16px 'Segoe UI', system-ui, sans-serif",
+      cursor: "pointer",
+      zIndex: "2147483647",
+      boxShadow: "0 6px 22px rgba(0,0,0,.45)",
+      padding: "0",
+      lineHeight: "1",
+    });
+    btn.addEventListener("click", () => showPanel(panelTabId));
+    document.documentElement.appendChild(btn);
+  }
+
+  function showPanel(tabId) {
+    if (tabId != null) panelTabId = tabId;
+    removeMini();
+    let iframe = document.getElementById(PANEL_ID);
+    if (!iframe) {
+      iframe = makeIframe(panelTabId);
+      (document.body || document.documentElement).appendChild(iframe);
+    } else {
+      iframe.style.display = "block";
+    }
+  }
+
+  function collapsePanel() {
+    const iframe = document.getElementById(PANEL_ID);
+    if (iframe) iframe.style.display = "none"; // ukryj (stan popupu zostaje)
+    showMini();
+  }
+
+  function closeAll() {
+    const iframe = document.getElementById(PANEL_ID);
+    if (iframe) iframe.remove();
+    removeMini();
+  }
+
+  function togglePanel(tabId) {
+    const iframe = document.getElementById(PANEL_ID);
+    const visible = iframe && iframe.style.display !== "none";
+    if (visible) closeAll(); // otwarty → zamknij; zwinięty/zamknięty → pokaż
+    else showPanel(tabId);
+  }
+
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (!msg) return;
+    if (msg.type === "wfs-toggle-panel") togglePanel(msg.tabId);
+    else if (msg.type === "wfs-collapse-panel") collapsePanel();
+    else if (msg.type === "wfs-close-panel") closeAll();
+  });
+})();
+
 // Auto-stosowanie fontów na stronie wg konfigu domeny (sesja/trwały) lub
 // pasującej reguły (glob na URL/host). Działa przy ładowaniu — bez popupu.
 (async function () {
@@ -40,6 +144,9 @@
   }
   function buildRules(sel) {
     const out = [];
+    // Wzorce nawigacji — do reguły nawigacji i do wykluczenia nawigacji z akapitów.
+    const nb = ["nav", '[role="navigation"]', ".navbar", ".navbar-nav", ".nav", ".nav-menu", ".navmenu", ".navigation", ".menu", ".main-menu", ".main-nav", ".primary-menu", ".primary-nav", ".site-nav", ".topnav", ".top-nav", ".menu-list", "#nav", "#navbar", "#menu", "#navigation", "#main-nav", "#primary-menu", "header ul"];
+    const navExcl = nb.flatMap((s) => [s, s + " *"]).join(", ");
     if (hasProps(sel.base))
       out.push(
         ':where(body, body *):not(:where(i,[class*="icon"],[class*="Icon"],[class*="material-"])) { ' +
@@ -47,9 +154,13 @@
       );
     if (hasProps(sel.headings))
       out.push("h1,h2,h3,h4,h5,h6,h1 *,h2 *,h3 *,h4 *,h5 *,h6 * { " + decl(sel.headings) + " }");
-    if (hasProps(sel.paragraphs)) out.push("p, p * { " + decl(sel.paragraphs) + " }");
+    if (hasProps(sel.paragraphs)) {
+      // Akapity + listy (ul/ol/li) + tabele (table/tr/td/th…), bez nawigacji.
+      const pb = ["p", "ul", "ol", "li", "dl", "dt", "dd", "table", "caption", "thead", "tbody", "tfoot", "tr", "td", "th"];
+      const paraSel = pb.flatMap((s) => [s, s + " *"]).join(", ");
+      out.push(":where(" + paraSel + "):not(:where(" + navExcl + ")) { " + decl(sel.paragraphs) + " }");
+    }
     if (hasProps(sel.navigation)) {
-      const nb = ["nav", '[role="navigation"]', ".navbar", ".navbar-nav", ".nav", ".nav-menu", ".navmenu", ".navigation", ".menu", ".main-menu", ".main-nav", ".primary-menu", ".primary-nav", ".site-nav", ".topnav", ".top-nav", ".menu-list", "#nav", "#navbar", "#menu", "#navigation", "#main-nav", "#primary-menu", "header ul"];
       out.push(nb.map((s) => s + ", " + s + " *").join(", ") + " { " + decl(sel.navigation) + " }");
     }
     if (hasProps(sel.buttons)) {
@@ -82,11 +193,15 @@
     const host = location.hostname;
     const url = location.href;
     let sel = (local.wfs_persist || {})[host] || sess[host] || null;
+    let fromRule = false; // konfig z reguły domeny → czerwona kropka
     if (!sel) {
       const r = matchRule(local.wfs_rules || [], url, host);
       if (r) {
         const ps = (local.wfs_presets || []).find((p) => p.name === r.preset);
-        if (ps) sel = ps.selection;
+        if (ps) {
+          sel = ps.selection;
+          fromRule = true;
+        }
       }
     }
     if (!hasAny(sel)) return;
@@ -99,7 +214,7 @@
     }
     st.textContent = css;
     try {
-      chrome.runtime.sendMessage({ type: "wfs-active" }); // zielona kropka na ikonie
+      chrome.runtime.sendMessage({ type: "wfs-active", fromRule }); // kropka na ikonie (czerwona dla reguły)
     } catch (e) {}
   } catch (e) {}
 })();

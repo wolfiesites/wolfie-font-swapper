@@ -450,28 +450,18 @@ function renderRules() {
   if (!rulesList) return;
   const addBtn = document.getElementById("rules-add");
   rulesList.innerHTML = "";
-  // Reguła wymaga presetu — bez presetów nie da się dodać reguły.
-  if (!presets.length) {
-    const e = document.createElement("div");
-    e.className = "rules-empty";
-    e.textContent = I18N.t("rules_need_preset");
-    rulesList.appendChild(e);
-    if (addBtn) {
-      addBtn.disabled = true;
-      addBtn.style.opacity = ".5";
-      addBtn.style.cursor = "not-allowed";
-    }
-    return;
-  }
+  // Dodanie nowej reguły wymaga presetu — ale ISTNIEJĄCE reguły pokazujemy
+  // zawsze (także bez presetów), by stare/zalegające reguły dało się usunąć.
+  const noPresets = !presets.length;
   if (addBtn) {
-    addBtn.disabled = false;
-    addBtn.style.opacity = "";
-    addBtn.style.cursor = "";
+    addBtn.disabled = noPresets;
+    addBtn.style.opacity = noPresets ? ".5" : "";
+    addBtn.style.cursor = noPresets ? "not-allowed" : "";
   }
   if (!rules.length) {
     const e = document.createElement("div");
     e.className = "rules-empty";
-    e.textContent = I18N.t("rules_empty");
+    e.textContent = I18N.t(noPresets ? "rules_need_preset" : "rules_empty");
     rulesList.appendChild(e);
     return;
   }

@@ -81,16 +81,21 @@ let currentHost = "";
 let rulesData = []; // wczytane reguły (do paska reguły)
 let presetsData = []; // wczytane presety (do przełącznika)
 let activeRulePattern = null; // wzorzec reguły, która dała bieżący konfig
+let appliedFromRule = false; // czy bieżący konfig pochodzi z reguły domeny (czerwona kropka)
 
-// Pasek reguły: pokaż gdy konfig pochodzi z reguły; pozwól zmienić preset / usunąć regułę.
+// Pasek reguły: pokaż TYLKO przycisk usuwający regułę tej domeny, gdy konfig
+// pochodzi z reguły (reguły dodaje/edytuje się wyłącznie w ustawieniach).
 function setupRuleBar(rule) {
   const bar = document.getElementById("wfs-rulebar");
-  const name = document.getElementById("wfs-rule-preset");
   // Pasek pokazujemy tylko gdy reguła ma realnie istniejący preset.
-  if (!bar || !name || !rule || !rule.preset) return;
+  if (!bar || !rule || !rule.preset) return;
   if (!presetsData.some((p) => p.name === rule.preset)) return;
   activeRulePattern = rule.pattern;
-  name.textContent = rule.preset; // wskaźnik read-only; zmiana presetu w ustawieniach
+  // Pokaż w tooltipie, który glob (wzorzec) zadziałał — np. „*" łapie każdą stronę.
+  const removeBtn = document.getElementById("wfs-rule-remove");
+  if (removeBtn) {
+    removeBtn.title = t("rule_remove_domain") + " — " + rule.pattern;
+  }
   bar.hidden = false;
 }
 
@@ -285,6 +290,37 @@ function applyFontsInPage(state) {
   };
 
   const rules = [];
+
+  // Wzorce nawigacji — używane i do reguły nawigacji, i do WYKLUCZENIA nawigacji
+  // z akapitów (listy/tabele będące menu nie mają dostawać fontu akapitów).
+  const navBases = [
+    "nav",
+    '[role="navigation"]',
+    ".navbar",
+    ".navbar-nav",
+    ".nav",
+    ".nav-menu",
+    ".navmenu",
+    ".navigation",
+    ".menu",
+    ".main-menu",
+    ".main-nav",
+    ".primary-menu",
+    ".primary-nav",
+    ".site-nav",
+    ".topnav",
+    ".top-nav",
+    ".menu-list",
+    "#nav",
+    "#navbar",
+    "#menu",
+    "#navigation",
+    "#main-nav",
+    "#primary-menu",
+    "header ul",
+  ];
+  const navExcl = navBases.flatMap((s) => [s, s + " *"]).join(", ");
+
   if (has(state.base)) {
     // Cała strona, ale pomijamy elementy ikon, by nie psuć fontów ikonowych.
     // :where() ma zerową wagę (specificity), więc reguły dla nagłówków/akapitów
@@ -303,37 +339,35 @@ function applyFontsInPage(state) {
     );
   }
   if (has(state.paragraphs)) {
-    rules.push("p, p * { " + decl(state.paragraphs) + " }");
+    // Akapity obejmują też listy (ul/ol/li) i tabele (table/tr/td/th…),
+    // ale NIE elementy nawigacji (te wykluczamy przez :not).
+    const paraBases = [
+      "p",
+      "ul",
+      "ol",
+      "li",
+      "dl",
+      "dt",
+      "dd",
+      "table",
+      "caption",
+      "thead",
+      "tbody",
+      "tfoot",
+      "tr",
+      "td",
+      "th",
+    ];
+    const paraSel = paraBases.flatMap((s) => [s, s + " *"]).join(", ");
+    rules.push(
+      ":where(" + paraSel + "):not(:where(" + navExcl + ")) { " +
+        decl(state.paragraphs) +
+        " }"
+    );
   }
   if (has(state.navigation)) {
     // Częste wzorce nawigacji: semantyczny <nav>, role, oraz typowe klasy/id
     // i menu w nagłówku. Każdy wzorzec łapie też swoich potomków (" *").
-    const navBases = [
-      "nav",
-      '[role="navigation"]',
-      ".navbar",
-      ".navbar-nav",
-      ".nav",
-      ".nav-menu",
-      ".navmenu",
-      ".navigation",
-      ".menu",
-      ".main-menu",
-      ".main-nav",
-      ".primary-menu",
-      ".primary-nav",
-      ".site-nav",
-      ".topnav",
-      ".top-nav",
-      ".menu-list",
-      "#nav",
-      "#navbar",
-      "#menu",
-      "#navigation",
-      "#main-nav",
-      "#primary-menu",
-      "header ul",
-    ];
     const navSel = navBases.map((s) => s + ", " + s + " *").join(", ");
     rules.push(navSel + " { " + decl(state.navigation) + " }");
   }
@@ -526,11 +560,88 @@ function pageFontInspector(opts) {
     }
     return done.join("\n");
   }
+  // Toast potwierdzający (znika sam) — niezależny od nakładki inspektora.
+  function showToast(text) {
+    const el = document.createElement("div");
+    el.textContent = text;
+    Object.assign(el.style, {
+      position: "fixed", left: "50%", bottom: "28px",
+      transform: "translateX(-50%) translateY(8px)", zIndex: String(Z),
+      background: "linear-gradient(90deg,#00e0ff,#ff3dae)", color: "#0b0d14",
+      font: "600 13px 'Segoe UI',system-ui,sans-serif", padding: "10px 16px",
+      borderRadius: "999px", boxShadow: "0 8px 28px rgba(0,0,0,.5)", opacity: "0",
+      transition: "opacity .2s ease, transform .2s ease", pointerEvents: "none",
+      maxWidth: "90vw", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+    });
+    (document.body || document.documentElement).appendChild(el);
+    requestAnimationFrame(() => {
+      el.style.opacity = "1";
+      el.style.transform = "translateX(-50%) translateY(0)";
+    });
+    setTimeout(() => {
+      el.style.opacity = "0";
+      setTimeout(() => el.remove(), 260);
+    }, 2200);
+  }
+  // Zbuduj prosty selektor CSS dla elementu (tag + #id lub .klasy).
+  function cssSelectorFor(el) {
+    const esc = (s) => (window.CSS && CSS.escape ? CSS.escape(s) : s);
+    let s = el.tagName.toLowerCase();
+    try {
+      if (el.id) return s + "#" + esc(el.id);
+    } catch (_) {}
+    const cn = typeof el.className === "string" ? el.className.trim() : "";
+    const cls = cn ? cn.split(/\s+/).filter(Boolean) : [];
+    if (cls.length) s += "." + cls.slice(0, 2).map(esc).join(".");
+    return s;
+  }
   async function onClick(e) {
     if (!current) return;
     e.preventDefault();
     e.stopPropagation();
     const fam = firstFamily(current);
+    // Tryb „style": skopiuj GOTOWY blok CSS z fontowymi właściwościami elementu.
+    if (opts.mode === "style") {
+      const cs = getComputedStyle(current);
+      const props = [
+        "font-family",
+        "font-size",
+        "font-weight",
+        "font-style",
+        "font-variant",
+        "line-height",
+        "letter-spacing",
+        "text-transform",
+        "color",
+      ];
+      const body = props
+        .map((p) => "  " + p + ": " + cs.getPropertyValue(p) + ";")
+        .join("\n");
+      const css = cssSelectorFor(current) + " {\n" + body + "\n}";
+      try {
+        await navigator.clipboard.writeText(css);
+      } catch (_) {}
+      // Osadź @font-face (by można było dodać do moich fontów i renderować poza stroną).
+      let fontface = null;
+      let source = "system";
+      try {
+        const faces = collectFaces(fam);
+        if (faces.length) {
+          source = faces.some((c) => /fonts\.gstatic\.com/i.test(c)) ? "google" : "web";
+          fontface = await embedFaces(faces);
+        }
+      } catch (_) {}
+      // Zapisz pick głównego pickera — popup pokaże go w przypiętym pasku.
+      try {
+        chrome.storage.local.set({
+          wfs_style_pick: { family: fam, css: css, fontface: fontface, source: source },
+        });
+      } catch (_) {}
+      // Toast np.: ✓ Skopiowano styl fontu „Audiowide"
+      showToast("✓ " + (L.copied || "Copied font style") + " „" + fam + "”");
+      cleanup();
+      return;
+    }
     banner.textContent = "⏳ " + fam;
     let fontface = null;
     let source = "system";
@@ -813,7 +924,52 @@ async function ensureCustomFontsLoaded(tabId, sel) {
 
 // ---- Komunikacja z aktywną kartą ----
 
+// Popup działa we WŁASNYM oknie (dopchniętym do rogu), więc `currentWindow`
+// wskazywałby na to okno, a nie na stronę użytkownika. Dlatego docelowy tabId
+// dostajemy z URL-a (?tabId=…), ustawianego przy otwieraniu okna w tle.
+function getTargetTabId() {
+  try {
+    const id = parseInt(new URLSearchParams(location.search).get("tabId"), 10);
+    return Number.isInteger(id) ? id : null;
+  } catch (e) {
+    return null;
+  }
+}
+// Zamknij UI. W trybie panelu (iframe w stronie) prosimy content script o
+// usunięcie panelu; w innym wypadku zamykamy okno/zakładkę.
+function isPanelMode() {
+  try {
+    return new URLSearchParams(location.search).get("panel") === "1";
+  } catch (e) {
+    return false;
+  }
+}
+function closeSelf() {
+  const id = getTargetTabId();
+  if (isPanelMode() && id != null) {
+    try {
+      chrome.tabs.sendMessage(id, { type: "wfs-close-panel" });
+      return;
+    } catch (e) {}
+  }
+  try {
+    window.close();
+  } catch (e) {}
+}
 async function getActiveTab() {
+  const id = getTargetTabId();
+  if (id != null) {
+    try {
+      return await chrome.tabs.get(id);
+    } catch (e) {
+      /* karta zniknęła — spróbuj fallbacku poniżej */
+    }
+  }
+  // Fallback (np. otwarcie bez tabId): aktywna karta ostatniego zwykłego okna.
+  try {
+    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (tabs && tabs[0] && tabs[0].url) return tabs[0];
+  } catch (e) {}
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
@@ -827,7 +983,7 @@ function loadImg(src) {
     i.src = src;
   });
 }
-async function drawDot(size, on) {
+async function drawDot(size, on, color) {
   const srcSize = size >= 48 ? 48 : size >= 32 ? 48 : 16;
   const img = await loadImg(chrome.runtime.getURL("icons/icon" + srcSize + ".png"));
   const c = document.createElement("canvas");
@@ -847,15 +1003,16 @@ async function drawDot(size, on) {
     ctx.fill();
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fillStyle = "#21c95e";
+    // Czerwona kropka = reguła domeny (z ustawień). Zielona = ręczna podmiana.
+    ctx.fillStyle = color === "red" ? "#ff3b30" : "#21c95e";
     ctx.fill();
   }
   return ctx.getImageData(0, 0, size, size);
 }
-async function setTabDot(tabId, on) {
+async function setTabDot(tabId, on, color) {
   if (tabId == null) return;
   try {
-    const [d16, d32] = await Promise.all([drawDot(16, on), drawDot(32, on)]);
+    const [d16, d32] = await Promise.all([drawDot(16, on, color), drawDot(32, on, color)]);
     await chrome.action.setIcon({ tabId, imageData: { 16: d16, 32: d32 } });
   } catch (e) {}
 }
@@ -910,7 +1067,8 @@ async function applyToPage() {
       .map((p) => p.family)
       .filter(Boolean);
     const anyActive = Object.values(selection).some(hasProps);
-    setTabDot(tab.id, anyActive); // zielona kropka per karta
+    // Czerwona kropka, gdy konfig pochodzi z reguły domeny; zielona przy ręcznej podmianie.
+    setTabDot(tab.id, anyActive, appliedFromRule ? "red" : "green");
     if (anyActive) {
       setStatus(t("status_applied") + (names.length ? ": " + names.join(", ") : ""));
     } else {
@@ -1057,7 +1215,7 @@ function selectedGoogleFonts() {
 const SNIPPET_BLOCKS = [
   { sel: "body, *", key: "base", scssVar: "$font-base" },
   { sel: "h1, h2, h3, h4, h5, h6", key: "headings", scssVar: "$font-heading" },
-  { sel: "p", key: "paragraphs", scssVar: "$font-paragraph" },
+  { sel: "p, ul, ol, li, dl, dt, dd, table, caption, thead, tbody, tfoot, tr, td, th", key: "paragraphs", scssVar: "$font-paragraph" },
   {
     sel: 'nav, [role="navigation"], .navbar, .nav, .navigation, .menu',
     key: "navigation",
@@ -1375,6 +1533,7 @@ function buildCombo(combo) {
   function choose(name) {
     if (hoverTimer) clearTimeout(hoverTimer);
     previewActive = false; // commit nadpisuje podgląd
+    appliedFromRule = false; // ręczna zmiana → konfig sesji (zielona kropka)
     selection[target].family = name;
     input.value = name;
     input.classList.add("wfs-selected");
@@ -1385,6 +1544,7 @@ function buildCombo(combo) {
   }
 
   function clearSelection() {
+    appliedFromRule = false; // ręczna zmiana → konfig sesji (zielona kropka)
     selection[target].family = null;
     input.value = "";
     input.classList.remove("wfs-selected");
@@ -1418,6 +1578,7 @@ function buildCombo(combo) {
         chip.dataset.value = opt.value;
         chip.title = group.label + ": " + opt.label;
         chip.addEventListener("click", () => {
+          appliedFromRule = false; // ręczna zmiana → zielona kropka
           if (selection[target][group.key] === opt.value) {
             selection[target][group.key] = null; // klik ponownie = wyłącz
             chip.classList.remove("active");
@@ -1454,11 +1615,13 @@ function buildCombo(combo) {
     colorClear.textContent = "✕";
     colorClear.title = t("clear_title");
     colorInput.addEventListener("input", () => {
+      appliedFromRule = false; // ręczna zmiana → zielona kropka
       selection[target].color = colorInput.value;
       cwrap.classList.add("set");
       applyToPage();
     });
     colorClear.addEventListener("click", () => {
+      appliedFromRule = false; // ręczna zmiana → zielona kropka
       selection[target].color = null;
       cwrap.classList.remove("set");
       applyToPage();
@@ -1634,6 +1797,18 @@ if (settingsBtn) {
   });
 }
 
+// Minimalizacja — zwiń panel do małej okrągłej ikony (content script).
+const minimizeBtn = document.getElementById("wfs-minimize");
+if (minimizeBtn) {
+  minimizeBtn.addEventListener("click", () => {
+    const id = getTargetTabId();
+    try {
+      if (id != null) chrome.tabs.sendMessage(id, { type: "wfs-collapse-panel" });
+      else window.close();
+    } catch (e) {}
+  });
+}
+
 // Picker — pobierz font ze strony (tryb inspekcji). target = pole docelowe (lub null).
 async function startPicker(target) {
   const tab = await getActiveTab();
@@ -1675,15 +1850,57 @@ async function startPicker(target) {
         },
       ],
     });
-    window.close(); // zamknij popup, by wskazać element na stronie
+    closeSelf(); // zamknij popup, by wskazać element na stronie
+  } catch (e) {
+    setStatus(t("status_protected"));
+  }
+}
+
+// GŁÓWNY picker (ikona w nagłówku): kopiuje STYL CSS fontu klikniętego elementu
+// do schowka i NIE zwija panelu (zostaje w miejscu). Per-input pickery działają
+// po staremu (startPicker).
+async function startStyleCopier() {
+  const tab = await getActiveTab();
+  if (!tab || !tab.id) {
+    setStatus(t("status_no_tab"));
+    return;
+  }
+  if (isRestrictedUrl(tab.url || "")) {
+    setStatus(t("status_protected"));
+    return;
+  }
+  const meta = window.WOLFIE_FONT_META;
+  const googleNames = GOOGLE_FONTS.map((s) => s.toLowerCase());
+  const commercialNames = Object.keys(meta ? meta.COMMERCIAL : {}).map((s) =>
+    s.toLowerCase()
+  );
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: pageFontInspector,
+      args: [
+        {
+          mode: "style",
+          googleNames,
+          commercialNames,
+          labels: {
+            hint: t("pick_style_hint"),
+            copied: t("pick_style_copied"),
+            open: t("lic_open"),
+            commercial: t("lic_commercial"),
+            unknown: t("lic_unknown"),
+          },
+        },
+      ],
+    });
+    setStatus(t("pick_style_hint")); // panel zostaje otwarty
   } catch (e) {
     setStatus(t("status_protected"));
   }
 }
 
 const pickerBtn = document.getElementById("wfs-picker");
-if (pickerBtn)
-  pickerBtn.addEventListener("click", () => startPicker(lastFocusedTarget));
+if (pickerBtn) pickerBtn.addEventListener("click", startStyleCopier);
 
 // Edytor tekstu na stronie (ikona ✎ nad „Cała strona").
 async function startTextEditor() {
@@ -1702,7 +1919,7 @@ async function startTextEditor() {
       func: pageTextEditor,
       args: [{ labels: { hint: t("edit_text_hint") } }],
     });
-    window.close();
+    closeSelf();
   } catch (e) {
     setStatus(t("status_protected"));
   }
@@ -1715,24 +1932,19 @@ document.getElementById("wfs-reset").addEventListener("click", resetPage);
 
 // (Ustawienia per domena zapisują się automatycznie na sesję; trwałość → presety.)
 
-// Pasek reguły: wskaźnik aktywnej reguły (zmiana presetu w ustawieniach) + usunięcie.
-const rulePresetName = document.getElementById("wfs-rule-preset");
-if (rulePresetName) {
-  rulePresetName.addEventListener("click", () => {
-    // Zmianę presetu reguły robi się w ustawieniach (sekcja Reguły).
-    try {
-      chrome.runtime.openOptionsPage();
-    } catch (e) {}
-  });
-}
+// Pasek reguły: jedyna akcja w popupie to usunięcie reguły tej domeny.
+// (Reguły dodaje/edytuje się wyłącznie w ustawieniach.) Po usunięciu reguły
+// czyścimy też podmianę na stronie — bo to reguła ją narzucała.
 const ruleRemoveBtn = document.getElementById("wfs-rule-remove");
 if (ruleRemoveBtn) {
-  ruleRemoveBtn.addEventListener("click", () => {
+  ruleRemoveBtn.addEventListener("click", async () => {
     rulesData = rulesData.filter((x) => x.pattern !== activeRulePattern);
     chrome.storage.local.set({ [RULES_KEY]: rulesData });
     const bar = document.getElementById("wfs-rulebar");
     if (bar) bar.hidden = true;
     activeRulePattern = null;
+    appliedFromRule = false;
+    await resetPage(); // zdejmij fonty narzucone regułą + zgaś kropkę
   });
 }
 const resetTop = document.getElementById("wfs-reset-top");
@@ -1851,6 +2063,9 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
     }
 
     // 3) Zastosuj na aktywnej karcie (jeśli cokolwiek ustawione).
+    // Czerwona kropka tylko gdy konfig pochodzi z reguły i użytkownik nic
+    // ręcznie nie podmienił (pobranie pickerem liczy się jako ręczna zmiana).
+    appliedFromRule = !!ruleMatched && !(picked && picked.family);
     if (saved || (picked && picked.family)) applyToPage();
     updateSnippet();
     if (ruleMatched) setupRuleBar(ruleMatched); // pasek reguły (przełącz preset / usuń)
@@ -1863,6 +2078,12 @@ document.getElementById("wfs-copy").addEventListener("click", async () => {
 const PRESETS_KEY = "wfs_presets";
 const MAX_PRESETS = 5;
 let presets = [];
+let pendingPresetDelete = null; // nazwa presetu czekającego na 2. klik (gdy ma regułę)
+
+// Reguły domen używające danego presetu (po nazwie).
+function rulesUsingPreset(name) {
+  return (rulesData || []).filter((r) => r && r.preset === name);
+}
 
 function persistPresets() {
   chrome.storage.local.set({ [PRESETS_KEY]: presets });
@@ -1910,6 +2131,11 @@ function renderPresets() {
     del.className = "wfs-preset-del";
     del.textContent = "✕";
     del.title = t("preset_delete_title");
+    // Preset przypięty do reguły domeny — oznacz i uzbrój podwójne potwierdzenie.
+    if (rulesUsingPreset(preset.name).length) {
+      del.classList.add("linked");
+      if (pendingPresetDelete === preset.name) del.classList.add("confirm");
+    }
     del.addEventListener("click", (e) => {
       e.stopPropagation();
       deletePreset(i);
@@ -1941,13 +2167,34 @@ function savePreset() {
 }
 
 function deletePreset(i) {
+  const preset = presets[i];
+  if (!preset) return;
+  const linked = rulesUsingPreset(preset.name);
+  // Preset użyty w regule domeny: pierwszy klik tylko ostrzega (podwójne
+  // potwierdzenie). Dopiero drugi klik usuwa preset RAZEM z regułą.
+  if (linked.length && pendingPresetDelete !== preset.name) {
+    pendingPresetDelete = preset.name;
+    const patterns = linked.map((r) => r.pattern || "*").join(", ");
+    setStatus(
+      t("preset_del_rule_confirm").replace("%p", preset.name).replace("%r", patterns)
+    );
+    renderPresets(); // podświetl ✕ w stanie potwierdzenia
+    return;
+  }
+  // Usuń też powiązane reguły (potwierdzone) i zapisz.
+  if (linked.length) {
+    rulesData = rulesData.filter((r) => !(r && r.preset === preset.name));
+    chrome.storage.local.set({ [RULES_KEY]: rulesData });
+  }
   presets.splice(i, 1);
+  pendingPresetDelete = null;
   persistPresets();
   renderPresets();
   setStatus(t("status_preset_deleted"));
 }
 
 function applyPreset(preset) {
+  appliedFromRule = false; // ręczne wczytanie presetu → konfig sesji (zielona kropka)
   document.querySelectorAll(".wfs-combo").forEach((combo) => {
     combo.restore(preset.selection[combo.dataset.target]);
   });
@@ -1957,7 +2204,112 @@ function applyPreset(preset) {
 
 document.getElementById("wfs-save-preset").addEventListener("click", savePreset);
 
-chrome.storage.local.get(PRESETS_KEY, (data) => {
+chrome.storage.local.get([PRESETS_KEY, RULES_KEY], (data) => {
   presets = Array.isArray(data[PRESETS_KEY]) ? data[PRESETS_KEY] : [];
+  // Świeże reguły, by oznaczyć presety przypięte do reguł domen (kłódka/✕).
+  if (Array.isArray(data[RULES_KEY])) rulesData = data[RULES_KEY];
   renderPresets();
 });
+
+// ---- Przypięty pasek: aktualny wybór GŁÓWNEGO pickera + 3 kontrolki ----
+// (kopiuj styl CSS / dodaj do moich fontów / usuń pick z biblioteki)
+let stylePickData = null;
+
+function fontInLibrary(name) {
+  return !!name && ALL_FONTS.some((f) => f.name.toLowerCase() === name.toLowerCase());
+}
+
+function renderStylePick(pick) {
+  stylePickData = pick && pick.family ? pick : null;
+  const bar = document.getElementById("wfs-stylepick");
+  const nameEl = document.getElementById("wfs-stylepick-name");
+  const addBtn = document.getElementById("wfs-stylepick-add");
+  if (!bar || !nameEl) return;
+  if (!stylePickData) {
+    bar.hidden = true;
+    return;
+  }
+  nameEl.textContent = stylePickData.family;
+  nameEl.title = stylePickData.family;
+  if (addBtn) {
+    const have = fontInLibrary(stylePickData.family); // już w bibliotece → blokuj „dodaj"
+    addBtn.disabled = have;
+    addBtn.style.opacity = have ? ".4" : "";
+    addBtn.style.cursor = have ? "default" : "pointer";
+    addBtn.title = have ? t("stylepick_exists") : t("stylepick_add");
+  }
+  bar.hidden = false;
+}
+
+(function setupStylePickBar() {
+  const copyBtn = document.getElementById("wfs-stylepick-copy");
+  const addBtn = document.getElementById("wfs-stylepick-add");
+  const delBtn = document.getElementById("wfs-stylepick-del");
+
+  if (copyBtn)
+    copyBtn.addEventListener("click", async () => {
+      if (!stylePickData || !stylePickData.css) return;
+      try {
+        await navigator.clipboard.writeText(stylePickData.css);
+        setStatus(t("pick_style_copied") + " „" + stylePickData.family + "”");
+      } catch (e) {
+        setStatus(t("status_copy_fail"));
+      }
+    });
+
+  if (addBtn)
+    addBtn.addEventListener("click", () => {
+      if (!stylePickData || !stylePickData.family) return;
+      if (fontInLibrary(stylePickData.family)) {
+        setStatus(t("stylepick_exists"));
+        return;
+      }
+      const fam = stylePickData.family;
+      customFonts[fam.toLowerCase()] = {
+        name: fam,
+        css: stylePickData.fontface || "",
+        source: stylePickData.source || "web",
+      };
+      try {
+        chrome.storage.local.set({ wfs_custom_fonts: customFonts });
+      } catch (e) {}
+      addCustomFontsToList();
+      renderStylePick(stylePickData); // odśwież stan przycisku (teraz w bibliotece)
+      setStatus(t("stylepick_added") + " " + fam);
+    });
+
+  if (delBtn)
+    delBtn.addEventListener("click", () => {
+      const fam = stylePickData && stylePickData.family;
+      if (fam) {
+        const key = fam.toLowerCase();
+        if (customFonts[key]) {
+          delete customFonts[key];
+          try {
+            chrome.storage.local.set({ wfs_custom_fonts: customFonts });
+          } catch (e) {}
+          const idx = ALL_FONTS.findIndex(
+            (f) => f.type === "custom" && f.name.toLowerCase() === key
+          );
+          if (idx >= 0) ALL_FONTS.splice(idx, 1);
+        }
+      }
+      try {
+        chrome.storage.local.remove("wfs_style_pick");
+      } catch (e) {}
+      renderStylePick(null);
+      if (fam) setStatus(t("stylepick_removed") + " „" + fam + "”");
+    });
+
+  // Wczytaj istniejący pick i reaguj na nowe (panel zostaje otwarty po pickerze).
+  chrome.storage.local.get("wfs_style_pick", (data) => {
+    if (data && data.wfs_style_pick) renderStylePick(data.wfs_style_pick);
+  });
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.wfs_style_pick) {
+        renderStylePick(changes.wfs_style_pick.newValue || null);
+      }
+    });
+  } catch (e) {}
+})();

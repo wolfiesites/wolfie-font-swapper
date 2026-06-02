@@ -27,6 +27,11 @@
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
       </svg>
     </button>
+    <button id="wfs-minimize" class="wfs-iconbtn wfs-minimize" type="button" data-i18n-title="minimize_title" title="Zwiń do ikony" aria-label="Minimize">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
   </header>
 
   <main>
@@ -36,9 +41,8 @@
     </div>
 
     <div id="wfs-rulebar" class="wfs-rulebar" hidden>
-      <span class="wfs-rule-label" data-i18n="rule_label">Reguła</span>
-      <button id="wfs-rule-preset" type="button" class="wfs-rule-name" data-i18n-title="rule_edit_settings" title="Zmień preset w ustawieniach"></button>
-      <button id="wfs-rule-remove" type="button" class="wfs-rule-remove" data-i18n-title="rule_remove" title="Usuń regułę">✕</button>
+      <span class="wfs-rule-label" data-i18n="rule_domain_active">Reguła domeny aktywna</span>
+      <button id="wfs-rule-remove" type="button" class="wfs-rule-remove" data-i18n="rule_remove_domain" data-i18n-title="rule_remove_domain" title="Usuń regułę dla tej domeny">✕ Usuń regułę</button>
     </div>
 
     <!-- CAŁA STRONA -->
@@ -128,6 +132,16 @@
 
     <p id="wfs-status" class="wfs-status"></p>
   </main>
+
+  <!-- Zadokowany pasek (nie scrolluje się): aktualny wybór GŁÓWNEGO pickera + 3 kontrolki -->
+  <div id="wfs-stylepick" class="wfs-stylepick" hidden>
+    <span class="wfs-stylepick-name" id="wfs-stylepick-name"></span>
+    <div class="wfs-stylepick-actions">
+      <button id="wfs-stylepick-copy" type="button" class="wfs-stylepick-btn" data-i18n-title="stylepick_copy" title="Kopiuj styl CSS">⧉</button>
+      <button id="wfs-stylepick-add" type="button" class="wfs-stylepick-btn" data-i18n-title="stylepick_add" title="Dodaj do moich fontów">＋</button>
+      <button id="wfs-stylepick-del" type="button" class="wfs-stylepick-btn wfs-stylepick-del" data-i18n-title="stylepick_del" title="Usuń pick z biblioteki">✕</button>
+    </div>
+  </div>
 
   <footer class="wfs-footer">
     <a class="wfs-coffee" href="https://buymeacoffee.com/wolfiesites" target="_blank" rel="noopener noreferrer" title="buy me a coffee">☕ buy me a coffee</a>
