@@ -328,18 +328,24 @@ function isGoogle(fontName) {
 
 // ---- Wstrzykiwane do strony (działa w kontekście karty) ----
 
-function applyFontsInPage(state) {
+function applyFontsInPage(state, altMap) {
   // Same pliki fontów Google wstrzykuje rozszerzenie przez insertCSS
   // (omija CSP strony). Tutaj ustawiamy już tylko reguły font-family.
   const STYLE_ID = "wolfie-font-swapper-style";
 
   const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
   const q = (f) => (generic.test(f) ? f : '"' + f + '"');
+  // Dla fontu premium dokładamy darmowy odpowiednik jako fallback: oryginał
+  // (jeśli zainstalowany) ma pierwszeństwo, inaczej renderuje się odpowiednik.
+  const fam = (f) => {
+    const a = altMap && altMap[f];
+    return a ? q(f) + ", " + q(a) + ", sans-serif" : q(f);
+  };
   const has = (p) =>
     p && (p.family || p.weight || p.spacing || p.size || p.case || p.color || p.lineheight);
   const decl = (p) => {
     const d = [];
-    if (p.family) d.push("font-family: " + q(p.family) + " !important");
+    if (p.family) d.push("font-family: " + fam(p.family) + " !important");
     if (p.weight) d.push("font-weight: " + p.weight + " !important");
     if (p.spacing) d.push("letter-spacing: " + p.spacing + " !important");
     if (p.size) d.push("font-size: " + p.size + " !important");
@@ -939,13 +945,35 @@ async function fetchGoogleFontFaceCSS(family) {
 }
 
 // Upewnij się, że wszystkie wybrane fonty Google są fizycznie załadowane w karcie.
+// Mapa rodzina premium -> darmowy odpowiednik (Google), dla bieżącego wyboru.
+function altMapFor(sel) {
+  const meta = window.WOLFIE_FONT_META;
+  const m = {};
+  if (!meta || !meta.freeAlternative) return m;
+  for (const p of Object.values(sel || {})) {
+    if (!p || !p.family) continue;
+    const alt = meta.freeAlternative(p.family);
+    if (alt) m[p.family] = alt;
+  }
+  return m;
+}
+
 async function ensureGoogleFontsLoaded(tabId, sel) {
   sel = sel || selection;
+  const meta = window.WOLFIE_FONT_META;
   const families = [
     ...new Set(
       Object.values(sel)
         .map((p) => p.family)
-        .filter((f) => f && isGoogle(f))
+        .filter(Boolean)
+        .flatMap((f) => {
+          const out = [];
+          if (isGoogle(f)) out.push(f); // wybrany font Google
+          // Darmowy odpowiednik fontu premium (też ładujemy, by był fallbackiem).
+          const alt = meta && meta.freeAlternative ? meta.freeAlternative(f) : null;
+          if (alt && isGoogle(alt)) out.push(alt);
+          return out;
+        })
     ),
   ];
   const rec = tabRecord(tabId);
@@ -1120,11 +1148,11 @@ async function applyToPage() {
     } catch (e) {
       /* ignorujemy — font po prostu nie wstanie */
     }
-    // 2) Ustaw reguły font-family na stronie.
+    // 2) Ustaw reguły font-family na stronie (z fallbackiem na darmowy odpowiednik).
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: applyFontsInPage,
-      args: [{ ...selection }],
+      args: [{ ...selection }, altMapFor(selection)],
     });
     saveSessionConfig(currentHost, JSON.parse(JSON.stringify(selection))); // per domena/sesja
     const names = Object.values(selection)
@@ -1169,7 +1197,7 @@ async function livePreview(target, family) {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: applyFontsInPage,
-      args: [temp],
+      args: [temp, altMapFor(temp)],
     });
     previewActive = true;
   } catch (e) {
@@ -1187,7 +1215,7 @@ async function revertPreview() {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: applyFontsInPage,
-      args: [{ ...selection }],
+      args: [{ ...selection }, altMapFor(selection)],
     });
   } catch (e) {}
 }
@@ -1242,6 +1270,7 @@ async function resetPage() {
     .forEach((w) => w.classList.remove("set"));
   document.querySelectorAll(".wfs-combo").forEach((c) => {
     if (c.updateHeart) c.updateHeart();
+    if (c.updateDollar) c.updateDollar();
   });
   activePresetName = null; // reset zdejmuje oznaczenie aktywnego presetu
   renderPresets();
@@ -1254,8 +1283,12 @@ async function resetPage() {
 const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
 
 function familyValue(font) {
-  // Dodaj rozsądny fallback w zależności od typu fontu.
   if (generic.test(font)) return font;
+  // Dla fontu premium wstaw darmowy odpowiednik jako fallback (oryginał wygrywa,
+  // jeśli użytkownik go ma) — snippet odzwierciedla to, co widać na podglądzie.
+  const meta = window.WOLFIE_FONT_META;
+  const alt = meta && meta.freeAlternative ? meta.freeAlternative(font) : null;
+  if (alt) return '"' + font + '", "' + alt + '", sans-serif';
   return '"' + font + '", sans-serif';
 }
 
@@ -1307,11 +1340,43 @@ function declList(p, familyExpr, indent) {
   return d;
 }
 
+// Czy font wymaga zaimportowania pliku (@font-face) w snippetcie?
+// NIE: web-safe (samo font-family), Google (@import), custom (mamy złapany @font-face).
+// TAK: systemowy niepreinstalowany / licencjonowany — trzeba własnego pliku.
+function needsFontFaceScaffold(name) {
+  if (!name || generic.test(name)) return false;
+  const meta = window.WOLFIE_FONT_META;
+  if (meta && meta.isWebSafe && meta.isWebSafe(name)) return false;
+  if (isGoogle(name)) return false;
+  if (customFonts[name.toLowerCase()]) return false;
+  return true;
+}
+function selectedNeedsFontFace() {
+  return [
+    ...new Set(
+      Object.values(selection).map((p) => p.family).filter(Boolean).filter(needsFontFaceScaffold)
+    ),
+  ];
+}
+function fontFaceScaffold(name) {
+  const slug = name.replace(/[^a-z0-9]+/gi, "-");
+  return (
+    '/* "' + name + '" — niepreinstalowany w sieci: podmień src na swój plik fontu (z licencją) */\n' +
+    "@font-face {\n" +
+    '  font-family: "' + name + '";\n' +
+    '  src: url("' + slug + '.woff2") format("woff2");\n' +
+    "  font-display: swap;\n" +
+    "}"
+  );
+}
+
 function buildCSS() {
   const lines = [];
   const googles = selectedGoogleFonts();
   googles.forEach((g) => lines.push("@import url('" + googleImportUrl(g) + "');"));
-  if (googles.length) lines.push("");
+  const faces = selectedNeedsFontFace();
+  faces.forEach((f) => lines.push(fontFaceScaffold(f)));
+  if (googles.length || faces.length) lines.push("");
   for (const b of SNIPPET_BLOCKS) {
     const p = selection[b.key];
     if (!hasProps(p)) continue;
@@ -1326,7 +1391,9 @@ function buildSCSS() {
   const lines = [];
   const googles = selectedGoogleFonts();
   googles.forEach((g) => lines.push("@import url('" + googleImportUrl(g) + "');"));
-  if (googles.length) lines.push("");
+  const faces = selectedNeedsFontFace();
+  faces.forEach((f) => lines.push(fontFaceScaffold(f)));
+  if (googles.length || faces.length) lines.push("");
   for (const b of SNIPPET_BLOCKS) {
     const p = selection[b.key];
     if (p.family) lines.push(b.scssVar + ": " + familyValue(p.family) + ";");
@@ -1356,6 +1423,8 @@ function buildJS() {
     lines.push("");
   });
   const css = [];
+  // @font-face dla fontów niepreinstalowanych (podmień src na swój plik z licencją).
+  selectedNeedsFontFace().forEach((f) => css.push(fontFaceScaffold(f)));
   for (const b of SNIPPET_BLOCKS) {
     const p = selection[b.key];
     if (!hasProps(p)) continue;
@@ -1488,9 +1557,81 @@ function buildCombo(combo) {
   let shownCount = 0; // ile z `filtered` jest już w DOM
   let debounceTimer = null;
   let hoverTimer = null; // debounce dla live-preview na hover
+  let sourceFilter = "all"; // tab źródła: all | google | system
 
   // Stopka informująca o doładowywaniu / liczbie pozostałych wyników.
   let footer = null;
+
+  // Czy font pasuje do aktywnego taba źródła.
+  function matchesSource(f) {
+    if (sourceFilter === "google") return f.type === "google";
+    if (sourceFilter === "system") return f.type === "system";
+    return true; // "all"
+  }
+
+  // Przyklejony pasek tabów (All / Google / System) na górze listy.
+  const SOURCE_TABS = [
+    { key: "all", label: () => t("tab_all") },
+    { key: "google", label: () => "Google" },
+    { key: "system", label: () => t("tab_system") },
+    { key: "paid", label: () => t("tab_paid") },
+  ];
+  const tabsRow = document.createElement("li");
+  tabsRow.className = "wfs-tabs-row";
+  const tabBtns = {};
+  SOURCE_TABS.forEach((tb) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "wfs-source-tab";
+    b.textContent = tb.label();
+    b.addEventListener("mousedown", (e) => {
+      e.preventDefault(); // nie gub focusu z pola
+      e.stopPropagation();
+      sourceFilter = tb.key;
+      render(input.value);
+      input.focus();
+    });
+    tabBtns[tb.key] = b;
+    tabsRow.appendChild(b);
+  });
+  function syncTabs() {
+    SOURCE_TABS.forEach((tb) =>
+      tabBtns[tb.key].classList.toggle("active", tb.key === sourceFilter)
+    );
+  }
+
+  // Karta PAID: zamiast listy fontów — instrukcja + linki afiliacyjne (z UTM).
+  function renderPaidPanel() {
+    const li = document.createElement("li");
+    li.className = "wfs-paid-panel";
+    const title = document.createElement("div");
+    title.className = "wfs-paid-title";
+    title.textContent = t("paid_title");
+    const desc = document.createElement("div");
+    desc.className = "wfs-paid-desc";
+    desc.textContent = t("paid_hint");
+    li.append(title, desc);
+    const meta = window.WOLFIE_FONT_META;
+    if (meta && meta.affiliateBrowse) {
+      const row = document.createElement("div");
+      row.className = "wfs-paid-links";
+      meta.affiliateBrowse(input.value).forEach((lnk) => {
+        const a = document.createElement("a");
+        a.className = "wfs-paid-link";
+        a.href = lnk.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer" + (lnk.affiliate ? " sponsored" : "");
+        a.textContent = lnk.label;
+        row.appendChild(a);
+      });
+      li.appendChild(row);
+      const note = document.createElement("div");
+      note.className = "wfs-paid-note";
+      note.textContent = t("affiliate_note");
+      li.appendChild(note);
+    }
+    list.appendChild(li);
+  }
 
   function makeItem(font, i) {
     const li = document.createElement("li");
@@ -1498,9 +1639,16 @@ function buildCombo(combo) {
     const name = document.createElement("span");
     name.className = "wfs-name";
     name.textContent = font.name;
-    // Każda pozycja własnym krojem (podgląd). Aktywny wybór w polu zostaje w Rubiku.
-    name.style.fontFamily = generic.test(font.name) ? font.name : '"' + font.name + '"';
-    ensurePreviewFont(font.name);
+    const lic = window.WOLFIE_FONT_META && window.WOLFIE_FONT_META.classify(font.name);
+    // Każda pozycja własnym krojem (podgląd). Dla premium: oryginał (jeśli masz
+    // zainstalowany) ma pierwszeństwo, inaczej darmowy odpowiednik (Google).
+    if (lic && lic.license === "commercial" && lic.freeAlt) {
+      name.style.fontFamily = '"' + font.name + '", "' + lic.freeAlt + '", sans-serif';
+      ensurePreviewFont(lic.freeAlt);
+    } else {
+      name.style.fontFamily = generic.test(font.name) ? font.name : '"' + font.name + '"';
+      ensurePreviewFont(font.name);
+    }
     const tag = document.createElement("span");
     tag.className = "wfs-tag";
     if (font.type === "custom") {
@@ -1512,8 +1660,20 @@ function buildCombo(combo) {
     } else if (font.popular) {
       tag.classList.add("wfs-tag-pop");
       tag.textContent = "★ Google";
+    } else if (font.type === "system") {
+      const meta = window.WOLFIE_FONT_META;
+      if (meta && meta.isWebSafe && meta.isWebSafe(font.name)) {
+        // Preinstalowany wszędzie (Win+Mac) — działa w sieci bez pliku/licencji.
+        tag.classList.add("wfs-tag-websafe");
+        tag.textContent = "Web-safe";
+      } else {
+        // Windows/Microsoft — do web potrzebny plik fontu + licencja.
+        tag.classList.add("wfs-tag-syslic");
+        tag.textContent = "System";
+        tag.title = t("system_web_note");
+      }
     } else {
-      tag.textContent = font.type === "google" ? "Google" : "System";
+      tag.textContent = "Google";
     }
     const left = document.createElement("span");
     left.style.cssText = "display:flex;align-items:center;gap:6px;min-width:0";
@@ -1526,12 +1686,12 @@ function buildCombo(combo) {
     }
     left.appendChild(name);
     // Znacznik $ dla fontów premium (wymagana płatna licencja).
-    const lic = window.WOLFIE_FONT_META && window.WOLFIE_FONT_META.classify(font.name);
     if (lic && lic.license === "commercial") {
       const dollar = document.createElement("span");
       dollar.className = "wfs-paidmark";
       dollar.textContent = "$";
-      dollar.title = t("premium_required");
+      dollar.title =
+        t("premium_required") + (lic.freeAlt ? " — podgląd: " + lic.freeAlt : "");
       left.appendChild(dollar);
     }
     li.append(left, tag);
@@ -1577,6 +1737,8 @@ function buildCombo(combo) {
   // Pokaż chwilowy wskaźnik podczas oczekiwania na debounce.
   function showSearching() {
     list.innerHTML = "";
+    list.appendChild(tabsRow);
+    syncTabs();
     const li = document.createElement("li");
     li.className = "wfs-empty";
     li.textContent = t("search_loading");
@@ -1602,15 +1764,25 @@ function buildCombo(combo) {
       });
       source = [...favItems, ...ALL_FONTS.filter((f) => !favSet.has(f.name.toLowerCase()))];
     }
-    filtered = term
+    filtered = (term
       ? source.filter((f) => f.name.toLowerCase().includes(term))
-      : source;
+      : source
+    ).filter(matchesSource); // tab źródła (All / Google / System)
 
     activeIndex = -1;
     shownCount = 0;
     rendered = [];
     list.innerHTML = "";
     footer = null;
+    list.appendChild(tabsRow); // przyklejony pasek tabów na górze
+    syncTabs();
+
+    if (sourceFilter === "paid") {
+      renderPaidPanel(); // instrukcja + linki afiliacyjne zamiast listy fontów
+      list.hidden = false;
+      list.scrollTop = 0;
+      return;
+    }
 
     if (filtered.length === 0) {
       const li = document.createElement("li");
@@ -1684,6 +1856,7 @@ function buildCombo(combo) {
     combo.classList.add("has-value");
     list.hidden = true;
     if (combo.updateHeart) combo.updateHeart();
+    if (combo.updateDollar) combo.updateDollar();
     applyToPage();
   }
 
@@ -1694,6 +1867,7 @@ function buildCombo(combo) {
     input.classList.remove("wfs-selected");
     combo.classList.remove("has-value");
     if (combo.updateHeart) combo.updateHeart();
+    if (combo.updateDollar) combo.updateDollar();
     applyToPage();
   }
 
@@ -1872,7 +2046,64 @@ function buildCombo(combo) {
   combo.appendChild(favBtn);
   combo.updateHeart = updateHeart;
 
-  // Zamknij listę po kliknięciu poza nią (i przywróć podgląd).
+  // Żółty $ obok serca — pojawia się dla fontów premium; klik = linki do kupna.
+  const dollarBtn = document.createElement("button");
+  dollarBtn.type = "button";
+  dollarBtn.className = "wfs-dollar-btn";
+  dollarBtn.textContent = "$";
+  dollarBtn.hidden = true;
+  let dollarPop = null;
+  function closeDollarPop() {
+    if (dollarPop) { dollarPop.remove(); dollarPop = null; }
+  }
+  function updateDollar() {
+    const fam = selection[target].family;
+    const meta = window.WOLFIE_FONT_META;
+    const lic = fam && meta ? meta.classify(fam) : null;
+    const commercial = !!(lic && lic.license === "commercial");
+    dollarBtn.hidden = !commercial;
+    dollarBtn.title = commercial
+      ? t("premium_required") + (lic.freeAlt ? " — podgląd: " + lic.freeAlt : "")
+      : "";
+    if (!commercial) closeDollarPop();
+  }
+  dollarBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (dollarPop) { closeDollarPop(); return; }
+    const fam = selection[target].family;
+    const meta = window.WOLFIE_FONT_META;
+    if (!fam || !meta || !meta.affiliateLinks) return;
+    const lic = meta.classify(fam);
+    dollarPop = document.createElement("div");
+    dollarPop.className = "wfs-dollar-pop";
+    const title = document.createElement("div");
+    title.className = "wfs-dollar-pop-title";
+    title.textContent = t("buy_font") + " „" + fam + "”";
+    dollarPop.appendChild(title);
+    meta.affiliateLinks(fam, lic && lic.buyUrl).forEach((lnk) => {
+      const a = document.createElement("a");
+      a.href = lnk.url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer" + (lnk.affiliate ? " sponsored" : "");
+      a.textContent = lnk.label;
+      dollarPop.appendChild(a);
+    });
+    const note = document.createElement("div");
+    note.className = "wfs-dollar-pop-note";
+    note.textContent = t("affiliate_note");
+    dollarPop.appendChild(note);
+    combo.appendChild(dollarPop);
+  });
+  updateDollar();
+  combo.appendChild(dollarBtn);
+  combo.updateDollar = updateDollar;
+  combo.closeDollarPop = closeDollarPop;
+  // Odśwież listę, jeśli dropdown jest otwarty (np. po doczytaniu fontów lokalnych).
+  combo.rerenderIfOpen = () => {
+    if (!list.hidden) render(input.value);
+  };
+
+  // Zamknij listę / popover $ po kliknięciu poza nią (i przywróć podgląd).
   document.addEventListener("click", (e) => {
     if (!combo.contains(e.target)) {
       if (hoverTimer) {
@@ -1881,6 +2112,7 @@ function buildCombo(combo) {
       }
       revertPreview();
       list.hidden = true;
+      closeDollarPop();
     }
   });
 
@@ -1912,6 +2144,7 @@ function buildCombo(combo) {
       }
     }
     if (combo.updateHeart) combo.updateHeart();
+    if (combo.updateDollar) combo.updateDollar();
   };
 }
 
@@ -2078,6 +2311,30 @@ if (editTextBtn) editTextBtn.addEventListener("click", startTextEditor);
 document.querySelectorAll(".wfs-combo").forEach(buildCombo);
 document.getElementById("wfs-reset").addEventListener("click", resetPage);
 
+// Auto-wczytanie zainstalowanych fontów systemowych przy PIERWSZEJ interakcji
+// z popupem (Local Font Access wymaga gestu użytkownika — bez niego się nie da).
+// To legalne: używamy fontów, które user ma zainstalowane u siebie, do wyświetlenia
+// w jego przeglądarce. Po doczytaniu odświeżamy otwarte dropdowny.
+(function autoLoadLocalFonts() {
+  if (typeof window.queryLocalFonts !== "function") return;
+  let done = false;
+  const handler = async () => {
+    if (done) return;
+    done = true;
+    document.removeEventListener("pointerdown", handler, true);
+    document.removeEventListener("keydown", handler, true);
+    if (localFontsLoaded) return;
+    const ok = await loadLocalFonts(); // jednorazowa zgoda + enumeracja
+    if (ok) {
+      document.querySelectorAll(".wfs-combo").forEach((c) => {
+        if (c.rerenderIfOpen) c.rerenderIfOpen();
+      });
+    }
+  };
+  document.addEventListener("pointerdown", handler, true);
+  document.addEventListener("keydown", handler, true);
+})();
+
 // (Ustawienia per domena zapisują się automatycznie na sesję; trwałość → presety.)
 
 // Pasek reguły: jedyna akcja w popupie to usunięcie reguły tej domeny.
@@ -2111,10 +2368,54 @@ document.querySelectorAll(".wfs-tab").forEach((tab) => {
   });
 });
 
-// Kopiowanie snippetu do schowka.
+// Pytanie o licencję (Tak/Nie) dla fontów niepreinstalowanych — mały modal w popupie.
+function askLicenseConfirm(names) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "wfs-modal-overlay";
+    const box = document.createElement("div");
+    box.className = "wfs-modal";
+    const msg = document.createElement("div");
+    msg.className = "wfs-modal-msg";
+    msg.textContent = t("license_confirm").replace("%s", names.join(", "));
+    const row = document.createElement("div");
+    row.className = "wfs-modal-actions";
+    const no = document.createElement("button");
+    no.className = "wfs-modal-btn wfs-modal-no";
+    no.textContent = t("answer_no");
+    const yes = document.createElement("button");
+    yes.className = "wfs-modal-btn wfs-modal-yes";
+    yes.textContent = t("answer_yes");
+    const done = (val) => {
+      overlay.remove();
+      resolve(val);
+    };
+    no.addEventListener("click", () => done(false));
+    yes.addEventListener("click", () => done(true));
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) done(false);
+    });
+    row.append(no, yes);
+    box.append(msg, row);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    yes.focus();
+  });
+}
+
+// Kopiowanie snippetu do schowka (z bramką licencyjną dla fontów niepreinstalowanych).
 document.getElementById("wfs-copy").addEventListener("click", async () => {
   const code = document.getElementById("wfs-code").textContent;
   const btn = document.getElementById("wfs-copy");
+  // Fonty wymagające pliku/licencji w sieci → zapytaj o licencję.
+  const gated = selectedNeedsFontFace();
+  if (gated.length) {
+    const ok = await askLicenseConfirm(gated);
+    if (!ok) {
+      setStatus(t("license_needed"));
+      return;
+    }
+  }
   try {
     await navigator.clipboard.writeText(code);
     btn.classList.add("copied");

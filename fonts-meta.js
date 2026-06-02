@@ -43,6 +43,52 @@
   const COMMERCIAL_LC = {};
   Object.keys(COMMERCIAL).forEach((k) => (COMMERCIAL_LC[k.toLowerCase()] = k));
 
+  // Najbliższy DARMOWY odpowiednik (Google Font) dla fontu komercyjnego.
+  // Używany jako fallback w stacku font-family, gdy nie masz oryginału —
+  // dzięki temu zawsze coś się renderuje (a „$ Kup" prowadzi po oryginał).
+  const COMMERCIAL_ALT = {
+    "Proxima Nova": "Montserrat",
+    "Gotham": "Montserrat",
+    "Futura": "Jost",
+    "Helvetica": "Inter",
+    "Helvetica Neue": "Inter",
+    "Neue Haas Grotesk": "Inter",
+    "Avenir": "Nunito Sans",
+    "Avenir Next": "Nunito Sans",
+    "DIN": "Archivo",
+    "DIN Next": "Archivo",
+    "Frutiger": "Inter",
+    "Univers": "Inter",
+    "Myriad Pro": "Inter",
+    "Garamond": "EB Garamond",
+    "ITC Garamond": "EB Garamond",
+    "Trade Gothic": "Archivo",
+    "Brandon Grotesque": "Quicksand",
+    "Brandon Text": "Quicksand",
+    "Circular": "Mulish",
+    "Gilroy": "Poppins",
+    "Sofia Pro": "Poppins",
+    "Graphik": "Manrope",
+    "Canela": "Cormorant Garamond",
+    "Cera Pro": "Poppins",
+    "Apercu": "Work Sans",
+    "Maison Neue": "Inter",
+    "GT Walsheim": "Poppins",
+    "Calibre": "Inter",
+    "Tiempos": "Lora",
+    "Founders Grotesk": "Inter",
+    "Suisse Int'l": "Inter",
+    "Sweet Sans": "Montserrat",
+    "Sharp Sans": "Poppins",
+  };
+  const COMMERCIAL_ALT_LC = {};
+  Object.keys(COMMERCIAL_ALT).forEach((k) => (COMMERCIAL_ALT_LC[k.toLowerCase()] = COMMERCIAL_ALT[k]));
+
+  // Darmowy odpowiednik dla nazwy (lub null).
+  function freeAlternative(name) {
+    return (name && COMMERCIAL_ALT_LC[String(name).toLowerCase()]) || null;
+  }
+
   function googleList() {
     return (window.WOLFIE_FONTS && window.WOLFIE_FONTS.GOOGLE_FONTS) || [];
   }
@@ -118,6 +164,7 @@
         cost: "paid",
         buyUrl: COMMERCIAL[COMMERCIAL_LC[low]],
         specimenUrl: null,
+        freeAlt: freeAlternative(name), // darmowy odpowiednik (Google) do podglądu
       };
     }
     return { license: "unknown", licenseCode: "UNKNOWN", licenseName: "Unknown", licenseUrl: null, cost: "unknown", buyUrl: null, specimenUrl: null };
@@ -197,43 +244,135 @@
     return prefix + encodeURIComponent(target); // format deep-linka z panelu CJ
   }
 
+  // UTM do śledzenia ruchu z dodatku (analityka po stronie marketplace/Twojej).
+  function utmTag() {
+    return (
+      "utm_source=wolfie-font-swapper&utm_medium=extension&utm_campaign=" +
+      encodeURIComponent(AFFILIATE.subId || "wfs")
+    );
+  }
+
+  // Generyczne linki „przeglądaj/kup premium" (karta PAID). query = bieżąca fraza
+  // z wyszukiwarki (jeśli pusta → strona główna fontów danego marketplace'u).
+  // Wszystkie z UTM + trackingiem afiliacyjnym, gdy ID uzupełnione.
+  function affiliateBrowse(query) {
+    const q = (query || "").trim();
+    const out = [];
+    const mf = q
+      ? "https://www.myfonts.com/search/" + encodeURIComponent(q) + "/"
+      : "https://www.myfonts.com/";
+    out.push({
+      label: "MyFonts",
+      url: cjWrap(AFFILIATE.myfontsCjPrefix, withParam(mf, utmTag())),
+      affiliate: !!AFFILIATE.myfontsCjPrefix,
+    });
+    const cm = q
+      ? "https://creativemarket.com/search?q=" + encodeURIComponent(q) + "&category=fonts"
+      : "https://creativemarket.com/fonts";
+    out.push({
+      label: "Creative Market",
+      url: withParam(withParam(cm, utmTag()), AFFILIATE.creativeMarketParam),
+      affiliate: !!AFFILIATE.creativeMarketParam,
+    });
+    const ev = q
+      ? "https://graphicriver.net/search?term=" + encodeURIComponent(q) + "&category=fonts"
+      : "https://graphicriver.net/fonts";
+    out.push({
+      label: "Envato",
+      url: withParam(
+        withParam(ev, utmTag()),
+        AFFILIATE.envatoRef ? "ref=" + encodeURIComponent(AFFILIATE.envatoRef) : ""
+      ),
+      affiliate: !!AFFILIATE.envatoRef,
+    });
+    return out;
+  }
+
   // Lista opcji zakupu dla danego fontu (wydawca + marketplace'y afiliacyjne).
   // directBuyUrl — bezpośredni link wydawcy z bazy COMMERCIAL (jeśli jest).
   function affiliateLinks(name, directBuyUrl) {
     const q = name || "";
     const out = [];
+    // 1) Link WYDAWCY = dokładnie ten font (najtrafniejszy). Dla znanych krojów
+    //    komercyjnych mamy go w bazie COMMERCIAL.
     if (directBuyUrl) {
       out.push({ label: "Wydawca", url: directBuyUrl, affiliate: false });
     }
-    // MyFonts (najszersza oferta) — przez CJ, jeśli ustawiony prefix.
+    // 2) MyFonts — najszersza oferta; wyszukiwanie po nazwie (przez CJ, jeśli prefix).
     const mf = "https://www.myfonts.com/search/" + encodeURIComponent(q) + "/";
     out.push({
       label: "MyFonts",
       url: cjWrap(AFFILIATE.myfontsCjPrefix, mf),
       affiliate: !!AFFILIATE.myfontsCjPrefix,
     });
-    // Creative Market.
-    const cm = withParam(
-      "https://creativemarket.com/search?q=" + encodeURIComponent(q) + "&category=fonts",
-      AFFILIATE.creativeMarketParam
-    );
-    out.push({ label: "Creative Market", url: cm, affiliate: !!AFFILIATE.creativeMarketParam });
-    // Envato Market (GraphicRiver) — proste ?ref=.
-    const ev = withParam(
-      "https://graphicriver.net/search?term=" + encodeURIComponent(q) + "&category=fonts",
-      AFFILIATE.envatoRef ? "ref=" + encodeURIComponent(AFFILIATE.envatoRef) : ""
-    );
-    out.push({ label: "Envato", url: ev, affiliate: !!AFFILIATE.envatoRef });
+    // 3) Indie-marketplace TYLKO gdy nie znamy wydawcy (dla niszowych/nieznanych
+    //    fontów) — dla znanych krojów (Univers itd.) byłyby nietrafione.
+    if (!directBuyUrl) {
+      out.push({
+        label: "Creative Market",
+        url: withParam(
+          "https://creativemarket.com/search?q=" + encodeURIComponent(q) + "&category=fonts",
+          AFFILIATE.creativeMarketParam
+        ),
+        affiliate: !!AFFILIATE.creativeMarketParam,
+      });
+      out.push({
+        label: "Envato",
+        url: withParam(
+          "https://graphicriver.net/search?term=" + encodeURIComponent(q) + "&category=fonts",
+          AFFILIATE.envatoRef ? "ref=" + encodeURIComponent(AFFILIATE.envatoRef) : ""
+        ),
+        affiliate: !!AFFILIATE.envatoRef,
+      });
+    }
     return out;
+  }
+
+  // ===========================================================================
+  // Fonty systemowe „web-safe" — realnie PREINSTALOWANE i na Windows, i na macOS
+  // (Microsoft Core fonts for the Web) + generyki CSS. Renderują się wszędzie
+  // przez samo `font-family`, BEZ pliku fontu i BEZ licencji.
+  //
+  // Pozostałe fonty systemowe (Calibri, Segoe UI, Consolas, Microsoft *, Webdings…)
+  // to fonty Windows/Microsoftu — NIE ma ich na Mac/Linux/Android. Żeby użyć ich
+  // w sieci, trzeba zaimportować PLIK fontu i mieć na to LICENCJĘ.
+  // ===========================================================================
+  const WEB_SAFE = new Set(
+    [
+      "Arial",
+      "Arial Black",
+      "Comic Sans MS",
+      "Courier New",
+      "Georgia",
+      "Impact",
+      "Times New Roman",
+      "Trebuchet MS",
+      "Verdana",
+      // generyki CSS — zawsze bezpieczne
+      "serif",
+      "sans-serif",
+      "monospace",
+      "cursive",
+      "fantasy",
+      "system-ui",
+    ].map((s) => s.toLowerCase())
+  );
+  function isWebSafe(name) {
+    return !!name && WEB_SAFE.has(String(name).toLowerCase());
   }
 
   window.WOLFIE_FONT_META = {
     COMMERCIAL,
+    COMMERCIAL_ALT,
+    WEB_SAFE,
+    isWebSafe,
     LICENSE_INFO,
     SEARCH_PROVIDERS,
     AFFILIATE,
     searchLinks,
     affiliateLinks,
+    affiliateBrowse,
+    freeAlternative,
     classify,
     classifyAuthoritative,
   };

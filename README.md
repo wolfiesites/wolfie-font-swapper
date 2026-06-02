@@ -89,7 +89,7 @@ wolfie-font-swapper/
 ├── fonts.js          # Font list (Google + system) + popular set
 ├── fonts-meta.js     # Licenses, commercial DB, search providers
 ├── i18n.js           # Translations (9 languages) + t() helper
-├── fonts/            # Bundled UI fonts (Rubik, Audiowide)
+├── fonts/            # Bundled UI fonts (Rubik, Audiowide) + their OFL licenses
 ├── icons/            # Icons 16/48/128 + wolfie-logo.svg
 └── README.md
 ```
@@ -110,7 +110,31 @@ The extension **does not collect or send any personal data** — see [PRIVACY.md
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 Wolfie Paweł Witek
+[MIT](LICENSE) © 2026 Wolfie Paweł Witek — applies to the **extension code**.
+
+---
+
+## 🔤 Font licenses & credits
+
+- **Bundled UI fonts** (shipped in this package, used for the extension's own
+  interface and title):
+  - **Rubik** — © The Rubik Project Authors — **SIL Open Font License 1.1**
+    ([fonts/Rubik-OFL.txt](fonts/Rubik-OFL.txt)).
+  - **Audiowide** — © Brian J. Bonislawsky / Astigmatic (AOETI) — **SIL Open
+    Font License 1.1** ([fonts/Audiowide-OFL.txt](fonts/Audiowide-OFL.txt)).
+- **Preview / applied fonts** — **Google Fonts** (SIL OFL 1.1 or Apache License
+  2.0), fetched on demand from `fonts.googleapis.com` / `fonts.gstatic.com`.
+  Free Google families are also used as preview substitutes for premium fonts.
+- **Commercial font names** listed in the picker (e.g. Helvetica, Gotham, Univers)
+  are **trademarks of their respective owners**. No commercial font files are
+  bundled or served — only the name and a link to purchase the font from the
+  publisher / MyFonts (affiliate links, marked `rel="sponsored"`).
+- **Fonts captured with the page picker** are downloaded by **you** from the page
+  you visit and stored locally on your machine — reusing them elsewhere requires
+  the appropriate license from the font's owner.
+
+> SIL OFL 1.1 permits bundling/redistribution of the above fonts provided the
+> license text and copyright notice accompany them (included in `fonts/`).
 
 ---
 

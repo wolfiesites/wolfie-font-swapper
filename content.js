@@ -155,9 +155,16 @@
   }
   const generic = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui)$/;
   const q = (f) => (generic.test(f) ? f : '"' + f + '"');
+  const META = window.WOLFIE_FONT_META;
+  const altOf = (f) => (META && META.freeAlternative ? META.freeAlternative(f) : null);
+  // Font premium → dokładamy darmowy odpowiednik jako fallback (oryginał wygrywa).
+  const fam = (f) => {
+    const a = altOf(f);
+    return a ? q(f) + "," + q(a) + ",sans-serif" : q(f);
+  };
   function decl(p) {
     const d = [];
-    if (p.family) d.push("font-family:" + q(p.family) + " !important");
+    if (p.family) d.push("font-family:" + fam(p.family) + " !important");
     if (p.weight) d.push("font-weight:" + p.weight + " !important");
     if (p.spacing) d.push("letter-spacing:" + p.spacing + " !important");
     if (p.size) d.push("font-size:" + p.size + " !important");
@@ -237,7 +244,13 @@
 
   // Zbierz @font-face dla wszystkich rodzin: cache → custom → (Google na żywo).
   async function buildFaceCss(sel, cache, custom) {
-    const fams = [...new Set(Object.values(sel).map((p) => p.family).filter(Boolean))];
+    // Rodziny + darmowe odpowiedniki fontów premium (też ładujemy jako fallback).
+    const base = Object.values(sel).map((p) => p.family).filter(Boolean);
+    const withAlts = base.flatMap((f) => {
+      const a = altOf(f);
+      return a ? [f, a] : [f];
+    });
+    const fams = [...new Set(withAlts)];
     const map = (cache && cache.map) || {};
     let css = "";
     const fetched = {}; // nowo pobrane (do dopisania do cache)

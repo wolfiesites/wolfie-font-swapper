@@ -205,7 +205,7 @@ main { padding: 12px 14px 14px; }
 
 .wfs-search {
   width: 100%;
-  padding: 8px 84px 8px 10px;
+  padding: 8px 110px 8px 10px;
   border: 1px solid var(--wfs-border);
   border-radius: 8px;
   background: var(--wfs-surface);
@@ -218,7 +218,7 @@ main { padding: 12px 14px 14px; }
 
 .wfs-clear {
   position: absolute;
-  right: 60px;
+  right: 86px;
   top: 50%;
   transform: translateY(-50%);
   width: 20px;
@@ -273,6 +273,51 @@ main { padding: 12px 14px 14px; }
 }
 .wfs-fav-btn:hover { color: var(--wfs-accent); background: var(--wfs-surface-hi); }
 .wfs-fav-btn.active { color: var(--wfs-accent); }
+
+/* Żółty $ przy polu (font premium) — obok serca; klik = linki do kupna */
+.wfs-dollar-btn {
+  position: absolute;
+  right: 58px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #ffb84a;
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.wfs-dollar-btn:hover { background: var(--wfs-surface-hi); color: #ffcf7a; }
+.wfs-dollar-pop {
+  position: absolute;
+  z-index: 20;
+  right: 6px;
+  top: calc(100% + 4px);
+  min-width: 170px;
+  max-width: 100%;
+  padding: 6px;
+  background: var(--wfs-surface);
+  border: 1px solid var(--wfs-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.wfs-dollar-pop-title { font-size: 11px; font-weight: 700; color: var(--wfs-accent-2); padding: 2px 4px; }
+.wfs-dollar-pop a {
+  font-size: 12px;
+  color: var(--wfs-text);
+  text-decoration: none;
+  padding: 5px 7px;
+  border-radius: 6px;
+}
+.wfs-dollar-pop a:hover { background: var(--wfs-surface-hi); color: var(--wfs-accent); }
+.wfs-dollar-pop-note { font-size: 9px; font-style: italic; color: var(--wfs-muted); padding: 2px 4px; }
 .wfs-fav-mark { color: #ff3dae; font-size: 11px; flex-shrink: 0; }
 
 .wfs-options {
@@ -280,7 +325,7 @@ main { padding: 12px 14px 14px; }
   z-index: 10;
   left: 0;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 1px);
   margin: 0;
   padding: 4px;
   list-style: none;
@@ -325,7 +370,114 @@ main { padding: 12px 14px 14px; }
   border-color: #6a5a1e;
   background: rgba(255, 184, 74, 0.08);
 }
+/* Systemowy preinstalowany wszędzie (Win+Mac) — bezpieczny w sieci */
+.wfs-options li .wfs-tag-websafe {
+  color: #4cd964;
+  border-color: #2e6b3e;
+  background: rgba(76, 217, 100, 0.08);
+}
+/* Systemowy Windows/MS — do web wymaga pliku + licencji (kursor pomocy) */
+.wfs-options li .wfs-tag-syslic {
+  color: #ffb84a;
+  border-color: #6a5a1e;
+  background: rgba(255, 184, 74, 0.06);
+  cursor: help;
+}
 .wfs-options li .wfs-name { font-size: 14px; }
+
+/* Pasek tabów źródła (All / Google / System / PAID) — przyklejony na górze listy */
+.wfs-options li.wfs-tabs-row {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: -4px -4px 4px;
+  background: var(--wfs-surface);
+  border-bottom: 1px solid var(--wfs-border);
+  border-radius: 0;
+  cursor: default;
+}
+.wfs-options li.wfs-tabs-row:hover { background: var(--wfs-surface); }
+.wfs-source-tab {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--wfs-border);
+  background: transparent;
+  color: var(--wfs-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 4px 3px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wfs-source-tab:hover { color: var(--wfs-text); border-color: var(--wfs-muted); }
+.wfs-source-tab.active {
+  color: var(--wfs-accent);
+  border-color: var(--wfs-accent);
+  background: rgba(255, 61, 174, 0.1);
+}
+
+/* Karta PAID — instrukcja + linki afiliacyjne (zamiast listy fontów) */
+.wfs-options li.wfs-paid-panel {
+  display: block;
+  padding: 10px 8px;
+  cursor: default;
+}
+.wfs-options li.wfs-paid-panel:hover { background: transparent; }
+.wfs-paid-title { font-weight: 700; font-size: 12px; color: var(--wfs-accent-2); margin-bottom: 4px; }
+.wfs-paid-desc { font-size: 11px; color: var(--wfs-muted); line-height: 1.5; margin-bottom: 8px; }
+.wfs-paid-links { display: flex; flex-wrap: wrap; gap: 6px; }
+.wfs-paid-link {
+  border: 1px solid var(--wfs-accent-2);
+  background: rgba(0, 224, 255, 0.08);
+  color: var(--wfs-accent-2);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+.wfs-paid-link:hover { background: rgba(0, 224, 255, 0.18); }
+.wfs-paid-note { font-size: 9px; font-style: italic; color: var(--wfs-muted); margin-top: 6px; }
+
+/* Modal „Czy masz licencję?" (przy kopiowaniu fontów niepreinstalowanych) */
+.wfs-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+.wfs-modal {
+  max-width: 280px;
+  padding: 16px;
+  background: var(--wfs-surface);
+  border: 1px solid var(--wfs-border);
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.wfs-modal-msg { font-size: 13px; color: var(--wfs-text); line-height: 1.45; margin-bottom: 14px; }
+.wfs-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.wfs-modal-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid var(--wfs-border);
+}
+.wfs-modal-no { background: transparent; color: var(--wfs-muted); }
+.wfs-modal-no:hover { color: var(--wfs-text); border-color: var(--wfs-muted); }
+.wfs-modal-yes { background: var(--wfs-accent); border-color: var(--wfs-accent); color: #fff; }
+.wfs-modal-yes:hover { filter: brightness(1.1); }
 .wfs-options .wfs-empty {
   color: var(--wfs-muted);
   cursor: default;
