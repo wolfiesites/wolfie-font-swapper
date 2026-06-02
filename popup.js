@@ -1581,12 +1581,15 @@ function buildCombo(combo) {
   }
 
   // Przyklejony pasek tabów (All / Google / System) na górze listy.
+  // Tab PAID (linki do zewnętrznych providerów) ukryty do czasu uzyskania
+  // partnerstwa afiliacyjnego. Ustaw na true, by go z powrotem pokazać.
+  const SHOW_PAID_TAB = false;
   const SOURCE_TABS = [
     { key: "all", label: () => t("tab_all") },
     { key: "google", label: () => "Google" },
     { key: "system", label: () => t("tab_system") },
     { key: "paid", label: () => t("tab_paid") },
-  ];
+  ].filter((tb) => tb.key !== "paid" || SHOW_PAID_TAB);
   const tabsRow = document.createElement("li");
   tabsRow.className = "wfs-tabs-row";
   const tabBtns = {};
