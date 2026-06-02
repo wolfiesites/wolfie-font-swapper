@@ -162,7 +162,49 @@ oraz „Zanim zaakceptujesz CJ").
 
 ---
 
-## 8. W jednym zdaniu
+## 8. Słowniczek PL ↔ EN (panel bywa po angielsku)
+
+Mapowanie terminów, gdy panel masz po angielsku, a myślisz po polsku:
+
+| English (panel CJ) | Polski | Co to |
+|---|---|---|
+| **Publisher** | Wydawca / reklamobiorca / afiliant | **Ty** |
+| **Advertiser / Partner / Brand** | Reklamodawca / marka | firma płacąca prowizję (MyFonts, Fontspring) |
+| **Network** | Sieć (afiliacyjna) | CJ — pośrednik |
+| **Program** | Program (afiliacyjny) | oferta danej marki (stawki, zasady) |
+| **Join Program** | Dołącz do programu | wniosek o przyjęcie do programu marki |
+| **Advertiser approval / acceptance** | Akceptacja przez reklamodawcę | marka musi Cię zatwierdzić |
+| **Link / Deep Link** | Link / link głęboki | link afiliacyjny (deep = do konkretnej podstrony) |
+| **Link Generator** | Generator linków | narzędzie tworzące linki/prefiksy |
+| **Tracking Code** | Kod śledzący | kod w linku, po którym CJ wie, że klik jest Twój |
+| **PID / CID** | Identyfikator wydawcy / konta | Twój numer w CJ |
+| **SID / subID** | Własny tag źródła | np. `wfs` — do rozróżniania ruchu w raportach |
+| **Click** | Kliknięcie | klik w Twój link |
+| **Impression** | Wyświetlenie / odsłona | pokazanie linku/banera |
+| **Cookie window** | Okno cookie | ile dni po kliknięciu zakup się liczy |
+| **Transaction** | Transakcja | zarejestrowana akcja (sprzedaż/lead) |
+| **Lead** | Lead / pozyskany kontakt | akcja inna niż sprzedaż (np. rejestracja) |
+| **Sale** | Sprzedaż | zakup u marki |
+| **Payout / Commission** | Prowizja / wypłata | Twój zarobek za transakcję |
+| **Pending** | Oczekująca | transakcja jeszcze niezatwierdzona |
+| **Locked / Closed** | Zatwierdzona / zamknięta | należna Tobie |
+| **Charge-back** | Cofnięcie prowizji / obciążenie zwrotne | odjęcie prowizji (zwrot/refund/fraud) |
+| **EPC (Earnings Per Click)** | Zarobek na 100 kliknięć | miara jakości programu |
+| **Minimum Account Balance** | Próg wypłaty / minimalne saldo | od ilu CJ wypłaca |
+| **Dormant Account / fee** | Konto nieaktywne / opłata za nieaktywność | po 6 mies. bez transakcji |
+| **Network Profile** | Profil w sieci / wizytówka | Twój opis dla marek |
+| **Promotional Property** | Nośnik promocyjny / właściwość | Twoja strona / dodatek |
+| **Special (promotional method)** | Metoda specjalna | np. software/extension — ręczna akceptacja |
+| **Reports** | Raporty | statystyki klików/transakcji/prowizji |
+| **Settings** | Ustawienia | konto, profil, płatności, podatki |
+| **PSA (Publisher Service Agreement)** | Umowa wydawcy | umowa, którą akceptujesz |
+| **Withholding tax** | Podatek u źródła | US (unikasz przez W-8BEN + treaty) |
+| **Beneficial owner** | Beneficjent rzeczywisty | Ty (na W-8BEN) |
+| **Foreign TIN** | Zagraniczny numer podatkowy | Twój **NIP** (JDG) |
+
+---
+
+## 9. W jednym zdaniu
 
 > CJ to **giełda/pośrednik**, gdzie dołączasz do **programów marek** (np.
 > MyFonts), dostajesz **specjalne linki**, a gdy ktoś przez nie kupi — CJ liczy

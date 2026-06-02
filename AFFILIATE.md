@@ -94,6 +94,10 @@ programów marek i wkleisz wygenerowane prefiksy do dodatku.
 > przez 6 mies. → CJ nalicza miesięczną opłatę, aż saldo zejdzie do zera. Przy
 > starcie bez ruchu rozważ, czy aktywować CJ teraz, czy gdy dodatek ma userów.
 
+> **Jak w ogóle działa CJ** (model afiliacji, przepływ pieniędzy, cykl
+> transakcji, **słowniczek PL↔EN** terminów) — osobny dokument:
+> [`docs/how-cj-works.md`](./docs/how-cj-works.md).
+
 ### Zanim zaakceptujesz CJ (kluczowe punkty PSA)
 
 Umowa Publisher Service Agreement (dla UE/UK: **Epsilon International UK Ltd**,
