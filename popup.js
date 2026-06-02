@@ -1349,13 +1349,27 @@ function selectedNeedsFontFace() {
     ),
   ];
 }
+// Typowy katalog z plikami fontów w systemie (wg wykrytego OS).
+function systemFontDir() {
+  const ua = (navigator.userAgent || "").toLowerCase();
+  if (ua.indexOf("windows") >= 0) return "C:\\Windows\\Fonts\\";
+  if (ua.indexOf("mac os") >= 0 || ua.indexOf("macintosh") >= 0)
+    return "~/Library/Fonts/  •  /Library/Fonts/  •  /System/Library/Fonts/";
+  if (ua.indexOf("linux") >= 0 || ua.indexOf("x11") >= 0)
+    return "~/.local/share/fonts/  •  ~/.fonts/  •  /usr/share/fonts/";
+  return "C:\\Windows\\Fonts\\ (Windows)  •  ~/Library/Fonts/ (macOS)  •  ~/.local/share/fonts/ (Linux)";
+}
 function fontFaceScaffold(name) {
   const slug = name.replace(/[^a-z0-9]+/gi, "-");
   return (
-    '/* "' + name + '" — niepreinstalowany w sieci: podmień src na swój plik fontu (z licencją) */\n' +
+    '/* "' + name + '" — font systemowy, niepreinstalowany w sieci.\n' +
+    "   Plik fontu masz w systemie: " + systemFontDir() + "\n" +
+    "   1) Skonwertuj go do .woff2 (np. transfonter.org / fontsquirrel)\n" +
+    "   2) Skopiuj plik na swój serwer (np. /fonts/) i podmień src poniżej\n" +
+    "   3) Upewnij się, że masz licencję na użycie w sieci (webfont). */\n" +
     "@font-face {\n" +
     '  font-family: "' + name + '";\n' +
-    '  src: url("' + slug + '.woff2") format("woff2");\n' +
+    '  src: url("/fonts/' + slug + '.woff2") format("woff2");\n' +
     "  font-display: swap;\n" +
     "}"
   );
@@ -2363,65 +2377,92 @@ document.querySelectorAll(".wfs-tab").forEach((tab) => {
   });
 });
 
-// Pytanie o licencję (Tak/Nie) dla fontów niepreinstalowanych — mały modal w popupie.
-function askLicenseConfirm(names) {
-  return new Promise((resolve) => {
-    const overlay = document.createElement("div");
-    overlay.className = "wfs-modal-overlay";
-    const box = document.createElement("div");
-    box.className = "wfs-modal";
-    const msg = document.createElement("div");
-    msg.className = "wfs-modal-msg";
-    msg.textContent = t("license_confirm").replace("%s", names.join(", "));
-    const row = document.createElement("div");
-    row.className = "wfs-modal-actions";
-    const no = document.createElement("button");
-    no.className = "wfs-modal-btn wfs-modal-no";
-    no.textContent = t("answer_no");
-    const yes = document.createElement("button");
-    yes.className = "wfs-modal-btn wfs-modal-yes";
-    yes.textContent = t("answer_yes");
-    const done = (val) => {
-      overlay.remove();
-      resolve(val);
-    };
-    no.addEventListener("click", () => done(false));
-    yes.addEventListener("click", () => done(true));
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) done(false);
-    });
-    row.append(no, yes);
-    box.append(msg, row);
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-    yes.focus();
+// Modal „Czy masz licencję?" — onYes/onNo wołamy BEZPOŚREDNIO w handlerze kliknięcia,
+// żeby kopiowanie po „Tak" zachowało gest użytkownika (inaczej schowek pada przez await).
+function askLicenseConfirm(names, onYes, onNo) {
+  const overlay = document.createElement("div");
+  overlay.className = "wfs-modal-overlay";
+  const box = document.createElement("div");
+  box.className = "wfs-modal";
+  const msg = document.createElement("div");
+  msg.className = "wfs-modal-msg";
+  msg.textContent = t("license_confirm").replace("%s", names.join(", "));
+  const row = document.createElement("div");
+  row.className = "wfs-modal-actions";
+  const no = document.createElement("button");
+  no.className = "wfs-modal-btn wfs-modal-no";
+  no.textContent = t("answer_no");
+  const yes = document.createElement("button");
+  yes.className = "wfs-modal-btn wfs-modal-yes";
+  yes.textContent = t("answer_yes");
+  const close = () => overlay.remove();
+  no.addEventListener("click", () => { close(); if (onNo) onNo(); });
+  yes.addEventListener("click", () => { close(); if (onYes) onYes(); });
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) { close(); if (onNo) onNo(); }
   });
+  row.append(no, yes);
+  box.append(msg, row);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  yes.focus();
 }
 
-// Kopiowanie snippetu do schowka (z bramką licencyjną dla fontów niepreinstalowanych).
-document.getElementById("wfs-copy").addEventListener("click", async () => {
-  const code = document.getElementById("wfs-code").textContent;
-  const btn = document.getElementById("wfs-copy");
-  // Fonty wymagające pliku/licencji w sieci → zapytaj o licencję.
-  const gated = selectedNeedsFontFace();
-  if (gated.length) {
-    const ok = await askLicenseConfirm(gated);
-    if (!ok) {
-      setStatus(t("license_needed"));
-      return;
-    }
-  }
+// Kopiowanie do schowka: Async Clipboard API, a gdy padnie (np. utracona aktywacja
+// w iframe) — fallback przez ukryty textarea + execCommand('copy').
+function execCommandCopy(text) {
   try {
-    await navigator.clipboard.writeText(code);
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(
+      () => true,
+      () => execCommandCopy(text)
+    );
+  }
+  return Promise.resolve(execCommandCopy(text));
+}
+async function runCopy(code, btn) {
+  const ok = await copyToClipboard(code);
+  if (ok) {
     btn.classList.add("copied");
     btn.textContent = t("copied_btn");
     setTimeout(() => {
       btn.classList.remove("copied");
       btn.textContent = t("copy_btn");
     }, 1500);
-  } catch (e) {
+  } else {
     setStatus(t("status_copy_fail"));
   }
+}
+
+// Klik „Kopiuj": dla fontów premium najpierw pytanie o licencję; samo kopiowanie
+// wykonuje się W GEŚCIE kliknięcia (Kopiuj albo Tak), więc schowek nie pada.
+document.getElementById("wfs-copy").addEventListener("click", () => {
+  const code = document.getElementById("wfs-code").textContent;
+  const btn = document.getElementById("wfs-copy");
+  const gated = selectedNeedsFontFace();
+  if (gated.length) {
+    askLicenseConfirm(
+      gated,
+      () => runCopy(code, btn),
+      () => setStatus(t("license_needed"))
+    );
+    return;
+  }
+  runCopy(code, btn);
 });
 
 (async () => {

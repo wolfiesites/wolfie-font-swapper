@@ -325,7 +325,7 @@ main { padding: 12px 14px 14px; }
   z-index: 10;
   left: 0;
   right: 0;
-  top: calc(100% + 1px);
+  top: calc(100% - 4px);
   margin: 0;
   padding: 4px;
   list-style: none;

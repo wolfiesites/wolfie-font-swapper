@@ -14,7 +14,7 @@
     iframe.id = PANEL_ID;
     // Deleguj do panelu dostęp do lokalnych fontów (Local Font Access API),
     // by enumeracja zainstalowanych fontów działała i nie zgłaszała naruszenia.
-    iframe.allow = "local-fonts";
+    iframe.allow = "local-fonts; clipboard-write";
     iframe.src =
       chrome.runtime.getURL("popup.html") + "?tabId=" + tabId + "&panel=1";
     Object.assign(iframe.style, {
