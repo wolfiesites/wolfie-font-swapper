@@ -229,9 +229,11 @@
   // • Envato → Twój username; doklejamy ?ref=username (proste i działa).
   // ===========================================================================
   const AFFILIATE = {
-    myfontsCjPrefix: "", // np. "https://www.anrdoezrs.net/links/0000000/type/dlg/sid/wfs/"
-    creativeMarketParam: "", // np. "ui=000000" lub "ref=wolfie"
-    envatoRef: "", // np. "wolfiesites"
+    myfontsCjPrefix: "", // MyFonts/Monotype przez CJ. np. "https://www.anrdoezrs.net/links/0000000/type/dlg/sid/wfs/"
+    fontspringCjPrefix: "", // Fontspring przez CJ (20%/10%). Prefix deep-linka z CJ.
+    adobePartnerizePrefix: "", // Adobe (Creative Cloud / Adobe Fonts) przez Partnerize. np. "https://prf.hn/click/camref:0000/destination:"
+    creativeMarketParam: "", // Creative Market (Impact). np. "ui=000000" lub "ref=wolfie"
+    envatoRef: "", // Envato — username (?ref=). np. "wolfiesites"
     subId: "wfs", // własny tag kampanii (opcjonalnie)
   };
 
@@ -265,6 +267,24 @@
       label: "MyFonts",
       url: cjWrap(AFFILIATE.myfontsCjPrefix, withParam(mf, utmTag())),
       affiliate: !!AFFILIATE.myfontsCjPrefix,
+    });
+    // Fontspring (przez CJ — jak MyFonts).
+    const fs = q
+      ? "https://www.fontspring.com/search?q=" + encodeURIComponent(q)
+      : "https://www.fontspring.com/";
+    out.push({
+      label: "Fontspring",
+      url: cjWrap(AFFILIATE.fontspringCjPrefix, withParam(fs, utmTag())),
+      affiliate: !!AFFILIATE.fontspringCjPrefix,
+    });
+    // Adobe Fonts (Creative Cloud) — przez Partnerize (deep-link prefix + enkodowany URL).
+    const ad = q
+      ? "https://fonts.adobe.com/fonts?query=" + encodeURIComponent(q)
+      : "https://fonts.adobe.com/";
+    out.push({
+      label: "Adobe Fonts",
+      url: cjWrap(AFFILIATE.adobePartnerizePrefix, withParam(ad, utmTag())),
+      affiliate: !!AFFILIATE.adobePartnerizePrefix,
     });
     const cm = q
       ? "https://creativemarket.com/search?q=" + encodeURIComponent(q) + "&category=fonts"

@@ -83,6 +83,56 @@ function safeName(name) {
   return name.replace(/[^a-z0-9_-]+/gi, "-");
 }
 
+// ---- Pobieranie pliku fontu (odporne: css data: -> cache -> Google na żywo) ----
+function fontBytesFromCss(css) {
+  const m = /data:(font\/[a-z0-9.+-]+|application\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)/i.exec(css || "");
+  if (!m) return null;
+  const mime = m[1];
+  const ext =
+    mime.indexOf("woff2") >= 0 ? "woff2"
+    : mime.indexOf("woff") >= 0 ? "woff"
+    : mime.indexOf("ttf") >= 0 ? "ttf"
+    : mime.indexOf("otf") >= 0 ? "otf"
+    : "font";
+  const bin = atob(m[2]);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return { bytes, mime, ext };
+}
+async function fontBytesFromCache(name) {
+  try {
+    const fc = (await chrome.storage.local.get("wfs_font_cache")).wfs_font_cache;
+    const css = fc && fc.map && fc.map[String(name).toLowerCase()];
+    return css ? fontBytesFromCss(css) : null;
+  } catch (e) {
+    return null;
+  }
+}
+async function fontBytesFromGoogle(name) {
+  try {
+    const res = await fetch(googleImport(name));
+    if (!res.ok) return null;
+    const txt = await res.text();
+    const mm = /url\((https:\/\/fonts\.gstatic\.com\/[^)]+\.woff2)\)/i.exec(txt);
+    if (!mm) return null;
+    const fr = await fetch(mm[1]);
+    if (!fr.ok) return null;
+    return { bytes: new Uint8Array(await fr.arrayBuffer()), mime: "font/woff2", ext: "woff2" };
+  } catch (e) {
+    return null;
+  }
+}
+function triggerFontDownload(name, data) {
+  const url = URL.createObjectURL(new Blob([data.bytes], { type: data.mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = safeName(name) + "." + data.ext;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
 // Fabryka panelu: lista (search + lazy) + podgląd + licencja + eksport.
 function makePanel(cfg) {
   const el = (s) => document.getElementById(cfg.prefix + s);
@@ -242,28 +292,22 @@ function makePanel(cfg) {
       setTimeout(() => (copiedEl.hidden = true), 1500);
     } catch (e) {}
   });
-  dlFontBtn.addEventListener("click", () => {
+  dlFontBtn.addEventListener("click", async () => {
     if (!selected) return;
-    const m = /data:(font\/[a-z0-9]+|application\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=]+)/i.exec(selected.css || "");
-    if (!m) {
+    const name = selected.name;
+    // 1) Osadzony plik w css (font złapany pickerem) → 2) cache fontów Google →
+    // 3) pobranie woff2 na żywo z Google.
+    let data = fontBytesFromCss(selected.css || "");
+    if (!data) data = await fontBytesFromCache(name);
+    if (!data) data = await fontBytesFromGoogle(name);
+    if (!data) {
+      // Brak pliku (np. font komercyjny/systemowy bez osadzonego pliku).
       copiedEl.textContent = "—";
       copiedEl.hidden = false;
       setTimeout(() => (copiedEl.hidden = true), 1500);
       return;
     }
-    const mime = m[1];
-    const ext = mime.indexOf("woff2") >= 0 ? "woff2" : mime.indexOf("woff") >= 0 ? "woff" : mime.indexOf("ttf") >= 0 ? "ttf" : mime.indexOf("otf") >= 0 ? "otf" : "font";
-    const bin = atob(m[2]);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = safeName(selected.name) + "." + ext;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    triggerFontDownload(name, data);
   });
   function clearSelection() {
     selectedKey = null;

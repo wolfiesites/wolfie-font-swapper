@@ -5,10 +5,12 @@ Wszystkie ID wklejasz w **jednym miejscu** — obiekt `AFFILIATE` w pliku
 
 ```js
 const AFFILIATE = {
-  myfontsCjPrefix: "",     // MyFonts (CJ Affiliate) – deep-link prefix
-  creativeMarketParam: "", // Creative Market (Impact) – parametr trackingu
-  envatoRef: "",           // Envato – Twój username
-  subId: "wfs",            // własny tag kampanii (opcjonalny)
+  myfontsCjPrefix: "",        // MyFonts/Monotype (CJ) – deep-link prefix
+  fontspringCjPrefix: "",     // Fontspring (CJ) – deep-link prefix (20%/10%)
+  adobePartnerizePrefix: "",  // Adobe / Creative Cloud (Partnerize) – prefix linku
+  creativeMarketParam: "",    // Creative Market (Impact) – parametr trackingu
+  envatoRef: "",              // Envato – Twój username
+  subId: "wfs",               // własny tag kampanii (opcjonalny)
 };
 ```
 
@@ -66,6 +68,35 @@ Dobre dla indie/trendy krojów (np. Gilroy-style).
 3. Wpisz username jako `envatoRef`, np. `envatoRef: "wolfiesites"`.
 4. (Envato Elements — subskrypcja „wszystkie fonty" — rozliczasz przez Impact;
    jeśli chcesz osobny przycisk „Unlimited fonts", powiedz, dodam.)
+
+---
+
+## 4. Fontspring — przez CJ (20% / 10%)
+
+1. Załóż/zaloguj się na **https://www.cj.com/** (Publisher) — ta sama sieć co MyFonts.
+2. W **Advertisers** znajdź **Fontspring**, „Join Program".
+3. W **Links → Link Generator** wygeneruj **Deep Link** do `https://www.fontspring.com/`.
+4. Wklej **prefix** (część przed Twoim URL-em docelowym) jako `fontspringCjPrefix`.
+   Rozszerzenie dokleja zakodowany URL wyszukiwania Fontspring.
+
+> Prowizja Fontspring: ~20% od nowych klientów, 10% od wracających.
+
+---
+
+## 5. Adobe Fonts (Creative Cloud) — przez Partnerize
+
+Uwaga: **Adobe Fonts nie sprzedaje się osobno** — wchodzi w **Creative Cloud**.
+Afiliujesz subskrypcję CC (która daje dostęp do Adobe Fonts).
+
+1. Rejestracja: **https://join.partnerize.com/adobe** (program zarządza Partnerize).
+2. Po akceptacji wygeneruj **link trackingowy** do `https://fonts.adobe.com/`
+   (lub strony Creative Cloud). Linki Partnerize mają formę
+   `https://prf.hn/click/camref:XXXX/destination:` + zakodowany URL docelowy.
+3. Wklej **prefix kończący się na `destination:`** jako `adobePartnerizePrefix`.
+   Rozszerzenie dokleja zakodowany URL Adobe Fonts.
+
+> Prowizja Adobe: ~85% opłaty za 1. miesiąc (plany miesięczne / roczne płatne
+> miesięcznie) albo ~8,33% rocznej (roczny z góry). Cookie 30 dni.
 
 ---
 
