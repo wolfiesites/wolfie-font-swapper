@@ -49,7 +49,53 @@ function refresh() {
   document.title = I18N.t("options_title");
   if (select.options[0]) select.options[0].textContent = I18N.t("options_lang_auto");
   renderLegendSteps();
+  renderProRow();
 }
+
+// ---- Pro / subskrypcja (ExtensionPay) ----
+const EXTPAY_ID = "wolfie-font-swapper";
+let optExtpay = null;
+let optProActive = false;
+try {
+  if (typeof ExtPay === "function") optExtpay = ExtPay(EXTPAY_ID);
+} catch (e) {}
+
+function renderProRow() {
+  const statusEl = document.getElementById("pro-status");
+  const btn = document.getElementById("pro-btn");
+  if (!statusEl || !btn) return;
+  if (optProActive) {
+    statusEl.textContent = I18N.t("pro_active");
+    statusEl.classList.add("active");
+    btn.textContent = I18N.t("pro_manage");
+    btn.classList.remove("pro-cta");
+  } else {
+    statusEl.textContent = I18N.t("status_preset_max"); // „Darmowo: 3 presety. Pro = bez limitu."
+    statusEl.classList.remove("active");
+    btn.textContent = I18N.t("pro_upsell");
+    btn.classList.add("pro-cta");
+  }
+  btn.onclick = () => {
+    if (optExtpay) {
+      try { optExtpay.openPaymentPage(); return; } catch (e) {}
+    }
+    window.open("https://extensionpay.com/", "_blank", "noopener");
+  };
+}
+
+async function refreshOptPro() {
+  if (!optExtpay) return;
+  try {
+    const user = await optExtpay.getUser();
+    optProActive = !!user.paid;
+    try { chrome.storage.local.set({ wfs_pro: { active: optProActive } }); } catch (e) {}
+    renderProRow();
+  } catch (e) {}
+}
+if (optExtpay && optExtpay.onPaid) {
+  try { optExtpay.onPaid.addListener(() => refreshOptPro()); } catch (e) {}
+}
+refreshOptPro();
 
 buildOptions();
 select.value = currentPref();

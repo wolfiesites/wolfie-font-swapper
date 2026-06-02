@@ -99,6 +99,12 @@
     .cf-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
     .cf-copied { color: #4cd964; font-size: 12px; align-self: center; }
 
+    .pro-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+    .pro-status { font-size: 13px; color: var(--muted); }
+    .pro-status.active { color: #4cd964; font-weight: 700; }
+    #pro-btn { margin-left: auto; }
+    #pro-btn.pro-cta { background: rgba(255,184,74,0.14); border-color: #6a5a1e; color: #ffd54a; font-weight: 700; }
+    #pro-btn.pro-cta:hover { background: rgba(255,184,74,0.24); border-color: #ffb84a; }
     .ps-list { display: flex; flex-direction: column; gap: 8px; }
     .ps-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
     .ps-name { flex: 0 0 180px; padding: 6px 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; }
@@ -258,6 +264,11 @@
         <h2 class="cf-title" style="margin:0" data-i18n="presets_label">Presety</h2>
         <button id="ps-purge" class="cf-btn" type="button" data-i18n="cf_purge">Wyczyść wszystkie</button>
       </div>
+      <!-- Pro: status subskrypcji + aktywacja (ExtensionPay) -->
+      <div id="pro-row" class="pro-row">
+        <span id="pro-status" class="pro-status"></span>
+        <button id="pro-btn" class="cf-btn" type="button"></button>
+      </div>
       <div id="ps-list" class="ps-list"></div>
     </div>
 
@@ -335,6 +346,7 @@ body, * {
     </div>
   </div>
 
+  <script src="ExtPay.js"></script>
   <script src="i18n.js"></script>
   <script src="fonts.js"></script>
   <script src="fonts-meta.js"></script>
