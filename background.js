@@ -4,24 +4,6 @@
 // - rysuje kropkę na ikonie karty, gdy content script auto-zastosuje fonty
 //   (zielona = ręczna podmiana sesji/trwała, czerwona = reguła domeny z ustawień).
 
-// ExtensionPay — subskrypcja Pro (nielimitowane presety). EXTPAY_ID to slug
-// rejestrowany na https://extensionpay.com (patrz docs/how-to-extension-pay.md).
-// startBackground() MUSI działać w service workerze, by płatność dochodziła.
-const EXTPAY_ID = "wolfie-font-swapper";
-try {
-  importScripts("ExtPay.js");
-  const extpay = ExtPay(EXTPAY_ID);
-  extpay.startBackground();
-  // Po zmianie statusu płatności zapisz flagę, z której korzysta popup (limit presetów).
-  extpay.onPaid.addListener((user) => {
-    try {
-      chrome.storage.local.set({ wfs_pro: { active: !!(user && user.paid) } });
-    } catch (e) {}
-  });
-} catch (e) {
-  // Brak/niepoprawny ExtPay.js — dodatek działa dalej w trybie darmowym (limit 3).
-}
-
 function setSessionAccess() {
   try {
     chrome.storage.session.setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" });
@@ -88,3 +70,25 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.runtime.onInstalled.addListener(setSessionAccess);
 if (chrome.runtime.onStartup) chrome.runtime.onStartup.addListener(setSessionAccess);
 setSessionAccess();
+
+// ---- ExtensionPay (subskrypcja Pro) — NA KOŃCU, żeby ewentualne problemy ExtPay
+// nigdy nie blokowały rejestracji rdzennych listenerów wyżej. EXTPAY_ID = slug
+// z https://extensionpay.com (patrz docs/how-to-extension-pay.md). Wymaga też
+// content scriptu na extensionpay.com/* (jest w manifest.json) — bez niego
+// onPaid.addListener rzuca błąd setupu.
+try {
+  importScripts("ExtPay.js");
+  const extpay = ExtPay("wolfie-font-swapper");
+  extpay.startBackground();
+  try {
+    extpay.onPaid.addListener((user) => {
+      try {
+        chrome.storage.local.set({ wfs_pro: { active: !!(user && user.paid) } });
+      } catch (e) {}
+    });
+  } catch (e) {
+    // onPaid wymaga content scriptu ExtPay — gdy go brak, pomijamy (tryb darmowy).
+  }
+} catch (e) {
+  // Brak/niepoprawny ExtPay.js — dodatek działa dalej w trybie darmowym (limit 3).
+}
