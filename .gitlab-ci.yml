@@ -59,6 +59,10 @@ publish:wppw:
   stage: publish
   image: alpine:3.20
   needs: ["build:zip"]
+  # Upload jest best-effort: jeśli warstwa brzegowa (Cloudflare) blokuje IP
+  # runnera GitLaba, krok zgłosi warning, ale pipeline pozostaje zielony, a ZIP
+  # jest dostępny w artefaktach build:zip. Patrz CLAUDE.md → „Znany problem".
+  allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "production"'
   before_script:

@@ -26,6 +26,18 @@ Przepływ: pracujesz na `main` → merge do **`production`** → GitLab CI
 
 Bez `WPPW_SERVICE_KEY` krok publish jest pomijany (pipeline zielony, ZIP w artefaktach).
 
+### Znany problem — 403 na uploadzie z GitLab CI
+Build działa, ale `curl` z runnera GitLaba (chmurowe IP) dostaje **403 (puste body)**
+z `api.wppw.pl`, podczas gdy **ten sam service key + endpoint działa z WSL/zima**
+(auth/scope OK — potwierdzone: pusty POST z WSL daje 500, nie 403). To **blokada
+warstwy brzegowej (Cloudflare)** na IP runnera, nie aplikacja. `publish:wppw` ma
+`allow_failure: true`, więc artefakt ZIP zawsze powstaje. Opcje naprawy:
+1. **Self-hosted GitLab runner na zima / w sieci docker** → publish uploaduje do
+   kontenera `api-wppw` po sieci wewnętrznej (`http://api-wppw:PORT/...`),
+   omijając Cloudflare. (Najczystsze, najbezpieczniejsze.)
+2. **Cloudflare**: reguła WAF „skip" dla ścieżki `/api/service/products/*/releases`
+   (lub allowlist IP runnerów) — wymaga dostępu do dashboardu/API Cloudflare.
+
 Kontrakt API (z `wolfie-platform/apps/api-wppw`): `POST /api/service/products/<slug>/releases`,
 multipart: `version`, `sha256` (64 hex, SHA-256 ZIP-a), `uploaderEmail`, `file`
 (+ opc. `productName`, `uploadOrigin`, `metadata`). Header `X-Service-Key`.
