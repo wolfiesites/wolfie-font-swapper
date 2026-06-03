@@ -26,17 +26,25 @@ Przepływ: pracujesz na `main` → merge do **`production`** → GitLab CI
 
 Bez `WPPW_SERVICE_KEY` krok publish jest pomijany (pipeline zielony, ZIP w artefaktach).
 
-### Znany problem — 403 na uploadzie z GitLab CI
-Build działa, ale `curl` z runnera GitLaba (chmurowe IP) dostaje **403 (puste body)**
-z `api.wppw.pl`, podczas gdy **ten sam service key + endpoint działa z WSL/zima**
-(auth/scope OK — potwierdzone: pusty POST z WSL daje 500, nie 403). To **blokada
-warstwy brzegowej (Cloudflare)** na IP runnera, nie aplikacja. `publish:wppw` ma
-`allow_failure: true`, więc artefakt ZIP zawsze powstaje. Opcje naprawy:
-1. **Self-hosted GitLab runner na zima / w sieci docker** → publish uploaduje do
-   kontenera `api-wppw` po sieci wewnętrznej (`http://api-wppw:PORT/...`),
-   omijając Cloudflare. (Najczystsze, najbezpieczniejsze.)
-2. **Cloudflare**: reguła WAF „skip" dla ścieżki `/api/service/products/*/releases`
-   (lub allowlist IP runnerów) — wymaga dostępu do dashboardu/API Cloudflare.
+### Architektura wdrożenia (DZIAŁA)
+- **Runner:** self-hosted GitLab runner na **zima** (kontener `gitlab-runner-wfs`,
+  docker executor, `network_mode=platform`, tag `zima`, config `/opt/gitlab-runner-wfs`).
+  `publish:wppw` ma `tags: [zima]` → leci na nim; `build:zip` na shared runnerach.
+- **Upload wewnętrzny:** `WPPW_UPLOAD_URL=http://api-wppw:3000/api/service/products/wolfie-font-swapper/releases`
+  (sieć docker `platform`) — omija Cloudflare. api-wppw słucha na **:3000**.
+- **CSRF:** SvelteKit (adapter-node bez `ORIGIN` env) liczy `url.origin` jako
+  **https + host**. Multipart POST bez pasującego Origin → 403
+  „Cross-site POST form submissions are forbidden". Dlatego CI wysyła
+  `Origin: https://<host>` (host z URL, schemat wymuszony na https). **To był
+  prawdziwy powód 403 — nie Cloudflare.**
+- **Produkt:** prywatny (`private:true`), status `available`, vendor
+  *WolfieCloud Managed*. Pobranie wymaga **klucza licencyjnego** (license-gated).
+- **Dostęp superorg:** comp-license dla `externalOrgId=wolfie-superorg`
+  (klucz `WOLF-…`, trzymany poza repo).
+
+Pełen cykl: merge `main`→`production` → `build:zip` (shared) → `publish:wppw`
+(zima, internal) → release w rejestrze api.wppw.pl. Ta sama wersja = **409**
+(podbij `version` w `manifest.json`).
 
 Kontrakt API (z `wolfie-platform/apps/api-wppw`): `POST /api/service/products/<slug>/releases`,
 multipart: `version`, `sha256` (64 hex, SHA-256 ZIP-a), `uploaderEmail`, `file`
