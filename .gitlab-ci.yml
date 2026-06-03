@@ -100,6 +100,7 @@ publish:wppw:
       echo "HTTP $HTTP"
       echo "--- response ---"; cat resp.txt; echo
       case "$HTTP" in
-        2*) echo "OK — release $VERSION wysłany do api.wppw.pl" ;;
-        *)  echo "Upload failed (HTTP $HTTP)"; exit 1 ;;
+        2*)  echo "OK — release $VERSION wysłany do api.wppw.pl" ;;
+        409) echo "Already published: $VERSION (bump manifest.json version dla nowego release)" ;;
+        *)   echo "Upload failed (HTTP $HTTP)"; exit 1 ;;
       esac
