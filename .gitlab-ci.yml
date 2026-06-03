@@ -76,9 +76,10 @@ publish:wppw:
         exit 0
       fi
     - SHA=$(sha256sum "$ZIP" | cut -d' ' -f1)
-    # SvelteKit CSRF odrzuca multipart POST bez pasującego Origin (403). Dlatego
-    # dokładamy Origin = schemat+host docelowego URL-a.
-    - ORIGIN=$(echo "$URL" | sed -E 's#^(https?://[^/]+).*#\1#')
+    # SvelteKit CSRF odrzuca multipart POST bez pasującego Origin (403). app
+    # (adapter-node bez ORIGIN env) liczy url.origin jako HTTPS + host, nawet gdy
+    # łączymy się po http — więc Origin MUSI mieć schemat https + host docelowy.
+    - ORIGIN="https://$(echo "$URL" | sed -E 's#^https?://([^/]+).*#\1#')"
     - echo "Uploading $ZIP (v$VERSION, sha256=$SHA) → $URL (origin $ORIGIN)"
     # Produkt auto-tworzy się przy 1. uploadzie po slug ($PKG_NAME). Wymagane:
     # version, sha256, file, uploaderEmail. Powtórka tej samej wersji = 409
