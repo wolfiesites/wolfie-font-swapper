@@ -76,7 +76,10 @@ publish:wppw:
         exit 0
       fi
     - SHA=$(sha256sum "$ZIP" | cut -d' ' -f1)
-    - echo "Uploading $ZIP (v$VERSION, sha256=$SHA) → $URL"
+    # SvelteKit CSRF odrzuca multipart POST bez pasującego Origin (403). Dlatego
+    # dokładamy Origin = schemat+host docelowego URL-a.
+    - ORIGIN=$(echo "$URL" | sed -E 's#^(https?://[^/]+).*#\1#')
+    - echo "Uploading $ZIP (v$VERSION, sha256=$SHA) → $URL (origin $ORIGIN)"
     # Produkt auto-tworzy się przy 1. uploadzie po slug ($PKG_NAME). Wymagane:
     # version, sha256, file, uploaderEmail. Powtórka tej samej wersji = 409
     # (podbij version w manifest.json). Aby było PRYWATNE/superorg: raz wywołaj
@@ -84,6 +87,7 @@ publish:wppw:
     - |
       HTTP=$(curl -s -o resp.txt -w "%{http_code}" -X POST \
         -H "X-Service-Key: $WPPW_SERVICE_KEY" \
+        -H "Origin: $ORIGIN" \
         -A "wfs-gitlab-ci/1.0" \
         -F "version=${VERSION}" \
         -F "sha256=${SHA}" \
