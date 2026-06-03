@@ -59,10 +59,10 @@ publish:wppw:
   stage: publish
   image: alpine:3.20
   needs: ["build:zip"]
-  # Upload jest best-effort: jeśli warstwa brzegowa (Cloudflare) blokuje IP
-  # runnera GitLaba, krok zgłosi warning, ale pipeline pozostaje zielony, a ZIP
-  # jest dostępny w artefaktach build:zip. Patrz CLAUDE.md → „Znany problem".
-  allow_failure: true
+  # Self-hosted runner na zima (docker executor, sieć `platform`) → upload leci
+  # po sieci WEWNĘTRZNEJ do kontenera api-wppw, omijając Cloudflare. URL ustawia
+  # zmienna CI WPPW_UPLOAD_URL = http://api-wppw:3000/api/service/products/<slug>/releases
+  tags: [zima]
   rules:
     - if: '$CI_COMMIT_BRANCH == "production"'
   before_script:
