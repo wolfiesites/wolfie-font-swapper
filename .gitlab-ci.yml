@@ -78,13 +78,19 @@ publish:wppw:
     # (podbij version w manifest.json). Aby było PRYWATNE/superorg: raz wywołaj
     # set_product_visibility { private } przez MCP api.wppw.pl.
     - |
-      curl --fail --show-error --silent \
+      HTTP=$(curl -s -o resp.txt -w "%{http_code}" -X POST \
         -H "X-Service-Key: $WPPW_SERVICE_KEY" \
+        -A "wfs-gitlab-ci/1.0" \
         -F "version=${VERSION}" \
         -F "sha256=${SHA}" \
         -F "uploaderEmail=${WPPW_UPLOADER_EMAIL:-wit.paw4@gmail.com}" \
         -F "productName=Wolfie Font Swapper" \
         -F "uploadOrigin=gitlab-ci" \
         -F "file=@${ZIP}" \
-        "$URL"
-    - echo "OK — release $VERSION wysłany do api.wppw.pl"
+        "$URL")
+      echo "HTTP $HTTP"
+      echo "--- response ---"; cat resp.txt; echo
+      case "$HTTP" in
+        2*) echo "OK — release $VERSION wysłany do api.wppw.pl" ;;
+        *)  echo "Upload failed (HTTP $HTTP)"; exit 1 ;;
+      esac
