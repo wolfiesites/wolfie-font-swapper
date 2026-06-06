@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0c11">
+<title>Wolfie Font Swapper — preview &amp; swap fonts on any page</title>
+<meta name="description" content="A Chrome extension to preview and swap fonts live on any website — Google Fonts + system fonts, presets, per-domain rules, and copyable CSS/SCSS/JS. No tracking.">
+<meta name="robots" content="index,follow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Wolfie Font Swapper — preview &amp; swap fonts on any page">
+<meta property="og:description" content="A Chrome extension to preview and swap fonts live on any website — Google Fonts + system fonts, presets, per-domain rules, and copyable CSS/SCSS/JS. No tracking.">
+<meta property="og:image" content="/assets/shot-popup.png">
+<meta property="og:url" content="https://wfs.wolfiesites.com/">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Rubik:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:ital,wght@0,600;1,600&family=Montserrat:wght@600&family=Poppins:wght@600&family=Bebas+Neue&family=Lobster&family=Merriweather:ital@1&family=Space+Grotesk:wght@600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0a0c11; --bg2:#0c0e14; --surface:#14141a; --surface2:#181b22;
+  --border:#262b36; --border2:#323a48;
+  --text:#e9ecf3; --muted:#9aa3b2; --muted2:#6f7888;
+  --cyan:#00e0ff; --pink:#ff3dae; --violet:#7a6cff; --green:#2ee08a; --amber:#ffb84a; --red:#ff6b6b;
+  --radius:16px; --maxw:1140px;
+  --glow:0 0 0 1px rgba(0,224,255,.12), 0 18px 50px -20px rgba(0,224,255,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Rubik","Segoe UI",system-ui,sans-serif; font-size:17px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+a{color:var(--cyan); text-decoration:none}
+h1,h2,h3{line-height:1.1; margin:0; letter-spacing:-.02em}
+.display{font-family:"Audiowide","Rubik",system-ui,sans-serif; letter-spacing:0}
+.wrap{max-width:var(--maxw); margin:0 auto; padding:0 22px}
+.muted{color:var(--muted)}
+.center{text-align:center}
+
+/* animated background */
+.bg-fx{position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none}
+.blob{position:absolute; border-radius:50%; filter:blur(90px); opacity:.5; animation:float 18s ease-in-out infinite}
+.blob.a{width:560px;height:560px;background:radial-gradient(circle,rgba(0,224,255,.55),transparent 70%);top:-180px;left:-120px}
+.blob.b{width:620px;height:620px;background:radial-gradient(circle,rgba(255,61,174,.45),transparent 70%);top:-80px;right:-160px;animation-delay:-6s}
+.blob.c{width:520px;height:520px;background:radial-gradient(circle,rgba(46,224,138,.32),transparent 70%);top:760px;left:30%;animation-delay:-11s}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,30px) scale(1.08)}66%{transform:translate(-30px,20px) scale(.95)}}
+.grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* nav */
+header.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
+  background:rgba(10,12,17,.6);border-bottom:1px solid transparent;transition:border-color .3s,background .3s}
+header.nav.scrolled{border-color:var(--border);background:rgba(10,12,17,.82)}
+.nav-in{display:flex;align-items:center;gap:18px;height:66px}
+.brand{display:flex;align-items:center;gap:11px;font-family:"Audiowide";font-size:17px;color:#fff}
+.brand img{width:30px;height:30px;border-radius:8px}
+.nav-links{display:flex;gap:24px;margin-left:auto}
+.nav-links a{color:var(--muted);font-size:15px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:#fff}
+.btn{display:inline-flex;align-items:center;gap:9px;border-radius:11px;padding:11px 18px;font:inherit;
+  font-weight:600;font-size:15px;cursor:pointer;border:1px solid transparent;transition:transform .15s,box-shadow .2s,background .2s;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--pink));color:#06080d;
+  box-shadow:0 10px 30px -10px rgba(0,224,255,.6)}
+.btn-primary:hover{box-shadow:0 14px 38px -10px rgba(0,224,255,.85);transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,.04);border-color:var(--border2);color:var(--text)}
+.btn-ghost:hover{background:rgba(255,255,255,.08);border-color:var(--cyan)}
+.nav .btn{padding:9px 15px}
+@media(max-width:780px){.nav-links{display:none}}
+
+/* hero */
+.hero{padding:78px 0 40px;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border2);
+  background:rgba(0,224,255,.06);color:var(--cyan);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600}
+.pill .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+h1.title{font-size:clamp(38px,7vw,76px);font-weight:700;margin:22px auto 0;max-width:16ch}
+.swap{display:block;background:linear-gradient(135deg,var(--cyan),var(--pink));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  transition:opacity .25s,transform .25s;line-height:1.05;min-height:1.05em;
+  font-size:1.18em;padding:.04em 0}
+.swap.out{opacity:0;transform:translateY(8px)}
+.lead{font-size:clamp(17px,2.3vw,21px);color:var(--muted);max-width:60ch;margin:22px auto 0;line-height:1.55}
+.cta-row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+.trust{display:flex;gap:8px 26px;justify-content:center;flex-wrap:wrap;margin-top:26px;color:var(--muted2);font-size:14px}
+.trust span{display:inline-flex;align-items:center;gap:7px}
+.trust svg{width:15px;height:15px;color:var(--green)}
+.soon{font-size:11px;font-weight:700;background:var(--amber);color:#1a1206;border-radius:6px;padding:2px 6px;margin-left:2px}
+
+/* browser mockup */
+.mock{max-width:920px;margin:54px auto 0;border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  background:var(--surface);box-shadow:0 40px 90px -40px rgba(0,0,0,.9), var(--glow)}
+.mock-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#101218;border-bottom:1px solid var(--border)}
+.mock-bar i{width:12px;height:12px;border-radius:50%;display:inline-block}
+.mock-bar i:nth-child(1){background:#ff5f57}.mock-bar i:nth-child(2){background:#febc2e}.mock-bar i:nth-child(3){background:#28c840}
+.mock-bar .url{margin-left:14px;flex:1;background:#0a0c11;border:1px solid var(--border);border-radius:8px;
+  padding:6px 12px;color:var(--muted);font-size:13px;font-family:"JetBrains Mono",monospace;text-align:left}
+.mock img{display:block;width:100%;height:auto}
+
+/* sections */
+section{padding:74px 0;position:relative}
+.eyebrow{color:var(--cyan);font-weight:700;font-size:14px;letter-spacing:.12em;text-transform:uppercase}
+.h2{font-size:clamp(28px,4.4vw,44px);font-weight:700;margin-top:12px}
+.sub{color:var(--muted);font-size:18px;max-width:56ch;margin:14px auto 0}
+.sec-head{text-align:center;max-width:720px;margin:0 auto 48px}
+
+/* marquee */
+.marquee{overflow:hidden;border-block:1px solid var(--border);padding:20px 0;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marquee-track{display:flex;gap:54px;width:max-content;animation:scroll 32s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+.marquee-track span{font-size:26px;color:var(--muted);white-space:nowrap;opacity:.8}
+@keyframes scroll{to{transform:translateX(-50%)}}
+
+/* bento */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.card{background:linear-gradient(180deg,var(--surface),var(--bg2));border:1px solid var(--border);
+  border-radius:var(--radius);padding:24px;position:relative;overflow:hidden;transition:border-color .25s,transform .25s}
+.card::before{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .3s;
+  background:radial-gradient(380px circle at var(--mx,50%) var(--my,50%),rgba(0,224,255,.10),transparent 60%)}
+.card:hover{border-color:var(--border2);transform:translateY(-3px)}
+.card:hover::before{opacity:1}
+.card .ic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,224,255,.10);border:1px solid var(--border2);margin-bottom:14px}
+.card .ic svg{width:22px;height:22px;color:var(--cyan)}
+.card h3{font-size:18px;margin-bottom:7px}
+.card p{color:var(--muted);font-size:15px;margin:0}
+.card.lg{grid-column:span 3}.card.md{grid-column:span 2}.card.sm{grid-column:span 2}
+@media(max-width:900px){.bento{grid-template-columns:repeat(2,1fr)}.card.lg,.card.md,.card.sm{grid-column:span 1}}
+@media(max-width:560px){.bento{grid-template-columns:1fr}.card.lg,.card.md,.card.sm{grid-column:span 1}}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;counter-reset:s}
+.step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;position:relative}
+.step .n{font-family:"Audiowide";font-size:14px;color:#06080d;background:linear-gradient(135deg,var(--cyan),var(--pink));
+  width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.step h3{font-size:19px;margin-bottom:8px}.step p{color:var(--muted);margin:0;font-size:15px}
+@media(max-width:780px){.steps{grid-template-columns:1fr}}
+
+/* showcase */
+.gallery{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+.shot{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface);position:relative;cursor:zoom-in}
+.shot img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .5s}
+.shot:hover img{transform:scale(1.03)}
+.shot .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;font-size:14px;font-weight:600;
+  background:linear-gradient(0deg,rgba(6,8,13,.92),transparent)}
+.gal-col{display:grid;gap:18px}
+@media(max-width:780px){.gallery{grid-template-columns:1fr}}
+
+/* interactive hero demo: page (left) + faux extension popup (right) */
+.demo2{display:grid;grid-template-columns:1.55fr .95fr;background:#fff;min-height:300px}
+.demo-page{background:#f5f6f8;color:#11131a;padding:34px 30px;text-align:left}
+.demo-h{font-size:30px;line-height:1.16;margin:0 0 13px;color:#0c0e14;transition:font-family .2s ease}
+.demo-p{font-size:16px;line-height:1.7;color:#3a4150;margin:0;transition:font-family .2s ease}
+/* faux popup — extension palette (pink #ff3dae primary + cyan) */
+.demo-pop{--pp:#ff3dae;--pc:#00e0ff;background:#1e1e24;color:#f2f2f5;display:flex;flex-direction:column;border-left:1px solid #000}
+.dp-head{display:flex;align-items:center;gap:9px;font-family:"Audiowide",sans-serif;font-size:13px;color:#fff;
+  padding:11px 13px;background:linear-gradient(90deg,var(--pc),var(--pp))}
+.dp-head img{width:24px;height:24px;border-radius:6px;background:rgba(0,0,0,.25)}
+.dp-body{padding:13px;display:grid;gap:11px}
+.dp-field{display:grid;gap:5px}
+.dp-label{font-size:10px;font-weight:700;letter-spacing:.07em;color:#9a9aa8;text-transform:uppercase}
+.dd{position:relative}
+.dd-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#2a2a33;
+  border:1px solid var(--pp);color:#f2f2f5;border-radius:9px;padding:9px 11px;font:inherit;font-size:14px;cursor:pointer;text-align:left}
+.dd-chev{color:var(--pp);transition:transform .28s ease;flex:none}
+.dd.open .dd-chev{transform:rotate(180deg)}
+.dd-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:6;list-style:none;margin:0;padding:5px;
+  background:#24242c;border:1px solid #3c3c47;border-radius:10px;max-height:0;opacity:0;overflow:hidden;
+  transform:translateY(-6px) scaleY(.96);transform-origin:top;
+  transition:max-height .32s cubic-bezier(.2,.7,.2,1),opacity .22s ease,transform .28s cubic-bezier(.2,.7,.2,1);
+  pointer-events:none;box-shadow:0 24px 50px -20px #000}
+.dd.open .dd-list{max-height:268px;opacity:1;transform:none;overflow:auto;pointer-events:auto}
+.dd-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;border-radius:7px;
+  font-size:15px;color:#f2f2f5;cursor:pointer;border:1px solid transparent;transition:background .15s,border-color .15s}
+.dd-item:hover{background:#2f2f39}
+.dd-item.sel{border-color:var(--pp);background:#321f2a}
+.dd-tag{font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px;border:1px solid;flex:none}
+.dd-tag.free,.dd-tag.websafe{color:#4cd964;border-color:#2e6b3e}
+.dd-tag.premium,.dd-tag.system{color:#ffb84a;border-color:#6a5a1e}
+.dp-chips{display:flex;gap:6px;flex-wrap:wrap}
+.dp-chip{font-size:12px;color:#9a9aa8;background:#34343f;border:1px solid #3c3c47;border-radius:12px;padding:4px 10px}
+.dp-chip.on{color:var(--pp);border-color:var(--pp)}
+.dp-copy{margin-top:2px;background:var(--pp);color:#fff;border:none;border-radius:9px;padding:10px;font:inherit;font-weight:600;font-size:14px;cursor:pointer;transition:filter .2s}
+.dp-copy:hover{filter:brightness(1.08)}
+@media(max-width:680px){.demo2{grid-template-columns:1fr}.demo-pop{border-left:none;border-top:1px solid #000}.demo-h{font-size:25px}}
+.mock-note{background:var(--surface);border-top:1px solid var(--border);color:var(--muted2);font-size:11px;text-align:right;padding:6px 13px}
+.shot-note{color:var(--muted2);font-size:12px;text-align:center;margin-top:16px}
+
+/* back-to-top */
+.to-top{position:fixed;right:18px;bottom:18px;z-index:90;width:46px;height:46px;border-radius:50%;
+  border:1px solid var(--border2);background:rgba(20,20,26,.82);backdrop-filter:blur(8px);color:var(--cyan);
+  font-size:22px;line-height:1;cursor:pointer;align-items:center;justify-content:center;display:none;
+  box-shadow:0 12px 30px -12px #000;transition:transform .2s,background .2s,border-color .2s}
+.to-top:hover{transform:translateY(-2px);border-color:var(--cyan);background:rgba(20,20,26,.96)}
+.to-top.show{display:flex}
+
+/* lightbox */
+.lightbox{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
+  background:rgba(6,8,13,.86);backdrop-filter:blur(8px);padding:28px;cursor:zoom-out}
+.lightbox.open{display:flex;animation:lbin .25s ease}
+@keyframes lbin{from{opacity:0}to{opacity:1}}
+.lightbox img{max-width:min(1100px,94vw);max-height:90vh;border-radius:14px;border:1px solid var(--border2);box-shadow:0 40px 100px -30px #000}
+.lightbox .x{position:absolute;top:20px;right:24px;width:42px;height:42px;border-radius:11px;border:1px solid var(--border2);
+  background:rgba(255,255,255,.06);color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lightbox .x:hover{background:rgba(255,255,255,.12);border-color:var(--cyan)}
+
+/* tags */
+.tags{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.tag{border:1px solid var(--border);border-radius:14px;padding:22px;background:var(--surface)}
+.tag .chip{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:4px 11px;margin-bottom:12px}
+.tag.web .chip{background:rgba(0,224,255,.14);color:var(--cyan)}
+.tag.free .chip{background:rgba(46,224,138,.16);color:var(--green)}
+.tag.prem .chip{background:rgba(255,184,74,.16);color:var(--amber)}
+.tag.sys .chip{background:rgba(122,108,255,.18);color:#b3a9ff}
+.tag h3{font-size:16px;margin-bottom:6px}.tag p{color:var(--muted);font-size:14px;margin:0}
+@media(max-width:780px){.tags{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:440px){.tags{grid-template-columns:1fr}}
+
+/* pricing */
+.price{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:760px;margin:0 auto}
+.plan{border:1px solid var(--border);border-radius:18px;padding:30px;background:var(--surface)}
+.plan.pro{border-color:transparent;background:
+  linear-gradient(var(--surface),var(--surface)) padding-box,
+  linear-gradient(135deg,var(--cyan),var(--pink)) border-box;box-shadow:var(--glow)}
+.plan h3{font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.plan .amt{font-size:40px;font-weight:700;margin:10px 0 4px}
+.plan .amt small{font-size:15px;color:var(--muted);font-weight:400}
+.plan ul{list-style:none;padding:0;margin:20px 0 24px;display:grid;gap:11px}
+.plan li{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:15px}
+.plan li svg{width:18px;height:18px;color:var(--green);flex:none;margin-top:2px}
+.plan li.off{color:var(--muted2)}.plan li.off svg{color:var(--muted2)}
+@media(max-width:640px){.price{grid-template-columns:1fr}}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto;display:grid;gap:12px}
+details{border:1px solid var(--border);border-radius:13px;background:var(--surface);overflow:hidden}
+details[open]{border-color:var(--border2)}
+summary{cursor:pointer;padding:18px 20px;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary .pl{color:var(--cyan);font-size:22px;transition:transform .25s;flex:none}
+details[open] summary .pl{transform:rotate(45deg)}
+details .body{padding:0 20px 18px;color:var(--muted);font-size:15px}
+
+/* cta band */
+.band{border:1px solid var(--border);border-radius:24px;padding:54px 32px;text-align:center;position:relative;overflow:hidden;
+  background:radial-gradient(700px circle at 50% -40%,rgba(0,224,255,.16),transparent 60%),var(--surface)}
+.band h2{font-size:clamp(26px,4vw,40px)}
+.band .lead{margin-top:14px}
+
+/* footer */
+footer{border-top:1px solid var(--border);padding:46px 0 60px;margin-top:30px}
+.foot{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:center}
+.foot .brand{font-size:15px}
+.foot-links{display:flex;gap:22px;flex-wrap:wrap}
+.foot-links a{color:var(--muted);font-size:14px}.foot-links a:hover{color:#fff}
+.copy{color:var(--muted2);font-size:13px;margin-top:22px}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}.blob,.marquee-track{animation:none}}
+
+/* language flag dropdown */
+.lang{position:relative;flex:none}
+.lang-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:11px;padding:8px 10px;cursor:pointer;color:var(--text);font:inherit;line-height:1}
+.lang-btn:hover{border-color:var(--cyan)}
+.lang-flag{font-size:18px;line-height:1}
+.lang-chev{color:var(--muted);font-size:11px}
+.lang-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:70;list-style:none;margin:0;padding:6px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;min-width:172px;box-shadow:0 24px 60px -24px #000;display:none;max-height:70vh;overflow:auto}
+.lang-menu.open{display:block}
+.lang-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text);font-size:14px;white-space:nowrap}
+.lang-item:hover{background:rgba(255,255,255,.06)}
+.lang-item.sel{color:var(--cyan)}
+.lang-item .lf{font-size:18px;line-height:1}
+</style>
+<!--wfs:i18n-->
+<link rel="canonical" href="https://wfs.wolfiesites.com/">
+<link rel="alternate" hreflang="en" href="https://wfs.wolfiesites.com/">
+<link rel="alternate" hreflang="pl" href="https://wfs.wolfiesites.com/pl/">
+<link rel="alternate" hreflang="fr" href="https://wfs.wolfiesites.com/fr/">
+<link rel="alternate" hreflang="de" href="https://wfs.wolfiesites.com/de/">
+<link rel="alternate" hreflang="es" href="https://wfs.wolfiesites.com/es/">
+<link rel="alternate" hreflang="uk" href="https://wfs.wolfiesites.com/uk/">
+<link rel="alternate" hreflang="ru" href="https://wfs.wolfiesites.com/ru/">
+<link rel="alternate" hreflang="ro" href="https://wfs.wolfiesites.com/ro/">
+<link rel="alternate" hreflang="it" href="https://wfs.wolfiesites.com/it/">
+<link rel="alternate" hreflang="x-default" href="https://wfs.wolfiesites.com/">
+<meta property="og:locale" content="en_US">
+<!--/wfs:i18n-->
+</head>
+<body>
+<div class="bg-fx"><div class="blob a"></div><div class="blob b"></div><div class="blob c"></div></div>
+<div class="grain"></div>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="#top"><img src="/assets/logo.png" alt=""> Wolfie Font Swapper</a>
+    <nav class="nav-links">
+      <a href="#features" data-i18n="nav_features">Features</a>
+      <a href="#how" data-i18n="nav_how">How it works</a>
+      <a href="#showcase" data-i18n="nav_showcase">Showcase</a>
+      <a href="#pricing" data-i18n="nav_pro">Pro</a>
+      <a href="#faq" data-i18n="nav_faq">FAQ</a>
+    </nav>
+    <div class="lang" id="lang">
+      <button class="lang-btn" id="langBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Language"><span class="lang-flag" id="langFlag">🇬🇧</span><span class="lang-chev">▾</span></button>
+      <ul class="lang-menu" id="langMenu" role="menu"></ul>
+    </div>
+    <a class="btn btn-primary" href="#get" data-store data-i18n="cta_add">Add to Chrome</a>
+  </div>
+</header>
+
+<main id="top">
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <span class="pill"><span class="dot"></span> <span data-i18n="hero_pill">Chrome Extension · Manifest V3 · No tracking in the extension</span></span>
+    <h1 class="title"><span data-i18n="hero_t1">Preview &amp; swap</span><br><span class="swap display" id="swap">fonts</span><span data-i18n="hero_t2">on any website — instantly.</span></h1>
+    <p class="lead" data-i18n="hero_lead">Try any typeface live on the page you're looking at — without touching code.
+      300+ Google Fonts, your system fonts, presets, per-domain rules, and copy-ready CSS / SCSS / JS.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#get" data-store><span data-i18n="cta_add">Add to Chrome</span> <span class="soon" data-i18n="cta_soon">soon</span></a>
+      <a class="btn btn-ghost" href="#features" data-i18n="hero_see">See features</a>
+    </div>
+    <div class="trust">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="trust1">Copy-ready CSS / SCSS / JS</span></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="trust2">9 languages</span></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="trust3">Free + optional Pro</span></span>
+    </div>
+
+    <div class="mock reveal">
+      <div class="mock-bar"><i></i><i></i><i></i><div class="url">https://your-favourite-site.com</div></div>
+      <div class="demo2">
+        <div class="demo-page">
+          <h3 class="demo-h" id="demoH" data-i18n="demo_h">Typography you can feel</h3>
+          <p class="demo-p" id="demoP" data-i18n="demo_p">Change the heading and the body text independently — pick a display face for titles and a comfortable reading face for paragraphs, then watch them pair up live, right on the page. This is exactly what Wolfie Font Swapper does on any site you visit.</p>
+        </div>
+        <aside class="demo-pop" id="demoPop" aria-label="Wolfie Font Swapper popup demo">
+          <div class="dp-head"><img src="/assets/logo.png" alt=""> Wolfie Font Swapper</div>
+          <div class="dp-body">
+            <div class="dp-field">
+              <span class="dp-label" data-i18n="dp_headings">Headings</span>
+              <div class="dd" data-target="h">
+                <button class="dd-btn" type="button"><span class="dd-val">Playfair Display</span><span class="dd-chev">▾</span></button>
+                <ul class="dd-list"></ul>
+              </div>
+            </div>
+            <div class="dp-field">
+              <span class="dp-label" data-i18n="dp_paragraph">Paragraph</span>
+              <div class="dd" data-target="p">
+                <button class="dd-btn" type="button"><span class="dd-val">Merriweather</span><span class="dd-chev">▾</span></button>
+                <ul class="dd-list"></ul>
+              </div>
+            </div>
+            <div class="dp-chips"><span class="dp-chip on">Bold</span><span class="dp-chip">M</span><span class="dp-chip on">1.8</span><span class="dp-chip">Aa</span></div>
+            <button class="dp-copy" type="button">⧉ Copy CSS</button>
+          </div>
+        </aside>
+      </div>
+      <div class="mock-note" data-i18n="mock_note">Mockup — the actual popup may vary slightly by version.</div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee reveal">
+  <div class="marquee-track" id="marq"></div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" data-i18n="feat_eyebrow">Everything in one popup</span>
+      <h2 class="h2" data-i18n="feat_h2">A full type toolkit, on every tab</h2>
+      <p class="sub" data-i18n="feat_sub">Designed for designers and developers who want to judge a font in context — on the real page, with real content.</p>
+    </div>
+    <div class="bento">
+      <div class="card lg reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>
+        <h3 data-i18n="f1_t">Searchable font picker</h3>
+        <p data-i18n="f1_d">Start typing and the list filters instantly. Popular Google Fonts are pinned to the top with a ★, so you reach the good stuff first.</p>
+      </div>
+      <div class="card sm reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V5h16v2M9 5v14m6-14v14M7 19h10"/></svg></div>
+        <h3 data-i18n="f2_t">Target what you want</h3>
+        <p data-i18n="f2_d">Independent fonts for the whole page, headings (h1–h6), paragraphs, navigation and buttons.</p>
+      </div>
+      <div class="card md reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="15" r="3"/></svg></div>
+        <h3 data-i18n="f3_t">Fine-tune with one tap</h3>
+        <p data-i18n="f3_d">Quick chips for weight, letter-spacing, size, line-height and letter case.</p>
+      </div>
+      <div class="card sm reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg></div>
+        <h3 data-i18n="f4_t">Presets</h3>
+        <p data-i18n="f4_d">Save your favourite looks and switch between them — they persist across sessions. Unlimited with Pro.</p>
+      </div>
+      <div class="card sm reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 6-6 6 6 6M16 6l6 6-6 6"/></svg></div>
+        <h3 data-i18n="f5_t">Copy-ready snippets</h3>
+        <p data-i18n="f5_d">Grab the exact CSS, SCSS or JS — the font files are embedded so the preview works even under strict CSP.</p>
+      </div>
+      <div class="card md reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h10M7 12h6M7 16h8"/></svg></div>
+        <h3 data-i18n="f6_t">System fonts</h3>
+        <p data-i18n="f6_d">With your permission, browse and apply fonts actually installed on your machine — names only, kept on your device.</p>
+      </div>
+      <div class="card md reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></div>
+        <h3 data-i18n="f7_t">Persistent per-domain presets</h3>
+        <p data-i18n="f7_d">Optional: pin a custom preset to specific domains — it's saved persistently and auto-applies every time you return. A green dot marks tabs with an active rule.</p>
+      </div>
+      <div class="card sm reveal">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h12M9 3v2M5 5c0 6 3 9 7 11M11 5c0 5-2 8-6 11M14 19l4-9 4 9M15.5 16h5"/></svg></div>
+        <h3 data-i18n="f8_t">9 languages</h3>
+        <p data-i18n="f8_d">PL · EN · FR · DE · ES · UK · RU · RO · IT. Follows your browser; switchable in Options.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" data-i18n="how_eyebrow">Three taps</span>
+      <h2 class="h2" data-i18n="how_h2">From curiosity to copy-paste</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="n">1</div><h3 data-i18n="s1_t">Open on any page</h3><p data-i18n="s1_d">Click the toolbar icon or hit <b>Ctrl+Shift+L</b>. The popup opens over the page you're reading.</p></div>
+      <div class="step reveal"><div class="n">2</div><h3 data-i18n="s2_t">Pick &amp; tweak</h3><p data-i18n="s2_d">Search a font, set it per section, adjust weight, spacing and size. The page updates live as you go.</p></div>
+      <div class="step reveal"><div class="n">3</div><h3 data-i18n="s3_t">Save or copy</h3><p data-i18n="s3_d">Store it as a preset / per-domain rule, or copy the generated CSS, SCSS or JS straight into your project.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SHOWCASE -->
+<section id="showcase">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" data-i18n="sc_eyebrow">See it</span>
+      <h2 class="h2" data-i18n="sc_h2">Clean popup, real results</h2>
+      <p class="sub" data-i18n="sc_sub">Everything happens in a compact, themed popup — no dashboards, no detours.</p>
+    </div>
+    <div class="gallery">
+      <div class="shot reveal"><img src="/assets/shot-popup.png" alt="The Wolfie Font Swapper popup"><div class="cap" data-i18n="cap1">The popup — sections, chips &amp; presets</div></div>
+      <div class="gal-col">
+        <div class="shot reveal"><img src="/assets/demo.gif" alt="Live font swap"><div class="cap" data-i18n="cap2">Live font swap</div></div>
+        <div class="shot reveal"><img src="/assets/shot-tags.png" alt="License tags"><div class="cap" data-i18n="cap3">License tags at a glance</div></div>
+      </div>
+    </div>
+    <p class="shot-note reveal" data-i18n="shot_note">Screenshots may differ slightly from the extension depending on the version.</p>
+  </div>
+</section>
+
+<!-- TAGS -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" data-i18n="tg_eyebrow">Know what you're using</span>
+      <h2 class="h2" data-i18n="tg_h2">Every font carries a license tag</h2>
+      <p class="sub" data-i18n="tg_sub">So you never ship a typeface you can't legally use. Tags are shown right next to each font.</p>
+    </div>
+    <div class="tags">
+      <div class="tag web reveal"><span class="chip" data-i18n="tag1_chip">Web-safe</span><h3 data-i18n="tag1_t">Always available</h3><p data-i18n="tag1_d">Stack staples like Arial, Georgia, Times — render everywhere, zero loading.</p></div>
+      <div class="tag free reveal"><span class="chip" data-i18n="tag2_chip">Free</span><h3 data-i18n="tag2_t">Open licensed</h3><p data-i18n="tag2_d">Google Fonts under OFL / Apache 2.0 — free for commercial use, embed-friendly.</p></div>
+      <div class="tag prem reveal"><span class="chip" data-i18n="tag3_chip">Premium</span><h3 data-i18n="tag3_t">Buy to use</h3><p data-i18n="tag3_d">Commercial typefaces shown by name with a link to license them from the foundry.</p></div>
+      <div class="tag sys reveal"><span class="chip" data-i18n="tag4_chip">System</span><h3 data-i18n="tag4_t">Your machine</h3><p data-i18n="tag4_d">Fonts installed locally — detected by name, applied for preview, kept on your device.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" data-i18n="pr_eyebrow">Pricing</span>
+      <h2 class="h2" data-i18n="pr_h2">Free to use. Pro when you want more.</h2>
+      <p class="sub" data-i18n="pr_sub">The core toolkit is free forever. Pro unlocks unlimited presets and is handled securely by ExtensionPay (Stripe).</p>
+    </div>
+    <div class="price">
+      <div class="plan reveal">
+        <h3 data-i18n="free_h">Free</h3>
+        <div class="amt">$0 <small data-i18n="free_amt_small">/ forever</small></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="free1">Full font picker — Google + system</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="free2">Per-section targeting &amp; chips</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="free3">Copy CSS / SCSS / JS</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="free4">Per-domain rules · 9 languages</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="free5">A handful of presets</span></li>
+        </ul>
+        <a class="btn btn-ghost" href="#get" data-store style="width:100%;justify-content:center" data-i18n="cta_add">Add to Chrome</a>
+      </div>
+      <div class="plan pro reveal">
+        <h3 style="color:var(--cyan)" data-i18n="pro_h">Pro</h3>
+        <div class="amt"><span data-i18n="pro_amt">Unlimited</span> <small data-i18n="pro_amt_small">presets</small></div>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="pro1">Everything in Free</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <b data-i18n="pro2">Unlimited presets</b></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="pro3">Support ongoing development</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg> <span data-i18n="pro4">Secure checkout via ExtensionPay / Stripe</span></li>
+        </ul>
+        <a class="btn btn-primary" href="#get" data-store style="width:100%;justify-content:center" data-i18n="pro_btn">Go Pro</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow" data-i18n="faq_eyebrow">Questions</span>
+      <h2 class="h2" data-i18n="faq_h2">Good to know</h2>
+    </div>
+    <div class="faq">
+      <details class="reveal"><summary><span data-i18n="q1">Does it collect any data?</span> <span class="pl">+</span></summary><div class="body" data-i18n="a1">No. There's no analytics, no accounts and no server owned by us. Your selections, presets, per-domain rules and language are stored locally in your browser. See the <a href="/policy/">privacy policy</a>.</div></details>
+      <details class="reveal"><summary><span data-i18n="q2">Why does it run on all sites?</span> <span class="pl">+</span></summary><div class="body" data-i18n="a2">So your saved per-domain font rules can auto-apply when you revisit a site, and so the popup opens on any page. It only reads the page's hostname to match your rules and injects CSS — it never reads or sends page content.</div></details>
+      <details class="reveal"><summary><span data-i18n="q3">Can I keep a custom font setup per website?</span> <span class="pl">+</span></summary><div class="body" data-i18n="a3">Yes — it's optional. Pin a custom preset to specific domains and it's saved persistently, auto-applying every time you revisit those sites. A green dot on the toolbar icon shows when a domain rule is active; you can remove it anytime from the popup.</div></details>
+      <details class="reveal"><summary><span data-i18n="q4">Where do the fonts come from?</span> <span class="pl">+</span></summary><div class="body" data-i18n="a4">Google Fonts are fetched from Google's public endpoints only when you preview them. System fonts are read by name (with your one-time permission) and stay on your device.</div></details>
+      <details class="reveal"><summary><span data-i18n="q5">How does Pro payment work?</span> <span class="pl">+</span></summary><div class="body" data-i18n="a5">Pro is handled by ExtensionPay, which uses Stripe. Your email and payment details are processed on their servers — the developer never sees your card data. The free tier never contacts ExtensionPay.</div></details>
+      <details class="reveal"><summary><span data-i18n="q6">Which browsers are supported?</span> <span class="pl">+</span></summary><div class="body" data-i18n="a6">Chrome and Chromium-based browsers (Edge, Brave, Opera) that support Manifest V3 extensions.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="get">
+  <div class="wrap">
+    <div class="band reveal">
+      <h2 class="display" data-i18n="cta_h2">Make the web your type.</h2>
+      <p class="lead" style="margin-left:auto;margin-right:auto" data-i18n="cta_lead">Install Wolfie Font Swapper and preview any font, on any page, in seconds.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#" data-store><span data-i18n="cta_add">Add to Chrome</span> <span class="soon" data-i18n="cta_soon">soon</span></a>
+        <a class="btn btn-ghost" href="/policy/" data-i18n="cta_privacy">Privacy policy</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot">
+      <a class="brand" href="#top"><img src="/assets/logo.png" alt="" style="width:26px;height:26px;border-radius:7px"> Wolfie Font Swapper</a>
+      <nav class="foot-links">
+        <a href="#features" data-i18n="nav_features">Features</a>
+        <a href="#pricing" data-i18n="nav_pro">Pro</a>
+        <a href="#faq" data-i18n="nav_faq">FAQ</a>
+        <a href="/policy/" data-i18n="foot_privacy">Privacy</a>
+        <a href="https://wolfiesites.com" target="_blank" rel="noopener">wolfiesites.com</a>
+      </nav>
+    </div>
+    <p class="copy">© <span id="yr"></span> Wolfie Paweł Witek · <span data-i18n="copy_built">Built by an independent dev studio</span> · wolfiesites.com</p>
+  </div>
+</footer>
+
+<div class="lightbox" id="lb" aria-hidden="true"><button class="x" aria-label="Close">×</button><img src="" alt="Screenshot"></div>
+
+<!-- WolfieEye consent drop-in (banner + cookie + DNT/GPC + tracker gate) -->
+<script defer src="https://eye.wolfiecloud.com/consent.js"
+  data-domain="wfs.wolfiesites.com" data-cookie="wfs_consent"
+  data-position="bottom" data-policy="/policy/"></script>
+
+<button id="toTop" class="to-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
+
+<script src="/assets/i18n.js"></script>
+<script>
+// i18n — flag dropdown (links to per-language SEO folders), persistence, auto-detect
+(function(){
+  var I = window.I18N || {}, LANGS = window.WFS_LANGS || [], KEY = 'wfs_site_lang';
+  var KIND = window.__WFS_KIND || 'home';
+  function urlFor(c){ var b = c==='en' ? '/' : '/'+c+'/'; return KIND==='policy' ? b+'policy/' : b; }
+  function dict(c){ return I[c] || I.en || {}; }
+  function apply(code){
+    var d = dict(code);
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var k = el.getAttribute('data-i18n'); if(d[k] != null) el.innerHTML = d[k];
+    });
+    document.documentElement.lang = code;
+    var meta = null; for(var i=0;i<LANGS.length;i++){ if(LANGS[i].code===code){ meta=LANGS[i]; break; } }
+    var lf = document.getElementById('langFlag'); if(lf && meta) lf.textContent = meta.flag;
+    document.querySelectorAll('.lang-item').forEach(function(li){ li.classList.toggle('sel', li.getAttribute('data-code')===code); });
+    if(typeof window.__wfsHeroWord==='function') window.__wfsHeroWord();
+  }
+  function pick(){
+    if(window.__WFS_LANG && I[window.__WFS_LANG]) return window.__WFS_LANG; // forced by per-language page
+    var s = localStorage.getItem(KEY); if(s && I[s]) return s;
+    var n = (navigator.language||'en').slice(0,2).toLowerCase(); return I[n] ? n : 'en';
+  }
+  var menu = document.getElementById('langMenu');
+  if(menu) menu.innerHTML = LANGS.map(function(l){
+    return '<li role="none"><a class="lang-item" role="menuitem" data-code="'+l.code+'" href="'+urlFor(l.code)+'"><span class="lf">'+l.flag+'</span> '+l.name+'</a></li>';
+  }).join('');
+  apply(pick());
+  var btn = document.getElementById('langBtn'), box = document.getElementById('lang');
+  if(btn && menu){
+    btn.addEventListener('click', function(e){ e.stopPropagation(); var o=menu.classList.toggle('open'); btn.setAttribute('aria-expanded', o?'true':'false'); });
+    menu.querySelectorAll('.lang-item').forEach(function(a){
+      a.addEventListener('click', function(){ localStorage.setItem(KEY, a.getAttribute('data-code')); }); // real link navigates to /<lang>/
+    });
+    document.addEventListener('click', function(e){ if(box && !box.contains(e.target)) menu.classList.remove('open'); });
+  }
+})();
+
+// year
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+// sticky nav shadow
+const nav = document.getElementById('nav');
+const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+onScroll(); addEventListener('scroll', onScroll, {passive:true});
+
+// hero live font-swap (the cycled word is the translated "fonts" of the active language)
+(function(){
+  const el = document.getElementById('swap');
+  if(!el) return;
+  const SW = {en:'fonts',pl:'czcionki',fr:'polices',de:'Schriften',es:'fuentes',uk:'шрифти',ru:'шрифты',ro:'fonturi',it:'caratteri'};
+  const families = ['Playfair Display','Bebas Neue','Lobster','Montserrat','Merriweather','Poppins','Space Grotesk','Audiowide'];
+  function word(){ return SW[document.documentElement.lang] || 'fonts'; }
+  function paint(fam){ var w = word(); el.style.fontFamily = '"'+fam+'", sans-serif'; el.textContent = (fam==='Bebas Neue') ? w.toUpperCase() : w; }
+  // let the i18n runtime refresh the word immediately when the language changes
+  window.__wfsHeroWord = function(){ paint(families[i]); };
+  let i=0; paint(families[0]);
+  setInterval(()=>{
+    i=(i+1)%families.length;
+    el.classList.add('out');
+    setTimeout(()=>{ paint(families[i]); el.classList.remove('out'); },250);
+  },1900);
+})();
+
+// marquee
+(function(){
+  const names=['Inter','Playfair Display','Poppins','Merriweather','Montserrat','Roboto Slab','Lora','Space Grotesk','Rubik','Bebas Neue','Source Sans','Nunito','Work Sans','Lobster','DM Sans'];
+  const t=document.getElementById('marq');
+  const make=()=>names.map(n=>'<span>'+n+'</span>').join('');
+  t.innerHTML = make()+make();
+})();
+
+// cursor glow on cards
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('pointermove',e=>{
+    const r=c.getBoundingClientRect();
+    c.style.setProperty('--mx',(e.clientX-r.left)+'px');
+    c.style.setProperty('--my',(e.clientY-r.top)+'px');
+  });
+});
+
+// scroll reveal
+const io=new IntersectionObserver((es)=>{
+  es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target);} });
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach((el,idx)=>{
+  el.style.transitionDelay=(Math.min(idx%6,5)*40)+'ms';
+  io.observe(el);
+});
+
+// store link placeholder (fill when published to Chrome Web Store)
+const STORE_URL=''; // e.g. https://chromewebstore.google.com/detail/<id>
+if(STORE_URL){
+  document.querySelectorAll('[data-store]').forEach(a=>{
+    a.setAttribute('href',STORE_URL); a.setAttribute('target','_blank'); a.setAttribute('rel','noopener');
+    a.querySelectorAll('.soon').forEach(s=>s.remove());
+  });
+}
+
+// interactive faux-popup demo: animated dropdowns drive the page live,
+// and an auto-loop demonstrates the workflow until the user takes over.
+(function(){
+  const pop=document.getElementById('demoPop'); if(!pop) return;
+  const H=document.getElementById('demoH'), P=document.getElementById('demoP');
+  const fonts=[
+    ['Playfair Display','serif','Free'],['Merriweather','serif','Free'],
+    ['Montserrat','sans-serif','Free'],['Poppins','sans-serif','Free'],
+    ['Space Grotesk','sans-serif','Free'],['Rubik','sans-serif','Free'],
+    ['Lobster','cursive','Free'],['Bebas Neue','sans-serif','Free'],
+    ['Georgia','serif','Web-safe'],['Helvetica','sans-serif','Premium']
+  ];
+  const dds={};
+  let stopped=false;
+  const closeAll=()=>pop.querySelectorAll('.dd').forEach(d=>d.classList.remove('open'));
+  const stop=()=>{ stopped=true; };
+  pop.querySelectorAll('.dd').forEach(dd=>{
+    const t=dd.dataset.target, list=dd.querySelector('.dd-list'),
+          btn=dd.querySelector('.dd-btn'), val=dd.querySelector('.dd-val');
+    list.innerHTML=fonts.map(f=>'<li class="dd-item" data-f="'+f[0]+'" data-fam="'+f[1]+'" style="font-family:&quot;'+f[0]+'&quot;,'+f[1]+'">'+f[0]+'<span class="dd-tag '+f[2].toLowerCase().replace(/[^a-z]/g,'')+'">'+f[2]+'</span></li>').join('');
+    dds[t]={dd,list,val};
+    btn.addEventListener('click',e=>{ e.stopPropagation(); stop(); const o=dd.classList.contains('open'); closeAll(); if(!o) dd.classList.add('open'); });
+    list.querySelectorAll('.dd-item').forEach(li=>{
+      li.addEventListener('click',()=>{ stop(); choose(t,li.dataset.f,li.dataset.fam); dd.classList.remove('open'); });
+    });
+  });
+  function mark(t,name){ dds[t].list.querySelectorAll('.dd-item').forEach(li=>li.classList.toggle('sel',li.dataset.f===name)); }
+  function choose(t,name,fam){ dds[t].val.textContent=name; mark(t,name); (t==='h'?H:P).style.fontFamily='"'+name+'", '+fam; }
+  choose('h','Playfair Display','serif'); choose('p','Merriweather','serif');
+  document.addEventListener('click',e=>{ if(!pop.contains(e.target)) closeAll(); });
+
+  // auto demo
+  if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const seq=[
+    ['h','Montserrat','sans-serif'],['p','Rubik','sans-serif'],
+    ['h','Bebas Neue','sans-serif'],['p','Poppins','sans-serif'],
+    ['h','Lobster','cursive'],['p','Space Grotesk','sans-serif'],
+    ['h','Playfair Display','serif'],['p','Merriweather','serif']
+  ];
+  let k=0;
+  (function step(){
+    if(stopped) return;
+    const [t,name,fam]=seq[k%seq.length]; k++;
+    const dd=dds[t].dd; closeAll(); dd.classList.add('open');
+    setTimeout(()=>{ if(!stopped) mark(t,name); },420);
+    setTimeout(()=>{ if(!stopped) choose(t,name,fam); },820);
+    setTimeout(()=>{ if(!stopped) dd.classList.remove('open'); },1500);
+    setTimeout(step,2400);
+  })();
+  setTimeout(()=>{ /* start after first paint */ },0);
+})();
+
+// lightbox for showcase images
+(function(){
+  const lb=document.getElementById('lb'); if(!lb) return;
+  const img=lb.querySelector('img');
+  const open=src=>{ img.src=src; lb.classList.add('open'); document.body.style.overflow='hidden'; };
+  const close=()=>{ lb.classList.remove('open'); document.body.style.overflow=''; img.src=''; };
+  document.querySelectorAll('.shot').forEach(sh=>{
+    const im=sh.querySelector('img'); if(!im) return;
+    sh.addEventListener('click',()=>open(im.currentSrc||im.src));
+  });
+  lb.addEventListener('click',e=>{ if(e.target===lb||e.target.classList.contains('x')) close(); });
+  addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+})();
+
+// back-to-top
+(function(){
+  var tt=document.getElementById('toTop'); if(!tt) return;
+  var onsc=function(){ tt.classList.toggle('show', window.scrollY>500); };
+  onsc(); addEventListener('scroll', onsc, {passive:true});
+  tt.addEventListener('click', function(){ window.scrollTo({ top:0, behavior:'smooth' }); });
+})();
+
+// consent + analytics are now handled by the WolfieEye drop-in: /consent.js (see <script> above)
+</script>
+</body>
+</html>
