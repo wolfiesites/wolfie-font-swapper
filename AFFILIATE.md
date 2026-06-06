@@ -23,6 +23,39 @@ Wszystko to zwykłe URL-e (zgodne z Manifest V3 — żadnego zdalnego kodu).
 
 ---
 
+## ⭐ Najprościej: Sovrn Commerce (jeden self-service signup, bez ręcznego aplikowania do każdej marki)
+
+Sieci per-marka (CJ/Impact/Partnerize) wymagają **ręcznej akceptacji każdego
+programu** i często odrzucają „software/extension". Alternatywa, która **nie
+wymaga aplikowania do każdego sklepu osobno**: agregator linków
+**Sovrn Commerce** (dawniej VigLink).
+
+- **Jeden rejestr** obejmuje 50 000+ sklepów (m.in. **Adobe, Envato, Creative
+  Market**, plus mosty do CJ/Impact/Awin gdzie są Monotype/Fontspring).
+- **Akceptuje rozszerzenia przeglądarki** jako typ wydawcy (jako jedyny duży
+  agregator wprost) — onboarding „mobile & software application".
+- **MV3-safe**: ma **Redirect API = statyczny prefiks URL**
+  `https://redirect.viglink.com?key=<APIKEY>&u=<zakodowany URL>&loc=<źródło>` —
+  budujesz linki **we własnym UI popupu**, BEZ wstrzykiwania zdalnego JS na cudze
+  strony (to ostatnie łamie i MV3, i regulaminy sieci).
+- Friction: rejestracja → dodaj „campaign" (URL z Chrome Web Store) → wygeneruj
+  kilka kliknięć → review ~5 dni roboczych. Revenue share po ich stronie.
+- Sign up: <https://www.sovrn.com/commerce/> · onboarding software/extension:
+  <https://knowledge.sovrn.com/kb/mobile-and-software-application-onboarding-guide-f>
+  · API: <https://knowledge.sovrn.com/kb/api-onboarding-guide-for-commerce>
+
+**Jak wpiąć w kod:** po akceptacji dostajesz `key` (APIKEY). Wtedy w
+`fonts-meta.js` funkcja budująca link „kup" owija docelowy URL prefiksem
+Redirect API, a w `popup.js` przełączasz `SHOW_AFFILIATE_LINKS = true`. Do tego
+czasu linki/znacznik `$` są **ukryte** (kod zostaje, nic nie usuwamy).
+
+> Fallback, jeśli Sovrn odrzuci: **Skimlinks** (Link Wrapper `go.skimresources.com`
+> — też statyczny URL), ale jest pod strony contentowe, nie pod software.
+> Niskofrykcyjne programy bezpośrednie do dołożenia: **Adobe** (Partnerize, bez
+> progu), **Fontspring** (CJ, bywa instant), **Creative Market** (Impact).
+
+---
+
 ## TL;DR — lista afiliacji do pozyskania
 
 Programy, które warto założyć (gdzie da się uzyskać afiliację). Każdy mapuje się

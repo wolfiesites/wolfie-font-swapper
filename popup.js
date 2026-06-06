@@ -225,6 +225,12 @@ const selection = {
   buttons: emptyProps(),
 };
 
+// Linki afiliacyjne / „kup font" — UKRYTE do czasu uzyskania afiliacji.
+// Brak afiliacji => nie pokazujemy linków zakupu ani znacznika $ (kod zostaje).
+// Po akceptacji programu (np. Sovrn Commerce) wpisz prefiks/ID w fonts-meta.js
+// (obiekt AFFILIATE) i przełącz tę flagę na true.
+const SHOW_AFFILIATE_LINKS = false;
+
 // Ostatnio sfokusowane pole fontu — by po pobraniu fontu pickerem wkleić tam nazwę.
 let lastFocusedTarget = null;
 
@@ -1488,7 +1494,7 @@ function updateSnippet() {
   if (buy) buy.hidden = true; // zastąpione przez listę opcji poniżej
   if (buyOptions) {
     buyOptions.innerHTML = "";
-    if (isCommercial && commercialName && meta && meta.affiliateLinks) {
+    if (SHOW_AFFILIATE_LINKS && isCommercial && commercialName && meta && meta.affiliateLinks) {
       const lbl = document.createElement("span");
       lbl.className = "wfs-buy-label";
       lbl.textContent = t("buy_font") + " „" + commercialName + "”:";
@@ -1630,7 +1636,7 @@ function buildCombo(combo) {
     desc.textContent = t("paid_hint");
     li.append(title, desc);
     const meta = window.WOLFIE_FONT_META;
-    if (meta && meta.affiliateBrowse) {
+    if (SHOW_AFFILIATE_LINKS && meta && meta.affiliateBrowse) {
       const row = document.createElement("div");
       row.className = "wfs-paid-links";
       meta.affiliateBrowse(input.value).forEach((lnk) => {
@@ -2108,7 +2114,7 @@ function buildCombo(combo) {
     const meta = window.WOLFIE_FONT_META;
     const lic = fam && meta ? meta.classify(fam) : null;
     const commercial = !!(lic && lic.license === "commercial");
-    dollarBtn.hidden = !commercial;
+    dollarBtn.hidden = !commercial || !SHOW_AFFILIATE_LINKS; // ukryj $ gdy brak afiliacji
     dollarBtn.title = commercial
       ? t("premium_required") + (lic.freeAlt ? " — podgląd: " + lic.freeAlt : "")
       : "";
@@ -2944,6 +2950,7 @@ function renderStylePick(pick) {
 (function setupStylePickBar() {
   const copyBtn = document.getElementById("wfs-stylepick-copy");
   const addBtn = document.getElementById("wfs-stylepick-add");
+  const wholeBtn = document.getElementById("wfs-stylepick-whole");
   const delBtn = document.getElementById("wfs-stylepick-del");
 
   if (copyBtn)
@@ -2976,6 +2983,35 @@ function renderStylePick(pick) {
       addCustomFontsToList();
       renderStylePick(stylePickData); // odśwież stan przycisku (teraz w bibliotece)
       setStatus(t("stylepick_added") + " " + fam);
+    });
+
+  // „Użyj na całej stronie" — zastosuj font do całej strony (target „base")
+  // i przy okazji dodaj go do biblioteki (jeśli jeszcze go tam nie ma).
+  if (wholeBtn)
+    wholeBtn.addEventListener("click", async () => {
+      if (!stylePickData || !stylePickData.family) return;
+      const fam = stylePickData.family;
+      // dodaj do biblioteki w międzyczasie (z osadzonym @font-face, by działał wszędzie)
+      if (!fontInLibrary(fam)) {
+        customFonts[fam.toLowerCase()] = {
+          name: fam,
+          css: stylePickData.fontface || "",
+          source: stylePickData.source || "web",
+        };
+        try {
+          chrome.storage.local.set({ wfs_custom_fonts: customFonts });
+        } catch (e) {}
+        addCustomFontsToList();
+        renderStylePick(stylePickData); // odśwież stan przycisku „dodaj"
+      }
+      // ustaw font całej strony (target „base") + odśwież jego pole, potem zastosuj
+      selection.base.family = fam;
+      const baseCombo = document.querySelector('.wfs-combo[data-target="base"]');
+      if (baseCombo && typeof baseCombo.restore === "function") {
+        baseCombo.restore({ ...selection.base });
+      }
+      await applyToPage();
+      setStatus(t("stylepick_whole_done") + " „" + fam + "”");
     });
 
   if (delBtn)

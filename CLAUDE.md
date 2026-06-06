@@ -54,7 +54,7 @@ Produkt **auto-tworzy się** po slug przy 1. uploadzie. Ta sama wersja = **409**
 
 ### Wersja
 - Źródło prawdy: pole `version` w `manifest.json`.
-- **Aktualna wersja: 1.0.4** (zaktualizuj tę linię przy każdym wydaniu).
+- **Aktualna wersja: 1.0.5** (zaktualizuj tę linię przy każdym wydaniu).
 - Przed merge do `production`: podbij `version` w `manifest.json`.
 
 ## api.wppw.pl — WolfieGuard (licensing + software registry)
