@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Wolfie Font Swapper",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Quickly swap and preview fonts on any page — Google Fonts + system fonts, presets, and copyable CSS/SCSS/JS snippets.",
   "author": "Wolfie Paweł Witek",
   "homepage_url": "https://wolfiesites.com",
@@ -46,7 +46,7 @@
         "default": "Ctrl+Shift+L",
         "mac": "Command+Shift+L"
       },
-      "description": "Otwórz Wolfie Font Swapper"
+      "description": "Open Wolfie Font Swapper"
     }
   },
   "icons": {

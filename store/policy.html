@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index,follow">
+<title>Privacy Policy — Wolfie Font Swapper</title>
+<meta name="description" content="Privacy policy for the Wolfie Font Swapper Chrome extension. No tracking, no data collection; local storage only.">
+<style>
+  :root{--bg:#0c0e14;--card:#15181f;--border:#262b36;--text:#e8eaf0;--muted:#9aa3b2;--cyan:#00e0ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(ellipse 800px 420px at 50% -8%,rgba(0,224,255,.10),transparent 70%),var(--bg);color:var(--text);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 22px 80px}
+  header{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+  .logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,#00e0ff,#6a5cff);display:flex;align-items:center;justify-content:center;font-weight:800;color:#0c0e14;font-size:20px}
+  h1{font-size:26px;margin:0}
+  .sub{color:var(--muted);font-size:13px;margin:4px 0 28px}
+  h2{font-size:18px;margin:30px 0 8px;color:#fff}
+  a{color:var(--cyan)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:18px}
+  .lead{font-size:17px}
+  code{background:#0a0c11;border:1px solid var(--border);border-radius:6px;padding:1px 6px;font-size:13px;color:#bfe9ff}
+  ul{padding-left:20px}
+  li{margin:7px 0}
+  .muted{color:var(--muted)}
+  footer{margin-top:34px;color:var(--muted);font-size:13px;border-top:1px solid var(--border);padding-top:18px}
+  .pill{display:inline-block;background:rgba(0,224,255,.12);color:var(--cyan);border:1px solid rgba(0,224,255,.3);border-radius:999px;padding:3px 11px;font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Aa</div>
+    <div>
+      <h1>Privacy Policy</h1>
+      <div class="sub">Wolfie Font Swapper — Chrome extension · <span class="pill">No tracking</span></div>
+    </div>
+  </header>
+
+  <div class="card">
+    <p class="lead">Wolfie Font Swapper does <strong>not</strong> collect, store, transmit, or sell any
+    personal data. There is no analytics, no tracking, and no server owned by the developer.
+    Everything you configure stays in your browser.</p>
+    <p class="muted" style="margin:0">Last updated: 6 June 2026</p>
+  </div>
+
+  <h2>What the extension does</h2>
+  <div class="card">
+    <ul>
+      <li><strong>Local storage only.</strong> Your font selections, presets, per-domain rules and
+      interface language are stored locally in your browser (<code>chrome.storage</code> /
+      <code>localStorage</code>). This data never leaves your device and is never shared.</li>
+      <li><strong>Runs on the pages you visit (to apply fonts).</strong> A content script lets you
+      (a) open the font panel from the toolbar icon, and (b) <strong>auto-apply the per-domain font
+      rules you saved</strong> when you revisit those sites. To do this it reads only the page's
+      <strong>hostname</strong> (to match your rules) and injects CSS to restyle text. It does
+      <strong>not</strong> read, collect or transmit the page's content, your history, or anything you type.</li>
+      <li><strong>Google Fonts.</strong> When you preview a Google font, your browser fetches the
+      font CSS/files from <code>fonts.googleapis.com</code> / <code>fonts.gstatic.com</code> and catalog
+      metadata from <code>fonts.google.com</code>. These requests go from your browser to Google; the
+      extension adds no personal data.</li>
+      <li><strong>System fonts.</strong> With your one-time browser permission (Local Font Access API),
+      the extension reads only the <strong>names</strong> of fonts installed on your system to populate
+      the picker. This list stays on your device.</li>
+      <li><strong>Pro subscription (optional) — ExtensionPay.</strong> If you upgrade to Pro, payments
+      are handled by <strong>ExtensionPay</strong> (which uses <strong>Stripe</strong>). ExtensionPay
+      processes your <strong>email and payment details on its own servers</strong> — the developer never
+      sees your card data. The free tier never contacts ExtensionPay for billing. See ExtensionPay's and
+      Stripe's privacy policies for details.</li>
+    </ul>
+  </div>
+
+  <h2>Permissions</h2>
+  <div class="card">
+    <ul>
+      <li><code>activeTab</code>, <code>scripting</code> — open the panel and apply/remove the font
+      preview on the page you are viewing.</li>
+      <li><code>storage</code> — remember your selections, presets, per-domain rules and language locally.</li>
+      <li><strong>Content script on all sites (<code>&lt;all_urls&gt;</code>)</strong> — required so saved
+      per-domain font rules auto-apply when you revisit a site, and so the panel can open on any page. It
+      only matches the hostname and injects CSS; no page content is read or sent.</li>
+      <li><code>host_permissions</code>: <code>fonts.googleapis.com</code>, <code>fonts.gstatic.com</code>,
+      <code>fonts.google.com</code> (preview Google fonts + catalog) and <code>extensionpay.com</code>
+      (Pro subscription only).</li>
+    </ul>
+  </div>
+
+  <h2>Data sharing &amp; sale</h2>
+  <div class="card">
+    <p style="margin:0">We do not sell or share data. The only data leaving your device is (1) the
+    standard Google Fonts requests your browser makes to Google when you preview a font, and (2) — only if
+    you opt into Pro — your email/payment to ExtensionPay/Stripe.</p>
+  </div>
+
+  <footer>
+    Questions: <a href="https://wolfiesites.com">wolfiesites.com</a> ·
+    Wolfie Font Swapper © Wolfie Paweł Witek
+  </footer>
+</div>
+</body>
+</html>

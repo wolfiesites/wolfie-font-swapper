@@ -57,12 +57,18 @@ Bez śledzenia, kont i zbierania danych.
 - **promo-440x280.png** — mały kafelek promocyjny (Small promo tile, 440×280) wymagany przy promowaniu w sklepie.
 
 ## Privacy
-Polityka prywatności: PRIVACY.md (repo) lub https://wolfiesites.com
+Polityka prywatności (hostowana): **https://wfs.wolfiesites.com/policy** (źródło: PRIVACY.md w repo).
 
 ## Permission justification (dla recenzji)
-- **activeTab + scripting** — wstrzyknięcie podglądu fontu na aktywnej karcie, tylko po otwarciu popupu (gest użytkownika).
-- **storage** — lokalne zapamiętanie wyboru, presetów i języka.
-- **host_permissions: fonts.googleapis.com, fonts.gstatic.com** — pobranie podglądanych fontów Google. Brak `<all_urls>`.
+- **activeTab + scripting** — wstrzyknięcie/zdjęcie podglądu fontu na karcie po otwarciu panelu (gest użytkownika).
+- **storage** — lokalne zapamiętanie wyboru, presetów, **reguł per-domena** i języka.
+- **Content script na wszystkich stronach (`<all_urls>`)** — wymagany, bo dodatek **auto-stosuje zapisane przez użytkownika reguły fontów per-domena** przy powrocie na daną stronę (oraz pozwala otworzyć panel na dowolnej stronie). Czyta wyłącznie **hostname** strony (do dopasowania reguły) i wstrzykuje CSS — **nie czyta ani nie wysyła treści strony**, historii, ani wpisywanego tekstu. Brak analityki/trackingu.
+- **host_permissions: fonts.googleapis.com, fonts.gstatic.com, fonts.google.com** — pobranie podglądanych fontów Google + metadanych katalogu. **extensionpay.com** — wyłącznie subskrypcja Pro (płatność przez ExtensionPay/Stripe; deweloper nie widzi danych karty).
+
+## Data usage (formularz CWS)
+- **Nie** zbieramy/­sprzedajemy danych osobowych. Brak analityki.
+- Jedyne dane opuszczające urządzenie: (1) standardowe żądania Google Fonts do Google przy podglądzie, (2) **tylko przy Pro** — email/płatność do ExtensionPay/Stripe.
+- Zadeklaruj w formularzu: „Payment information" + „Authentication information" (email) **tylko jeśli** włączysz Pro; reszta — none.
 
 ## Homepage
 https://wolfiesites.com
