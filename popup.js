@@ -1507,6 +1507,10 @@ function updateSnippet() {
       note.className = "wfs-buy-aff";
       note.textContent = t("affiliate_note");
       buyOptions.appendChild(note);
+      const tm = document.createElement("span");
+      tm.className = "wfs-buy-aff wfs-tm-note";
+      tm.textContent = t("trademark_note");
+      buyOptions.appendChild(tm);
       buyOptions.hidden = false;
     } else {
       buyOptions.hidden = true;
@@ -1643,6 +1647,10 @@ function buildCombo(combo) {
       note.className = "wfs-paid-note";
       note.textContent = t("affiliate_note");
       li.appendChild(note);
+      const tm = document.createElement("div");
+      tm.className = "wfs-paid-note wfs-tm-note";
+      tm.textContent = t("trademark_note");
+      li.appendChild(tm);
     }
     list.appendChild(li);
   }
@@ -2131,6 +2139,10 @@ function buildCombo(combo) {
     note.className = "wfs-dollar-pop-note";
     note.textContent = t("affiliate_note");
     dollarPop.appendChild(note);
+    const tm = document.createElement("div");
+    tm.className = "wfs-dollar-pop-note wfs-tm-note";
+    tm.textContent = t("trademark_note");
+    dollarPop.appendChild(tm);
     combo.appendChild(dollarPop);
   });
   updateDollar();

@@ -26,3 +26,24 @@ credentials.json
 *.swp
 *.swo
 ehthumbs.db
+
+# Lokalne skrypty pomocnicze (nie część repo)
+_*.sh
+assets/_*.py
+
+# Strona wfs — artefakty builda generowane przez store/build-site.cjs
+# (źródło = store/site/index.html, store/policy.html, store/site/assets/, build-site.cjs)
+store/site/en/
+store/site/gb/
+store/site/us/
+store/site/pl/
+store/site/fr/
+store/site/de/
+store/site/es/
+store/site/uk/
+store/site/ru/
+store/site/ro/
+store/site/it/
+store/site/policy/
+store/site/sitemap.xml
+store/site/robots.txt

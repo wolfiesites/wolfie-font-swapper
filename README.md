@@ -110,7 +110,15 @@ The extension **does not collect or send any personal data** — see [PRIVACY.md
 
 ## 📄 License
 
-[MIT](LICENSE) © 2026 Wolfie Paweł Witek — applies to the **extension code**.
+[MIT](LICENSE) © 2026 Wolfie Paweł Witek — applies to the **extension's own code**.
+
+The distributed package also bundles third-party components under their own
+licenses — see [`licenses/THIRD_PARTY_NOTICES.txt`](licenses/THIRD_PARTY_NOTICES.txt).
+Most notably it includes **`ExtPay.js`** (the ExtensionPay client, used for the
+optional Pro subscription), which is licensed **AGPL-3.0-or-later**
+([full text](licenses/AGPL-3.0.txt), source: <https://github.com/glench/ExtPay>).
+Because AGPL is copyleft, the **complete corresponding source for the distributed
+build is published** at <https://github.com/wolfiesites/wolfie-font-swapper>.
 
 ---
 

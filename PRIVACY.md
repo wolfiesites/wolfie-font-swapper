@@ -50,6 +50,33 @@ We do not sell or share data. The only data leaving your device is (1) the stand
 Google Fonts requests your browser makes to Google when you preview a font, and
 (2) — only if you opt into Pro — your email/payment to ExtensionPay/Stripe.
 
+## Limited Use
+
+This product's access to and use of information from the pages you visit (via the
+content script / host permissions) adheres to the **Chrome Web Store User Data
+Policy**, including the **Limited Use** requirements. The extension accesses page
+content **only** to provide its user-facing feature — previewing and swapping
+fonts on the page you choose — and to auto-apply your saved per-domain font rules.
+It does **not** collect, transmit, or sell web browsing activity, and does not use
+any data for advertising, profiling, or creditworthiness purposes.
+
+## Trademarks & affiliate links
+
+Commercial font names shown in the extension are **trademarks of their respective
+owners** and are referenced only to identify the font and link to its official
+seller. This extension is **not affiliated with, sponsored by, or endorsed by**
+any font foundry, and bundles no commercial font files. "Buy" links may be
+**affiliate links**, for which the developer may earn a commission at no extra
+cost to you; these are marked as affiliate links in the interface.
+
+## Open-source licenses
+
+The extension's own code is MIT-licensed. The distributed package bundles
+third-party components under their own licenses, including **ExtPay.js**
+(AGPL-3.0-or-later) and the **Rubik** and **Audiowide** fonts (SIL OFL 1.1). See
+`licenses/THIRD_PARTY_NOTICES.txt` in the package and the public source at
+https://github.com/wolfiesites/wolfie-font-swapper.
+
 ## Contact
 
 Questions: https://wolfiesites.com — policy URL: https://wfs.wolfiesites.com/policy

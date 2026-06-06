@@ -1,0 +1,67 @@
+WOLFIE FONT SWAPPER — THIRD-PARTY NOTICES
+==========================================
+
+The extension's own source code is licensed under the MIT License (see the
+top-level LICENSE file), Copyright (c) 2026 Wolfie Paweł Witek.
+
+The distributed package additionally bundles the third-party components listed
+below, under their own licenses. Where a license is copyleft (AGPL-3.0), the
+complete corresponding source code for the distributed build is available at:
+
+    https://github.com/wolfiesites/wolfie-font-swapper
+
+------------------------------------------------------------------------------
+1) ExtPay.js  —  ExtensionPay client library
+------------------------------------------------------------------------------
+   Source:    https://github.com/glench/ExtPay
+   Copyright: (c) Glen Anderson / ExtensionPay
+   License:   GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)
+              Full text: licenses/AGPL-3.0.txt
+
+   This file is used to integrate the optional "Pro" subscription via
+   ExtensionPay (extensionpay.com). It is redistributed unmodified. Because it
+   is AGPL-licensed, the corresponding source for the distributed build of this
+   extension is made available at the GitHub URL above. The original AGPL
+   notice inside ExtPay.js is preserved.
+
+   ExtPay.js embeds Mozilla's "webextension-polyfill" (browser-polyfill),
+   licensed under the Mozilla Public License 2.0 (MPL-2.0); its notice is
+   retained within ExtPay.js as distributed upstream.
+
+------------------------------------------------------------------------------
+2) Rubik  —  UI font
+------------------------------------------------------------------------------
+   Source:    https://github.com/googlefonts/rubik
+   Copyright: Copyright 2015 The Rubik Project Authors
+              (designed by Philipp Hubert & Sebastian Fischer / Hubert & Fischer)
+   License:   SIL Open Font License, Version 1.1
+              Full text + copyright notice: fonts/Rubik-OFL.txt
+   Note:      Bundled as a WOFF2 web font. Rubik has no Reserved Font Name.
+
+------------------------------------------------------------------------------
+3) Audiowide  —  display/brand font
+------------------------------------------------------------------------------
+   Source:    https://github.com/google/fonts/tree/main/ofl/audiowide
+   Copyright: Copyright (c) 2012, Brian J. Bonislawsky DBA Astigmatic (AOETI)
+              (astigma@astigmatic.com), with Reserved Font Name "Audiowide"
+   License:   SIL Open Font License, Version 1.1
+              Full text + copyright notice: fonts/Audiowide-OFL.txt
+   Note:      Bundled as a WOFF2 web font. The complete, unmodified font is
+              shipped (WOFF2 compression only, no glyph subsetting), so the
+              original name "Audiowide" is retained as permitted by the OFL.
+
+------------------------------------------------------------------------------
+Fonts previewed from Google Fonts at runtime
+------------------------------------------------------------------------------
+   Google Fonts previewed live in the extension are fetched by the user's
+   browser directly from Google (fonts.googleapis.com / fonts.gstatic.com) and
+   are licensed under the SIL Open Font License or Apache License 2.0 by their
+   respective authors. They are not redistributed inside this package.
+
+------------------------------------------------------------------------------
+Commercial font names
+------------------------------------------------------------------------------
+   Commercial font names shown in the "buy" lists are trademarks of their
+   respective owners. They are referenced nominatively to link users to the
+   official seller. This extension is not affiliated with, sponsored by, or
+   endorsed by any font foundry, and bundles no commercial font files.
