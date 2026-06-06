@@ -9,7 +9,9 @@ const AFFILIATE = {
   fontspringCjPrefix: "",     // Fontspring (CJ) – deep-link prefix (20%/10%)
   adobePartnerizePrefix: "",  // Adobe / Creative Cloud (Partnerize) – prefix linku
   creativeMarketParam: "",    // Creative Market (Impact) – parametr trackingu
-  envatoRef: "",              // Envato – Twój username
+  envatoMarketPrefix: "",     // Envato Market (Impact, kampania 4415) – deep-link prefix; link = prefix + encodeURIComponent(url)
+  envatoElementsPrefix: "",   // Envato Elements (Impact) – deep-link prefix (subskrypcja, $120/rok)
+  // envatoRef: "",           // PRZESTARZAŁE – stary ?ref= nie działa od 2019 (Envato przeszło na Impact)
   subId: "wfs",               // własny tag kampanii (opcjonalny)
 };
 ```
@@ -72,7 +74,7 @@ na jedno pole w obiekcie `AFFILIATE`. Szczegóły krok-po-kroku w sekcjach niże
 | 2 | **Fontspring** | CJ (to samo konto Publisher) | w tym samym panelu CJ → **Advertisers** → Join „Fontspring" | `fontspringCjPrefix` | 20% nowi / 10% wracający |
 | 3 | **Adobe Fonts (Creative Cloud)** | Partnerize | [join.partnerize.com/adobe](https://join.partnerize.com/adobe) | `adobePartnerizePrefix` | ~85% za 1. mies. CC, cookie 30 dni |
 | 4 | **Creative Market** — indie/trendy kroje | Impact | [creativemarket.com/affiliate](https://creativemarket.com/affiliate) | `creativeMarketParam` | ~10–15% |
-| 5 | **Envato** (GraphicRiver / Elements) | Impact + `?ref=` | [account.envato.com](https://account.envato.com/sign_up) (username = ref) | `envatoRef` | wg programu |
+| 5 | **Envato** (GraphicRiver / Elements) | **Impact** (deep-link; `?ref=` martwe od 2019) | [envato.com/affiliates](https://www.envato.com/affiliates) → Impact | `envatoMarketPrefix` / `envatoElementsPrefix` | Market 30% 1. zakupu • **Elements $120/rok** |
 
 > **SkyFonts** — to tylko instalator Monotype, **nie ma własnego programu
 > afiliacyjnego**. Fonty z biblioteki Monotype rozliczasz przez **MyFonts/CJ** (#1).
@@ -204,14 +206,64 @@ Dobre dla indie/trendy krojów (np. Gilroy-style).
 
 ---
 
-## 3. Envato (GraphicRiver / Elements) — UZUPEŁNIENIE / „unlimited"
+## 3. Envato (GraphicRiver / Elements) — przez Impact (aktualne 2026)
 
-1. Konto: **https://account.envato.com/sign_up** (zwykłe konto Envato).
-2. Twój **username** to Twój identyfikator polecającego. Envato Market obsługuje
-   prosty parametr `?ref=username` na każdym URL-u.
-3. Wpisz username jako `envatoRef`, np. `envatoRef: "wolfiesites"`.
-4. (Envato Elements — subskrypcja „wszystkie fonty" — rozliczasz przez Impact;
-   jeśli chcesz osobny przycisk „Unlimited fonts", powiedz, dodam.)
+> ⚠️ **Stara metoda `?ref=username` jest MARTWA** (Envato wyłączyło ją 3.10.2019).
+> Nie tracKuje i nie płaci. Dziś **wszystko idzie przez Impact (impact.com)** —
+> osobne kampanie dla Envato Market i Envato Elements.
+
+### Ile można zarobić (stawki 2026)
+| Program | Prowizja | Cookie | Co wyzwala |
+|---|---|---|---|
+| **Envato Market** (GraphicRiver/ThemeForest…) | **30% pierwszego zakupu NOWEGO klienta** (bez podanego limitu) | **90 dni** | tylko 1. transakcja klienta, który nie był na Envato przez 90 dni; kolejne zakupy = 0 |
+| **Envato Elements** (subskrypcja, zawiera fonty) | **roczna: $120** • **miesięczna: do $60** (3× $20 przez 3 mies.) | **60 dni** | nowa subskrypcja |
+| *Placeit* (opc.) | ~$50 rocz. / $20 mies. (zależne od GEO) | — | — |
+
+**Przykłady:**
+- Nowy user kupuje font za **$30** na GraphicRiver przez Twój link → **≈ $9** (30%, jednorazowo).
+- Ktoś wykupuje **roczny** Envato Elements przez Twój link → **$120**.
+- ⇒ Dla fontów **Elements ($120) jest dużo bardziej opłacalny** niż pojedynczy font z Market (~$9). Warto eksponować link do Elements.
+
+### Jak założyć i wygenerować link
+1. Start: **https://www.envato.com/affiliates** → „Join" przekierowuje do **Impact**.
+   (Elements osobno: **https://envato.com/elements-affiliate-program/**.)
+2. W Impact: **Brands → Find Brands → „Envato" → Apply** osobno do **Market**,
+   **Elements** (i Placeit, jeśli chcesz). Akceptacja **ręczna, ~1–2 dni**;
+   trzeba zweryfikować „property" (np. stronę / listing rozszerzenia).
+3. Przed startem przeczytaj w przeglądarce regulamin (czy software/extension OK):
+   **https://www.envato.com/affiliates/Envato_Affiliate_Program_General_Terms_August_2023.pdf**
+4. Po akceptacji **wygeneruj prefiks deep-linku** — w Impact („Create a deep link")
+   albo generatorem Envato (Market, kampania **ID 4415**):
+   **https://dist.affiliates.envato.com/Market-link-generator/affiliate_link_builder.html**
+
+### Format linku (Impact deep-link — owija dowolny URL produktu)
+```
+https://{twoja-domena-trackingowa}/c/{AccountID}/{AdID}/{CampaignID}?u={ENCODED_URL_PRODUKTU}
+```
+- `u=` to **zakodowany (`encodeURIComponent`) URL docelowy** strony fontu; domena
+  celu musi być na allow-liście Envato (`graphicriver.net`, `elements.envato.com`…).
+- Domena trackingowa Envato jest z rodziny **`*.envato.market`** (np. `1.envato.market`).
+- **Twój dokładny prefiks (`AccountID`/`AdID`) zobaczysz dopiero po zalogowaniu do
+  Impact** — skopiuj go RAZ i wstaw jako stałą. Market = kampania `4415`; Elements
+  = osobna kampania (inny prefiks/stawka).
+
+Przykład (Market): `https://1.envato.market/c/<ACCID>/<ADID>/4415?u=https%3A%2F%2Fgraphicriver.net%2Fitem%2Ftwoj-font%2F12345678`
+
+### Jak wpiąć w kod
+- W `fonts-meta.js` (obiekt `AFFILIATE`) trzymaj **dwa prefiksy**: `envatoMarketPrefix`
+  i `envatoElementsPrefix`. Funkcja budująca link robi: `PREFIX + encodeURIComponent(urlProduktu)`.
+  (Pole `envatoRef` jest przestarzałe — zostaje puste / do usunięcia.)
+- Włącz pokazywanie linków: w `popup.js` ustaw `SHOW_AFFILIATE_LINKS = true`.
+- Opcjonalnie dodaj **Sub IDs** (jak UTM) by widzieć konwersje per miejsce w UI.
+
+### Ograniczenia (ważne dla rozszerzenia)
+- **Chrome Web Store (zasady 2025):** linki afiliacyjne dozwolone tylko gdy dają
+  realną korzyść userowi i wymagają **jego kliknięcia**; **zakaz** wstrzykiwania
+  linków na strony bez akcji usera, w tle, oraz **nadpisywania cudzych ref-kodów**.
+  Twój model (linki wyłącznie w popupie, klikane świadomie, bez injekcji) jest OK —
+  **ale w opisie/listingu CWS musi być jawne ujawnienie afiliacji**.
+- **FTC:** widoczne „affiliate link — we may earn a commission" **przy** przycisku
+  (już mamy `affiliate_note`).
 
 ---
 
