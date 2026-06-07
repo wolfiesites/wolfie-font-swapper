@@ -29,6 +29,7 @@
 # artefakty (ZIP dodatku / zbudowana strona) i tak są dostępne w pipeline.
 
 stages: [build, publish]
+# redeploy: production is now a protected branch so WFS_DEPLOY_SSH_KEY reaches publish:site
 
 variables:
   PKG_NAME: "wolfie-font-swapper"
