@@ -128,22 +128,30 @@
 
   function start(force) {
     // Explicit user request (e.g. a "manage cookies" button → showBanner/reset):
-    // always show the banner so they can (re)choose — even under DNT/GPC or after
-    // a prior decision. DNT only suppresses the AUTO (on-load) prompt + tracking.
-    if (force) { showBanner(); return; }       // no-op when autoBanner is off
-    var st = statusFor();
-    if (st === 'dnt') return;                  // auto: respect no-tracking signal
-    if (st === 'granted') { loadTracker(); return; }
-    if (st === 'denied') return;
-    showBanner();
+    // always show the banner so they can (re)choose. No-op when autoBanner is off.
+    if (force) { showBanner(); return; }
+    // Auto (on load): act on the STORED decision (ignore DNT for the decision
+    // itself so an undecided visitor — incognito / first visit — still gets the
+    // banner, even under DNT/GPC). DNT only suppresses TRACKING, not the prompt.
+    var raw = gc(cfg.cookie);
+    if (raw === '1' || raw === '0') {
+      if (raw === '1' && !(cfg.respect && dntOn())) loadTracker();   // honor grant
+      // Periodically re-ask (default weekly) even after a decision.
+      if (cfg.reaskDays > 0) {
+        var t = parseInt(gc(cfg.cookie + '_t') || '0', 10);
+        if (!t || (Date.now() - t) > cfg.reaskDays * 86400000) showBanner();
+      }
+      return;
+    }
+    showBanner();                               // no decision (incognito/fresh) → ask
   }
 
   // ─── public API ──────────────────────────────────────────────────────────
   var W = {
     status: function () { return cfg ? statusFor() : 'unset'; },
-    grant: function () { sc(cfg.cookie, '1', cfg.days); removeBanner(); loadTracker(); emit('granted'); return W; },
-    deny: function () { sc(cfg.cookie, '0', cfg.days); removeBanner(); emit('denied'); return W; },
-    reset: function () { document.cookie = cfg.cookie + '=;path=/;max-age=0'; loaded = false; emit('unset'); start(true); return W; },
+    grant: function () { sc(cfg.cookie, '1', cfg.days); sc(cfg.cookie + '_t', String(Date.now()), cfg.days); removeBanner(); loadTracker(); emit('granted'); return W; },
+    deny: function () { sc(cfg.cookie, '0', cfg.days); sc(cfg.cookie + '_t', String(Date.now()), cfg.days); removeBanner(); emit('denied'); return W; },
+    reset: function () { document.cookie = cfg.cookie + '=;path=/;max-age=0'; document.cookie = cfg.cookie + '_t=;path=/;max-age=0'; loaded = false; emit('unset'); start(true); return W; },
     onChange: function (fn) {
       if (typeof fn === 'function') listeners.push(fn);
       return function () { var i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); };
@@ -177,6 +185,8 @@
       accent2: pick('accent2', 'accent2', '#ff3dae'),
       respect: pick('respectDnt', 'respect-dnt', '1') !== '0' && opts.respectDnt !== false,
       days: parseInt(pick('days', 'days', '365'), 10) || 365,
+      // Re-ask cadence in days even after a decision (default 7 = weekly; 0 = off).
+      reaskDays: parseInt(pick('reaskDays', 'reask-days', '7'), 10) || 0,
       autoBanner: opts.autoBanner != null ? !!opts.autoBanner : attr('auto') !== '0',
     };
   }
