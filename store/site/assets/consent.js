@@ -127,11 +127,15 @@
   }
 
   function start(force) {
+    // Explicit user request (e.g. a "manage cookies" button → showBanner/reset):
+    // always show the banner so they can (re)choose — even under DNT/GPC or after
+    // a prior decision. DNT only suppresses the AUTO (on-load) prompt + tracking.
+    if (force) { showBanner(); return; }       // no-op when autoBanner is off
     var st = statusFor();
-    if (st === 'dnt') return;                 // respect no-tracking signal
+    if (st === 'dnt') return;                  // auto: respect no-tracking signal
     if (st === 'granted') { loadTracker(); return; }
-    if (st === 'denied' && !force) return;
-    showBanner();                              // no-op when autoBanner is off
+    if (st === 'denied') return;
+    showBanner();
   }
 
   // ─── public API ──────────────────────────────────────────────────────────

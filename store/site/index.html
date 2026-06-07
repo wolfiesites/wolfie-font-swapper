@@ -602,17 +602,11 @@ footer{border-top:1px solid var(--border);padding:46px 0 60px;margin-top:30px}
   if (!b) return;
   b.addEventListener('click', function () {
     try {
-      if (window.wolfieConsent) {
-        window.wolfieConsent('reset');
-        setTimeout(function () {
-          if (!document.getElementById('we-consent')) {
-            document.cookie = 'wfs_consent=;path=/;max-age=0;SameSite=Lax';
-            location.reload();
-          }
-        }, 150);
-        return;
-      }
+      // Show the consent banner with options (works even under DNT — explicit request).
+      if (window.WolfieConsent && WolfieConsent.showBanner) { WolfieConsent.showBanner(); return; }
+      if (window.wolfieConsent) { window.wolfieConsent('reset'); return; }
     } catch (e) { /* fall through */ }
+    // SDK unavailable (blocked / not loaded) — clear the choice + reload to re-prompt.
     document.cookie = 'wfs_consent=;path=/;max-age=0;SameSite=Lax';
     location.reload();
   });
