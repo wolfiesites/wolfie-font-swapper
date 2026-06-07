@@ -84,8 +84,10 @@ function render(tpl, kind, l, title, desc){
   h = h.replace('</head>', headBlock(kind, l, title, desc) + '\n</head>');
   // absolute asset paths so sub-folders resolve correctly
   h = h.replace(/\.\/assets\//g, '/assets/');
-  // cache-bust the self-hosted consent SDK (long-lived static cache)
-  h = h.replace('/assets/consent.js', '/assets/consent.js?v=' + CONSENT_VER);
+  // cache-bust the self-hosted consent SDK (long-lived static cache). Idempotent:
+  // strip any existing ?v= first (the en template IS the en output, so a prior
+  // ?v= would otherwise stack on each rebuild).
+  h = h.replace(/\/assets\/consent\.js(\?v=[a-z0-9]+)?/g, '/assets/consent.js?v=' + CONSENT_VER);
   // make the consent banner match the page language + name what consent enables (GA + WolfieEye).
   // Idempotent: strip any previously-injected data-lang/data-text first, otherwise each rebuild
   // stacks another duplicate attribute on the consent <script>. (These attrs live only on that tag.)
