@@ -44,10 +44,13 @@ variables:
   - licenses/**/*
 
 # ── Ścieżki strony (landing wfs). Zmiana któregokolwiek → build/deploy strony.
+# `.gitlab-ci.yml` included so a change to the pipeline/deploy config itself
+# re-runs the site build+deploy (also lets us trigger a redeploy on demand).
 .site_changes: &site_changes
   - store/site/**/*
   - store/build-site.cjs
   - store/policy.html
+  - .gitlab-ci.yml
 
 # ════════════════════════ DODATEK (Chrome Web Store) ════════════════════════
 
