@@ -7,9 +7,17 @@
  */
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const SITE = path.join(__dirname, 'site');
 const ORIGIN = 'https://wfs.wolfiesites.com';
+// Content hash of the self-hosted consent SDK → appended as ?v= to its <script>
+// src so a new build busts the long-lived (10y) static cache; old bytes at the
+// bare URL are never served again once the version changes.
+const CONSENT_VER = (function () {
+  try { return crypto.createHash('sha1').update(fs.readFileSync(path.join(SITE, 'assets', 'consent.js'))).digest('hex').slice(0, 8); }
+  catch (e) { return String(Date.now()); }
+})();
 
 // load the translation dicts (they assign onto a shared `window`)
 global.window = {};
@@ -76,6 +84,8 @@ function render(tpl, kind, l, title, desc){
   h = h.replace('</head>', headBlock(kind, l, title, desc) + '\n</head>');
   // absolute asset paths so sub-folders resolve correctly
   h = h.replace(/\.\/assets\//g, '/assets/');
+  // cache-bust the self-hosted consent SDK (long-lived static cache)
+  h = h.replace('/assets/consent.js', '/assets/consent.js?v=' + CONSENT_VER);
   // make the consent banner match the page language + name what consent enables (GA + WolfieEye).
   // Idempotent: strip any previously-injected data-lang/data-text first, otherwise each rebuild
   // stacks another duplicate attribute on the consent <script>. (These attrs live only on that tag.)
