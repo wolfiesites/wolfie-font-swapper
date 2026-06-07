@@ -21,6 +21,18 @@ const LANGS = global.window.WFS_LANGS.map(l => l.code);  // ['en','pl',...]
 
 const SW = { en:'fonts', pl:'czcionki', fr:'polices', de:'Schriften', es:'fuentes', uk:'шрифти', ru:'шрифты', ro:'fonturi', it:'caratteri' };
 const LOCALE = { en:'en_US', pl:'pl_PL', fr:'fr_FR', de:'de_DE', es:'es_ES', uk:'uk_UA', ru:'ru_RU', ro:'ro_RO', it:'it_IT' };
+// Consent banner text (per language) — names what consent enables (WolfieEye + Google Analytics).
+const BANNER = {
+  en: 'We use analytics — WolfieEye (cookieless) and Google Analytics — only with your consent. Allow to enable them; a cookie remembers your choice.',
+  pl: 'Używamy analityki — WolfieEye (bez ciasteczek) i Google Analytics — tylko za Twoją zgodą. Zezwól, aby włączyć; ciasteczko zapamięta Twój wybór.',
+  fr: "Nous utilisons des analyses — WolfieEye (sans cookies) et Google Analytics — uniquement avec votre consentement. Autorisez pour les activer ; un cookie mémorise votre choix.",
+  de: 'Wir nutzen Analyse — WolfieEye (cookielos) und Google Analytics — nur mit Ihrer Einwilligung. Zulassen zum Aktivieren; ein Cookie merkt sich Ihre Wahl.',
+  es: 'Usamos analítica — WolfieEye (sin cookies) y Google Analytics — solo con tu consentimiento. Permite para activarla; una cookie recuerda tu elección.',
+  uk: "Ми використовуємо аналітику — WolfieEye (без cookie) та Google Analytics — лише за вашою згодою. Дозвольте, щоб увімкнути; cookie запам'ятає ваш вибір.",
+  ru: 'Мы используем аналитику — WolfieEye (без cookie) и Google Analytics — только с вашего согласия. Разрешите, чтобы включить; cookie запомнит ваш выбор.',
+  ro: 'Folosim analiză — WolfieEye (fără cookie-uri) și Google Analytics — doar cu consimțământul dvs. Permiteți pentru a o activa; un cookie reține alegerea.',
+  it: 'Usiamo analisi — WolfieEye (senza cookie) e Google Analytics — solo con il tuo consenso. Consenti per attivarle; un cookie ricorda la tua scelta.',
+};
 
 const homeTpl = fs.readFileSync(path.join(SITE, 'index.html'), 'utf8');
 const policyTpl = fs.readFileSync(path.join(__dirname, 'policy.html'), 'utf8');
@@ -64,8 +76,15 @@ function render(tpl, kind, l, title, desc){
   h = h.replace('</head>', headBlock(kind, l, title, desc) + '\n</head>');
   // absolute asset paths so sub-folders resolve correctly
   h = h.replace(/\.\/assets\//g, '/assets/');
-  // make the consent banner match the page language (en relies on auto-detect)
-  if (l !== 'en') h = h.replace('data-domain="wfs.wolfiesites.com"', `data-domain="wfs.wolfiesites.com" data-lang="${l}"`);
+  // make the consent banner match the page language + name what consent enables (GA + WolfieEye).
+  // Idempotent: strip any previously-injected data-lang/data-text first, otherwise each rebuild
+  // stacks another duplicate attribute on the consent <script>. (These attrs live only on that tag.)
+  {
+    h = h.replace(/\s+data-lang="[^"]*"/g, '').replace(/\s+data-text="[^"]*"/g, '');
+    const bt = (BANNER[l] || BANNER.en).replace(/"/g, '&quot;');
+    const extra = (l !== 'en' ? ` data-lang="${l}"` : '') + ` data-text="${bt}"`;
+    h = h.replace('data-domain="wfs.wolfiesites.com"', `data-domain="wfs.wolfiesites.com"${extra}`);
+  }
   return h;
 }
 

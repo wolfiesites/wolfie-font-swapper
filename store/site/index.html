@@ -3,6 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Google Analytics — loaded ONLY after the visitor allows analytics (consent
+     banner), and NEVER under Do-Not-Track / Global Privacy Control. Matches the
+     site's cookie policy; GA sets no cookies until consent is granted. -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  (function(){
+    var GA_ID='G-BZJ3T8C7CS', loaded=false;
+    function dnt(){ return navigator.doNotTrack=='1'||window.doNotTrack=='1'||navigator.msDoNotTrack=='1'||navigator.globalPrivacyControl===true; }
+    function granted(){
+      try{ if(window.wolfieConsent){ var s=window.wolfieConsent('status'); if(s) return s==='granted'; } }catch(e){}
+      return /(?:^|;\s*)wfs_consent=1(?:;|$)/.test(document.cookie);
+    }
+    function loadGA(){
+      if(loaded||dnt()) return; loaded=true;
+      gtag('js', new Date());
+      gtag('config', GA_ID);
+      var s=document.createElement('script'); s.async=true;
+      s.src='https://www.googletagmanager.com/gtag/js?id='+GA_ID;
+      document.head.appendChild(s);
+    }
+    if(dnt()) return;
+    if(granted()){ loadGA(); return; }
+    var t=setInterval(function(){ if(loaded){clearInterval(t);return;} if(granted()){ clearInterval(t); loadGA(); } }, 800);
+  })();
+</script>
 <meta name="theme-color" content="#0a0c11">
 <title>Wolfie Font Swapper — preview &amp; swap fonts on any page</title>
 <meta name="description" content="A Chrome extension to preview and swap fonts live on any website — Google Fonts + system fonts, presets, per-domain rules, and copyable CSS/SCSS/JS. No tracking.">
@@ -61,7 +87,7 @@ header.nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);
   background:rgba(10,12,17,.6);border-bottom:1px solid transparent;transition:border-color .3s,background .3s}
 header.nav.scrolled{border-color:var(--border);background:rgba(10,12,17,.82)}
 .nav-in{display:flex;align-items:center;gap:18px;height:66px}
-.brand{display:flex;align-items:center;gap:11px;font-family:"Audiowide";font-size:17px;color:#fff}
+.brand{display:flex;align-items:center;gap:11px;font-family:"Audiowide";font-size:17px;line-height:15px;color:#fff}
 .brand img{width:30px;height:30px;border-radius:8px}
 .nav-links{display:flex;gap:24px;margin-left:auto}
 .nav-links a{color:var(--muted);font-size:15px;font-weight:500;transition:color .2s}
@@ -162,6 +188,8 @@ section{padding:74px 0;position:relative}
 .demo-p{font-size:16px;line-height:1.7;color:#3a4150;margin:0;transition:font-family .2s ease}
 /* faux popup — extension palette (pink #ff3dae primary + cyan) */
 .demo-pop{--pp:#ff3dae;--pc:#00e0ff;background:#1e1e24;color:#f2f2f5;display:flex;flex-direction:column;border-left:1px solid #000}
+.demo-pop-real{padding:0;background:#15181b;overflow:hidden}
+.demo-pop-real img{display:block;width:100%;height:100%;object-fit:cover;object-position:top center}
 .dp-head{display:flex;align-items:center;gap:9px;font-family:"Audiowide",sans-serif;font-size:13px;color:#fff;
   padding:11px 13px;background:linear-gradient(90deg,var(--pc),var(--pp))}
 .dp-head img{width:24px;height:24px;border-radius:6px;background:rgba(0,0,0,.25)}
@@ -202,6 +230,16 @@ section{padding:74px 0;position:relative}
   box-shadow:0 12px 30px -12px #000;transition:transform .2s,background .2s,border-color .2s}
 .to-top:hover{transform:translateY(-2px);border-color:var(--cyan);background:rgba(20,20,26,.96)}
 .to-top.show{display:flex}
+
+/* cookie settings — reopen consent banner (fixed bottom-left) */
+.cookie-fab{position:fixed;left:18px;bottom:18px;z-index:90;display:inline-flex;align-items:center;gap:7px;
+  padding:9px 13px;border-radius:999px;border:1px solid var(--border2);background:rgba(20,20,26,.82);
+  backdrop-filter:blur(8px);color:var(--cyan);font:600 13px/1 inherit;cursor:pointer;
+  box-shadow:0 12px 30px -12px #000;transition:transform .2s,background .2s,border-color .2s}
+.cookie-fab:hover{transform:translateY(-2px);border-color:var(--cyan);background:rgba(20,20,26,.96)}
+/* hide the button while the consent banner is open (both sit bottom-left) */
+body:has(#we-consent) .cookie-fab{opacity:0;pointer-events:none;transform:translateY(8px)}
+@media(max-width:560px){.cookie-fab span{display:none}.cookie-fab{padding:9px}}
 
 /* lightbox */
 .lightbox{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;
@@ -344,26 +382,8 @@ footer{border-top:1px solid var(--border);padding:46px 0 60px;margin-top:30px}
           <h3 class="demo-h" id="demoH" data-i18n="demo_h">Typography you can feel</h3>
           <p class="demo-p" id="demoP" data-i18n="demo_p">Change the heading and the body text independently — pick a display face for titles and a comfortable reading face for paragraphs, then watch them pair up live, right on the page. This is exactly what Wolfie Font Swapper does on any site you visit.</p>
         </div>
-        <aside class="demo-pop" id="demoPop" aria-label="Wolfie Font Swapper popup demo">
-          <div class="dp-head"><img src="/assets/logo.png" alt=""> Wolfie Font Swapper</div>
-          <div class="dp-body">
-            <div class="dp-field">
-              <span class="dp-label" data-i18n="dp_headings">Headings</span>
-              <div class="dd" data-target="h">
-                <button class="dd-btn" type="button"><span class="dd-val">Playfair Display</span><span class="dd-chev">▾</span></button>
-                <ul class="dd-list"></ul>
-              </div>
-            </div>
-            <div class="dp-field">
-              <span class="dp-label" data-i18n="dp_paragraph">Paragraph</span>
-              <div class="dd" data-target="p">
-                <button class="dd-btn" type="button"><span class="dd-val">Merriweather</span><span class="dd-chev">▾</span></button>
-                <ul class="dd-list"></ul>
-              </div>
-            </div>
-            <div class="dp-chips"><span class="dp-chip on">Bold</span><span class="dp-chip">M</span><span class="dp-chip on">1.8</span><span class="dp-chip">Aa</span></div>
-            <button class="dp-copy" type="button">⧉ Copy CSS</button>
-          </div>
+        <aside class="demo-pop demo-pop-real" aria-label="Wolfie Font Swapper popup">
+          <img src="/assets/real-widget.png" alt="Wolfie Font Swapper popup" loading="lazy">
         </aside>
       </div>
       <div class="mock-note" data-i18n="mock_note">Mockup — the actual popup may vary slightly by version.</div>
@@ -569,8 +589,11 @@ footer{border-top:1px solid var(--border);padding:46px 0 60px;margin-top:30px}
 
 <!-- WolfieEye consent drop-in (banner + cookie + DNT/GPC + tracker gate) -->
 <script defer src="https://eye.wolfiecloud.com/consent.js"
-  data-domain="wfs.wolfiesites.com" data-cookie="wfs_consent"
-  data-position="bottom" data-policy="/policy/"></script>
+  data-domain="wfs.wolfiesites.com" data-text="We use analytics — WolfieEye (cookieless) and Google Analytics — only with your consent. Allow to enable them; a cookie remembers your choice." data-cookie="wfs_consent"
+  data-position="bottom-left" data-policy="/policy/"></script>
+
+<button id="cookieBtn" class="cookie-fab" type="button" aria-label="Cookie settings" title="Cookie settings"
+  onclick="window.wolfieConsent&amp;&amp;window.wolfieConsent('reset')">🍪 <span data-i18n="foot_cookies">Cookies</span></button>
 
 <button id="toTop" class="to-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
 
@@ -674,38 +697,11 @@ if(STORE_URL){
   });
 }
 
-// interactive faux-popup demo: animated dropdowns drive the page live,
-// and an auto-loop demonstrates the workflow until the user takes over.
+// hero demo: live font-swap on the demo page (the popup is the real screenshot)
 (function(){
-  const pop=document.getElementById('demoPop'); if(!pop) return;
   const H=document.getElementById('demoH'), P=document.getElementById('demoP');
-  const fonts=[
-    ['Playfair Display','serif','Free'],['Merriweather','serif','Free'],
-    ['Montserrat','sans-serif','Free'],['Poppins','sans-serif','Free'],
-    ['Space Grotesk','sans-serif','Free'],['Rubik','sans-serif','Free'],
-    ['Lobster','cursive','Free'],['Bebas Neue','sans-serif','Free'],
-    ['Georgia','serif','Web-safe'],['Helvetica','sans-serif','Premium']
-  ];
-  const dds={};
-  let stopped=false;
-  const closeAll=()=>pop.querySelectorAll('.dd').forEach(d=>d.classList.remove('open'));
-  const stop=()=>{ stopped=true; };
-  pop.querySelectorAll('.dd').forEach(dd=>{
-    const t=dd.dataset.target, list=dd.querySelector('.dd-list'),
-          btn=dd.querySelector('.dd-btn'), val=dd.querySelector('.dd-val');
-    list.innerHTML=fonts.map(f=>'<li class="dd-item" data-f="'+f[0]+'" data-fam="'+f[1]+'" style="font-family:&quot;'+f[0]+'&quot;,'+f[1]+'">'+f[0]+'<span class="dd-tag '+f[2].toLowerCase().replace(/[^a-z]/g,'')+'">'+f[2]+'</span></li>').join('');
-    dds[t]={dd,list,val};
-    btn.addEventListener('click',e=>{ e.stopPropagation(); stop(); const o=dd.classList.contains('open'); closeAll(); if(!o) dd.classList.add('open'); });
-    list.querySelectorAll('.dd-item').forEach(li=>{
-      li.addEventListener('click',()=>{ stop(); choose(t,li.dataset.f,li.dataset.fam); dd.classList.remove('open'); });
-    });
-  });
-  function mark(t,name){ dds[t].list.querySelectorAll('.dd-item').forEach(li=>li.classList.toggle('sel',li.dataset.f===name)); }
-  function choose(t,name,fam){ dds[t].val.textContent=name; mark(t,name); (t==='h'?H:P).style.fontFamily='"'+name+'", '+fam; }
-  choose('h','Playfair Display','serif'); choose('p','Merriweather','serif');
-  document.addEventListener('click',e=>{ if(!pop.contains(e.target)) closeAll(); });
-
-  // auto demo
+  if(!H||!P) return;
+  H.style.fontFamily='"Playfair Display", serif'; P.style.fontFamily='"Merriweather", serif';
   if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const seq=[
     ['h','Montserrat','sans-serif'],['p','Rubik','sans-serif'],
@@ -714,16 +710,7 @@ if(STORE_URL){
     ['h','Playfair Display','serif'],['p','Merriweather','serif']
   ];
   let k=0;
-  (function step(){
-    if(stopped) return;
-    const [t,name,fam]=seq[k%seq.length]; k++;
-    const dd=dds[t].dd; closeAll(); dd.classList.add('open');
-    setTimeout(()=>{ if(!stopped) mark(t,name); },420);
-    setTimeout(()=>{ if(!stopped) choose(t,name,fam); },820);
-    setTimeout(()=>{ if(!stopped) dd.classList.remove('open'); },1500);
-    setTimeout(step,2400);
-  })();
-  setTimeout(()=>{ /* start after first paint */ },0);
+  setInterval(()=>{ const [t,name,fam]=seq[k%seq.length]; k++; (t==='h'?H:P).style.fontFamily='"'+name+'", '+fam; }, 2000);
 })();
 
 // lightbox for showcase images

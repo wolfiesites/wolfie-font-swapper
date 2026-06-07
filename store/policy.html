@@ -3,6 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Google Analytics — loaded ONLY after the visitor allows analytics (consent
+     banner), and NEVER under Do-Not-Track / Global Privacy Control. -->
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  (function(){
+    var GA_ID='G-BZJ3T8C7CS', loaded=false;
+    function dnt(){ return navigator.doNotTrack=='1'||window.doNotTrack=='1'||navigator.msDoNotTrack=='1'||navigator.globalPrivacyControl===true; }
+    function granted(){
+      try{ if(window.wolfieConsent){ var s=window.wolfieConsent('status'); if(s) return s==='granted'; } }catch(e){}
+      return /(?:^|;\s*)wfs_consent=1(?:;|$)/.test(document.cookie);
+    }
+    function loadGA(){
+      if(loaded||dnt()) return; loaded=true;
+      gtag('js', new Date());
+      gtag('config', GA_ID);
+      var s=document.createElement('script'); s.async=true;
+      s.src='https://www.googletagmanager.com/gtag/js?id='+GA_ID;
+      document.head.appendChild(s);
+    }
+    if(dnt()) return;
+    if(granted()){ loadGA(); return; }
+    var t=setInterval(function(){ if(loaded){clearInterval(t);return;} if(granted()){ clearInterval(t); loadGA(); } }, 800);
+  })();
+</script>
 <meta name="robots" content="index,follow">
 <title>Privacy Policy — Wolfie Font Swapper</title>
 <meta name="description" content="Privacy policy for the Wolfie Font Swapper Chrome extension. No tracking, no data collection; local storage only.">
@@ -116,19 +141,22 @@
 
   <h2 data-i18n="pp_h_share">Data sharing &amp; sale</h2>
   <div class="card">
-    <p style="margin:0" data-i18n="pp_share">We do not sell or share data. The only data leaving your device is (1) the
-    standard Google Fonts requests your browser makes to Google when you preview a font, and (2) — only if
-    you opt into Pro — your email/payment to ExtensionPay/Stripe.</p>
+    <p style="margin:0" data-i18n="pp_share">We do not sell your data. The only data that leaves your device is: (1) the
+    standard Google Fonts requests your browser makes to Google when you preview a font; (2) — only if you allow
+    analytics on this website — usage data sent to Google Analytics and WolfieEye; and (3) — only if you opt into
+    Pro — your email and payment details to ExtensionPay/Stripe. The extension itself sends nothing. See
+    <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a> for how
+    Google processes Analytics data.</p>
   </div>
 
   <h2 data-i18n="pp_h_site">This website</h2>
   <div class="card">
-    <p style="margin:0" data-i18n="pp_site">This page (the website, <strong>not the extension</strong>) can use
-    <strong>WolfieEye</strong> — privacy-friendly, <strong>cookieless</strong> analytics — but only
+    <p style="margin:0" data-i18n="pp_site">This page (the website, <strong>not the extension</strong>) uses
+    privacy-first analytics — <strong>WolfieEye</strong> (cookieless) and <strong>Google Analytics</strong> — but only
     <strong>after you allow it</strong>, and <strong>never</strong> if your browser sends a Do-Not-Track
-    (or Global Privacy Control) signal. It sets no tracking cookies (only a single cookie remembering your
-    choice), collects no personal data, and does no cross-site tracking. This has no effect on the
-    extension's behaviour described above.</p>
+    (or Global Privacy Control) signal. Until you consent, no analytics cookies are set. If you allow it, Google
+    Analytics may set its own cookies and send usage data to Google, while WolfieEye stays cookieless. You can
+    decline, and your choice is respected. This has no effect on the extension, which tracks nothing.</p>
   </div>
 
   <h2>Limited Use &amp; trademarks</h2>
