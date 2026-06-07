@@ -168,8 +168,10 @@ publish:site:
         exit 0
       fi
     - mkdir -p ~/.ssh && printf '%s\n' "$WFS_DEPLOY_SSH_KEY" > ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+    # --exclude '.well-known/' so --delete never wipes ACME / SSL challenge files
+    # that the host (HestiaCP) keeps in the vhost docroot.
     - >
-      rsync -az --delete
+      rsync -az --delete --exclude='.well-known/'
       -e "ssh -i ~/.ssh/id_deploy -o StrictHostKeyChecking=${WFS_DEPLOY_STRICT:-no} ${WFS_DEPLOY_SSH_OPTS:-}"
       store/site/ "$WFS_DEPLOY_TARGET"
     - echo "✓ Strona wgrana: store/site/ → $WFS_DEPLOY_TARGET"
