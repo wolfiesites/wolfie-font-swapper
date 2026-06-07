@@ -592,8 +592,32 @@ footer{border-top:1px solid var(--border);padding:46px 0 60px;margin-top:30px}
   data-domain="wfs.wolfiesites.com" data-text="We use analytics — WolfieEye (cookieless) and Google Analytics — only with your consent. Allow to enable them; a cookie remembers your choice." data-cookie="wfs_consent"
   data-position="bottom-left" data-policy="/policy/"></script>
 
-<button id="cookieBtn" class="cookie-fab" type="button" aria-label="Cookie settings" title="Cookie settings"
-  onclick="window.wolfieConsent&amp;&amp;window.wolfieConsent('reset')">🍪 <span data-i18n="foot_cookies">Cookies</span></button>
+<button id="cookieBtn" class="cookie-fab" type="button" aria-label="Cookie settings" title="Cookie settings">🍪 <span data-i18n="foot_cookies">Cookies</span></button>
+<script>
+// Re-open the WolfieEye consent banner. Robust: wired via addEventListener, and
+// if reset() doesn't mount the banner (drop-in not ready), clear the choice
+// cookie + reload so it re-prompts on next load.
+(function () {
+  var b = document.getElementById('cookieBtn');
+  if (!b) return;
+  b.addEventListener('click', function () {
+    try {
+      if (window.wolfieConsent) {
+        window.wolfieConsent('reset');
+        setTimeout(function () {
+          if (!document.getElementById('we-consent')) {
+            document.cookie = 'wfs_consent=;path=/;max-age=0;SameSite=Lax';
+            location.reload();
+          }
+        }, 150);
+        return;
+      }
+    } catch (e) { /* fall through */ }
+    document.cookie = 'wfs_consent=;path=/;max-age=0;SameSite=Lax';
+    location.reload();
+  });
+})();
+</script>
 
 <button id="toTop" class="to-top" type="button" aria-label="Back to top" title="Back to top">↑</button>
 
